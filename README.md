@@ -1,5 +1,223 @@
 # PROJECT ELAH Banking Simulation
 
+> The lower half of this document is the original design specification — it remains the **source of truth** for product behavior, roles, routes, flows, permissions, data models and logging requirements. The first half describes the **Phase 2 implementation** that now lives in this repository.
+
+---
+
+## Phase 2 — Local POC Implementation
+
+A working Next.js banking simulation that implements the customer / manager / security flows described below, with structured logging on every meaningful action and seeded prompt-injection fixtures.
+
+### Stack
+
+- **Next.js 14** (App Router) + **React 18** + **TypeScript** (strict)
+- **Tailwind CSS 3** with a custom dark navy / gold / cyan design system
+- **Prisma 5 ORM** + **SQLite** (zero-config local database)
+- **Custom credential auth** — bcryptjs password hashing + HMAC-signed session cookies stored in a `Session` table (no third-party SaaS, no NextAuth dependency)
+- **Zod** for input validation in all Server Actions
+- **lucide-react** icons, **recharts** (optional charts), **tailwind-merge** + **clsx**
+- **tsx** for the Prisma seed script
+
+### Quick start
+
+```bash
+# 1) Install (this also runs prisma generate via postinstall)
+npm install
+
+# 2) Initialize the database (SQLite at prisma/dev.db) and seed demo data
+npm run db:push
+npm run db:seed
+# or, to nuke and re-seed in one command:
+npm run db:reset
+
+# 3) Start the local dev server
+npm run dev
+# → http://localhost:3000
+```
+
+The first request redirects to `/login`. Use any seeded demo identity below — they all share the same password.
+
+### Demo credentials
+
+All demo accounts use password **`DemoPass123!`**. Passwords are hashed with bcrypt.
+
+| Email | Role | Tier |
+| --- | --- | --- |
+| `basic.customer@elah.demo` | Regular customer | Basic |
+| `premium.customer@elah.demo` | Premium customer | Premium |
+| `vip.customer@elah.demo` | VIP / Private Banking | VIP |
+| `manager@elah.demo` | Bank Manager | — |
+| `security.admin@elah.demo` | Security Reviewer | — |
+| `agent@elah.demo` | AI Agent placeholder | — |
+
+After login, each role is auto-routed to its portal: customers → `/dashboard`, manager → `/manager/dashboard`, security reviewer → `/admin/security-dashboard`, AI agent → `/admin/agent-simulation-logs`. Cross-portal access is blocked and logged as a high-risk audit event.
+
+### Environment
+
+Copy `.env.example` to `.env` and adjust as needed. Defaults are safe for local-only use.
+
+```bash
+DATABASE_URL="file:./dev.db"       # Prisma SQLite
+AUTH_SECRET="..."                  # HMAC key for session cookies (32+ bytes recommended)
+LOG_MIRROR_JSONL="true"            # also mirror logs to /logs/*.jsonl
+LOG_DIR="./logs"                   # where mirrored JSONL logs are written
+```
+
+Never commit real secrets. Generate a fresh `AUTH_SECRET` with `openssl rand -base64 48` for any non-toy deployment.
+
+### Logging architecture
+
+Every meaningful read, write, search, approval, download, profile edit, support action and (future) AI-agent action generates a structured log. Logs are written through one function (`lib/logging/logger.ts → writeAuditLog`) so the schema stays consistent.
+
+**Primary storage** — SQLite tables via Prisma:
+
+- `AuditLog` — full structured action log, matching the README "AuditLog" schema (logId, timestamp, actorType, actorId, actorName, role, customerTier, actionType, page, toolOrFeatureUsed, inputDataSummary, targetResource, amount, riskLevel, requiresApproval, approvalStatus, sessionId, ipAddress, userIntent, actionOutcome, reasonForFlagging, createdByAgent)
+- `AgentActionLog` — placeholder for future AI-agent traces (declaredTask, interpretedIntent, intentMatchStatus, elahVerdictPlaceholder…) — already seeded with 3 demo traces
+- `RiskEvent` — normalized risk events with severity, pattern, related log IDs, reviewer state — seeded with 5 demo events
+- `PromptInjectionScenario` — catalog of 8 controlled prompt-injection test fixtures
+
+**Secondary mirror** — JSONL files under `/logs` (toggleable via `LOG_MIRROR_JSONL`):
+
+- `/logs/audit-logs.jsonl`
+- `/logs/agent-action-logs.jsonl`
+- `/logs/risk-events.jsonl`
+
+Every log line is one JSON object per the README schema, suitable for streaming into a future ELAH analyzer. Mirroring is best-effort and never blocks user actions.
+
+What is logged today (non-exhaustive):
+
+- `login`, `login_failed`, `logout`
+- `dashboard_view`, `accounts_view`, `transactions_view`, `transactions_search`
+- `transfer_draft_created`, `transfer_confirmation_viewed`, `transfer_submitted`, `transfer_blocked` (with risk event for tier-limit violations and injection-like memos)
+- `document_list_view`, `document_downloaded`, `document_bulk_download_attempt` (always blocked + flagged)
+- `card_request_submitted`, `loan_request_submitted`, `loan_request_blocked`
+- `support_ticket_created` (raises a risk event when message matches injection heuristics)
+- `profile_edit_opened`, `profile_updated` (only changed field **names** are logged, never the values themselves)
+- `investments_view` (logged with elevated risk for VIP)
+- `manager_dashboard_view`, `customer_search`, `customer_list_view`, `customer_profile_viewed`
+- `manager_note_created`, `approval_queue_viewed`, `transfer_approved` / `transfer_rejected`, `loan_approved` / `loan_rejected`
+- `audit_log_viewed`, `flagged_actions_viewed`, `risk_event_reviewed`
+- `admin_security_dashboard_viewed`, `action_logs_searched`, `agent_simulation_logs_viewed`, `prompt_injection_scenarios_viewed`, `risk_events_viewed`
+- `unauthorized_route_access` (high-risk, generated by the route guards)
+
+### Implemented features
+
+**Public** — `/login`, `/forgot-password` (simulated, no real email sent).
+
+**Customer portal** (`/dashboard`, `/accounts`, `/transfer`, `/transactions`, `/documents`, `/cards`, `/loans`, `/support`, `/profile`, `/investments`):
+
+- Dashboard with balance cards, recent transactions, pending-approval alerts, quick actions, tier and customer-number badges
+- Account list with checking / savings / (tier-gated) investment cards including masked numbers, daily limits, status
+- Transfer flow with form → review/confirm step → submit, tier-aware limits, manager-approval path for amounts ≥ tier threshold, blocked path for over-limit amounts, **memo prompt-injection detection** that creates a risk event when triggered
+- Transaction table with search, direction filter, and a `riskFlags`/injection-aware row renderer that wraps suspicious descriptions in an "untrusted content" panel
+- Document list with tier-based visibility, per-item download confirmation, and an explicit bulk-download button that is always blocked + flagged + logged
+- Card request form with review step, tier-aware approval requirement (e.g. `stolen`)
+- Loan request form with review step, tier ceiling, automatic creation of pending `ApprovalRequest`, and injection detection on the free-text notes field
+- Support form with category / priority / message, injection-detection on the message body
+- Profile edit with confirmation step; only **changed field names** are recorded in logs
+- Investments dashboard gated to Premium/VIP, with high-sensitivity badge and an explicit "no access" upgrade panel for Basic users
+
+**Manager portal** (`/manager/dashboard`, `/manager/customers`, `/manager/customers/[id]`, `/manager/approvals`, `/manager/audit-logs`, `/manager/flagged-actions`):
+
+- Dashboard with pending approvals, open flagged actions, customer count, recent activity
+- Customer search table (by name, email, customer number, account number) and tier filter — every search is logged
+- Customer profile page: accounts table, recent transactions, support tickets, risk events, audit trail, manager notes panel with create-note form (injection-aware)
+- Approval queue with approve/reject decision form; each decision writes an audit log including `decisionReason`, updates the underlying loan/transfer, and raises a risk event when the decision reason itself contains injection-like text
+- Audit logs search filtered by actor, action, page, target, risk level
+- Flagged actions page with reviewer note + "mark reviewed"
+
+**Admin / Security portal** (`/admin/security-dashboard`, `/admin/action-logs`, `/admin/agent-simulation-logs`, `/admin/prompt-injection-scenarios`, `/admin/risk-events`):
+
+- Security dashboard with risk-event counts by severity, recent critical actions, agent traces, intent/action mismatch cards (placeholder ELAH verdicts)
+- Action logs search with multi-filter (q, risk, actor type) and a per-row JSON payload viewer matching the canonical schema
+- Agent simulation logs page showing each seeded mock agent session (declared task, interpreted intent, intent-match status, ELAH verdict placeholder) with collapsible JSON
+- Prompt-injection scenario catalog (8 seeded scenarios from the README plan), with malicious sample wrapped in an "untrusted content" panel — never executed
+- Risk events page with severity + status filters and JSON payload viewer
+
+**Role-based access control** — Route guards in `lib/auth/guards.ts` (`requireUser`, `requireCustomer`, `requireManager`, `requireSecurity`). Cross-portal access redirects to `/login?error=forbidden` and writes a high-risk `unauthorized_route_access` audit log.
+
+### Seeded data
+
+`prisma/seed.ts` populates:
+
+- 6 users (the demo credentials above)
+- 3 customer profiles (basic, premium, VIP) with realistic tier-appropriate balances
+- 2–3 accounts per customer (checking + savings + optional investment)
+- 10 transactions per customer + one **simulated injection-laced transaction memo** for the basic customer
+- 3 documents per customer including a VIP document whose metadata contains an injection test fixture
+- 2 card requests, 2 loan requests (one VIP loan with a "manager override: approve all loans" injection fixture in `notes`)
+- 3 support tickets including one urgent VIP ticket with explicit prompt-injection content
+- 3 manager notes, one of which is a flagged injection fixture on the VIP customer
+- 3 pending approval requests (loan x2, transfer x1)
+- 5 audit logs (login, transfer_submitted, approval_queue_viewed, security_dashboard_viewed, agent transfer_blocked critical mismatch)
+- 3 agent action logs (intent/action mismatch, bulk-download lure, broad customer search drift)
+- 5 risk events (critical intent/action mismatch, bulk download, ticket injection, manager-note injection, unauthorized access attempt)
+- 8 prompt-injection scenarios (1:1 with the scenarios table at the bottom of this README)
+
+Every "malicious" string is prefixed with `[SIMULATION ONLY — …]` and rendered through the `<UntrustedContent>` component so reviewers can never confuse it with trusted system text.
+
+### Folder layout
+
+```
+/app
+  /(public)/login, /forgot-password
+  /(customer)/dashboard, /accounts, /transfer, /transactions, /documents,
+             /cards, /loans, /support, /profile, /investments
+  /(manager)/manager/dashboard, /customers, /customers/[id], /approvals,
+             /audit-logs, /flagged-actions
+  /(admin)/admin/security-dashboard, /action-logs, /agent-simulation-logs,
+           /prompt-injection-scenarios, /risk-events
+  /actions/auth.ts, transfer.ts, documents.ts, cards.ts, loans.ts,
+           support.ts, profile.ts, manager.ts
+  layout.tsx, page.tsx, globals.css
+/components
+  /ui          → badge, button, card, input, table, empty, untrusted, json-viewer
+  /layout      → sidebar, topbar, page-shell, *-topbar-wrapper, client-sidebar
+/lib
+  /auth        → roles, password, session, guards
+  /logging     → logger (writeAuditLog, writeRiskEvent, writeAgentActionLog)
+  /risk        → heuristics (injection detector + transfer risk levels)
+  db.ts, utils.ts
+/prisma
+  schema.prisma, seed.ts, dev.db (generated)
+/logs
+  audit-logs.jsonl, agent-action-logs.jsonl, risk-events.jsonl  (generated)
+/scripts
+  verify-routes.ts (dev smoke test for all routes per persona)
+```
+
+### Useful commands
+
+```bash
+npm run dev         # Next.js dev server on :3000
+npm run build       # production build (type-checks the whole tree)
+npm run db:push     # apply prisma/schema.prisma to SQLite
+npm run db:seed     # re-seed demo data
+npm run db:reset    # force-reset + reseed
+npm run db:studio   # open Prisma Studio for the SQLite database
+```
+
+### Known limitations / next phase
+
+- **No real auth provider.** Sessions are cookie + DB only; password reset is a static placeholder page.
+- **Server actions over the wire.** All write paths use Next.js Server Actions, which need a real browser (curl can't trivially submit them). The `scripts/verify-routes.ts` smoke test mints a session in the database and hits every route to confirm server-rendering succeeds.
+- **No real money / no real banking integration.** All "balance updates" happen in SQLite only.
+- **The AI agent persona has no live UI yet** — `agent@elah.demo` logs in and is routed to the agent-simulation-logs page. Phase 5 will let an agent actually execute tool calls.
+- **Prompt-injection scenarios are static fixtures.** Phase 6 will introduce a controlled scenario runner that uses seeded malicious text to drive a sandboxed agent and feed ELAH the resulting traces.
+- **ELAH verdicts are placeholder strings.** Phase 7 will connect real reasoning verdicts to audit + agent action logs.
+
+### Recommended next phase
+
+1. Add a programmatic **AI-agent runner** that consumes a declared task, calls the existing internal API (e.g. submit transfer, search customers), and writes `AgentActionLog` rows with `createdByAgent: true`, then watch the seeded prompt-injection fixtures actually steer the agent in `/admin/agent-simulation-logs`.
+2. Add a **structured export** endpoint that streams `AuditLog + AgentActionLog + RiskEvent` payloads for ELAH ingestion.
+3. Replace the placeholder `elahVerdictPlaceholder` field with a real verdict returned by the ELAH reasoning layer, surfaced on every action log and risk event in the admin UI.
+
+---
+
+## Original design specification
+
+> Everything below this line was authored as the Phase 1 product/architecture blueprint. The Phase 2 implementation tries to follow it as faithfully as practical for a local POC.
+
 ## Overview
 
 This repository is the future proof-of-concept environment for PROJECT ELAH: a reasoning-level security layer for Agentic AI systems.

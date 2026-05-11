@@ -1,0 +1,2 @@
+# Log files (audit-logs.jsonl, agent-action-logs.jsonl, risk-events.jsonl) are
+# written here at runtime when LOG_MIRROR_JSONL=true.
