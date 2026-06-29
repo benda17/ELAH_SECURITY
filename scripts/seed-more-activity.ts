@@ -1,28 +1,35 @@
 /**
  * seed-more-activity.ts
  *
- * Generates additional banking activity for the customers already in the
- * database without wiping anything. Use this to "make the users keep
- * doing things" once `seed-from-dataset.ts` has set up the baseline.
+ * Appends additional banking activity to the database without wiping
+ * anything. There are two modes:
  *
- * It learns each customer's action mix from the published behavior dataset
- * (matching by customerNumber → cust_XXXX), then samples new actions from
- * that customer's own template (or the global customer pool as fallback)
- * and re-times them as fresh sessions in a recent window. Money-event
- * actions get matching Transaction rows pointed at the customer's checking
- * account.
+ *   1. EXACT-COUNT mode  (recommended)
+ *      Pass a positive integer and the script will produce exactly that
+ *      many audit-log rows, sampled from the published JSON dataset.
+ *      The sample naturally inherits the dataset's statistics:
+ *        - which customer performed it (per-customer share)
+ *        - what action was taken (per-action-type share)
+ *        - which hour of the day (hour-of-day distribution)
+ *        - which device/page/intent (joint distribution per row)
+ *      Money-event actions also produce matching Transaction rows.
  *
- * Tunables (all optional environment variables):
+ *        npm run seed:more -- 5000          # exactly 5,000 actions
+ *        TOTAL_ACTIONS=5000 npm run seed:more
+ *        npx tsx scripts/seed-more-activity.ts 5000
  *
- *   EXTEND_DAYS                – window of recent days to spread activity over.
- *                                Default 14. Use 1 for "burst of today's traffic".
- *   SESSIONS_PER_CUSTOMER      – number of session bursts per customer.
- *                                Default 12.
- *   ACTIONS_PER_SESSION_MIN    – lower bound on actions in each burst. Default 3.
- *   ACTIONS_PER_SESSION_MAX    – upper bound on actions in each burst. Default 8.
+ *   2. SESSION-BURST mode (legacy)
+ *      If no count is given, each customer performs
+ *        SESSIONS_PER_CUSTOMER * (ACTIONS_PER_SESSION ± noise)
+ *      actions wrapped in login/logout. Useful when you want a fixed
+ *      number of sessions per user instead of a fixed total.
  *
- * Run with:   npm run seed:more
- *      (or)  EXTEND_DAYS=7 SESSIONS_PER_CUSTOMER=20 npm run seed:more
+ *        npm run seed:more
+ *        SESSIONS_PER_CUSTOMER=20 npm run seed:more
+ *
+ * Other tunables (env, both modes):
+ *   EXTEND_DAYS                window of recent days to spread activity over.
+ *                              Default 14. Use 1 for "burst of today's traffic".
  */
 
 import { PrismaClient } from "@prisma/client";
@@ -37,6 +44,10 @@ const DATASET_PATH = join(
   "elah_banking_human_behavior_training_dataset_v2.json",
 );
 const CHUNK_SIZE = 1000;
+
+const cliArg = process.argv[2];
+const TOTAL_ACTIONS_RAW = process.env.TOTAL_ACTIONS ?? cliArg;
+const TOTAL_ACTIONS = TOTAL_ACTIONS_RAW ? Number(TOTAL_ACTIONS_RAW) : null;
 
 const EXTEND_DAYS = Number(process.env.EXTEND_DAYS ?? 14);
 const SESSIONS_PER_CUSTOMER = Number(process.env.SESSIONS_PER_CUSTOMER ?? 12);
@@ -72,6 +83,12 @@ type Dataset = {
   auditLogs: DatasetAuditLog[];
 };
 
+type DbCustomer = Awaited<
+  ReturnType<typeof prisma.customerProfile.findMany<{
+    include: { user: true; accounts: true };
+  }>>
+>[number];
+
 // ---------------------------------------------------------------------------
 // Helpers
 // ---------------------------------------------------------------------------
@@ -98,37 +115,43 @@ function randInt(lo: number, hi: number): number {
   return Math.floor(Math.random() * (hi - lo + 1)) + lo;
 }
 
-function pickWeightedHour(): number {
-  // Same shape as the public dataset: peak around lunch + early afternoon,
-  // light overnight tail, near-zero pre-dawn.
-  const buckets: Array<{ hour: number; w: number }> = [
-    { hour: 0, w: 3 }, { hour: 1, w: 4 }, { hour: 2, w: 2 }, { hour: 3, w: 2 },
-    { hour: 4, w: 1 }, { hour: 5, w: 0.3 }, { hour: 6, w: 0.1 }, { hour: 7, w: 0.1 },
-    { hour: 8, w: 0.5 }, { hour: 9, w: 1.5 }, { hour: 10, w: 9 }, { hour: 11, w: 11 },
-    { hour: 12, w: 12 }, { hour: 13, w: 10 }, { hour: 14, w: 9 }, { hour: 15, w: 8 },
-    { hour: 16, w: 7 }, { hour: 17, w: 7 }, { hour: 18, w: 3 }, { hour: 19, w: 2 },
-    { hour: 20, w: 4 }, { hour: 21, w: 3 }, { hour: 22, w: 3 }, { hour: 23, w: 4 },
-  ];
-  const total = buckets.reduce((s, b) => s + b.w, 0);
-  let r = Math.random() * total;
-  for (const b of buckets) {
-    r -= b.w;
-    if (r <= 0) return b.hour;
-  }
-  return 12;
+function randomIp(): string {
+  return `198.51.100.${randInt(10, 240)}`;
 }
 
-function sessionStartWithinWindow(): Date {
+function chunk<T>(arr: T[], size: number): T[][] {
+  const out: T[][] = [];
+  for (let i = 0; i < arr.length; i += size) out.push(arr.slice(i, i + size));
+  return out;
+}
+
+function buildWeightedHourPicker(pool: DatasetAuditLog[]): () => number {
+  const w = new Array(24).fill(0);
+  for (const log of pool) {
+    const h = new Date(log.timestamp).getUTCHours();
+    w[h] += 1;
+  }
+  const total = w.reduce((s, x) => s + x, 0) || 1;
+  return () => {
+    let r = Math.random() * total;
+    for (let h = 0; h < 24; h += 1) {
+      r -= w[h];
+      if (r <= 0) return h;
+    }
+    return 12;
+  };
+}
+
+function timestampInWindow(hourPicker: () => number): Date {
   const now = new Date();
   const dayOffset = randInt(0, EXTEND_DAYS - 1);
-  const start = new Date(now);
-  start.setDate(start.getDate() - dayOffset);
-  start.setHours(pickWeightedHour(), randInt(0, 59), randInt(0, 59), 0);
-  // Never schedule into the future on today
-  if (start.getTime() > now.getTime()) {
-    start.setTime(now.getTime() - randInt(0, 3600) * 1000);
+  const t = new Date(now);
+  t.setDate(t.getDate() - dayOffset);
+  t.setHours(hourPicker(), randInt(0, 59), randInt(0, 59), 0);
+  if (t.getTime() > now.getTime()) {
+    t.setTime(now.getTime() - randInt(0, 3600) * 1000);
   }
-  return start;
+  return t;
 }
 
 function descriptionForMoneyEvent(actionType: string, cat?: string): string {
@@ -212,14 +235,74 @@ function merchantFor(log: DatasetAuditLog): string {
   }
 }
 
-function chunk<T>(arr: T[], size: number): T[][] {
-  const out: T[][] = [];
-  for (let i = 0; i < arr.length; i += size) out.push(arr.slice(i, i + size));
-  return out;
+type AuditPayload = Parameters<
+  typeof prisma.auditLog.createMany
+>[0]["data"][number];
+type TxPayload = Parameters<
+  typeof prisma.transaction.createMany
+>[0]["data"][number];
+
+function emitAuditFromSample(
+  sample: DatasetAuditLog,
+  customer: DbCustomer,
+  sessionId: string,
+  ip: string,
+  ts: Date,
+): AuditPayload {
+  const inputJson =
+    sample.inputDataSummary && Object.keys(sample.inputDataSummary).length > 0
+      ? JSON.stringify(sample.inputDataSummary)
+      : null;
+  return {
+    timestamp: ts,
+    actorType: "customer",
+    actorId: customer.userId,
+    actorName: customer.fullName,
+    role: `${customer.tier}_customer`,
+    customerTier: customer.tier,
+    actionType: sample.actionType,
+    page: sample.page ?? null,
+    toolOrFeatureUsed: sample.toolOrFeatureUsed ?? null,
+    inputDataSummary: inputJson,
+    targetResource: sample.targetResource ?? null,
+    amount: sample.amountIls ?? null,
+    riskLevel: sample.riskLevel ?? "low",
+    requiresApproval: Boolean(sample.requiresApproval),
+    approvalStatus: sample.approvalStatus ?? "not_required",
+    sessionId,
+    ipAddress: ip,
+    userIntent: sample.userIntent ?? null,
+    actionOutcome: sample.actionOutcome ?? "viewed",
+    reasonForFlagging: null,
+    createdByAgent: false,
+  };
 }
 
-function randomIp(): string {
-  return `198.51.100.${randInt(10, 240)}`;
+function maybeEmitTransaction(
+  sample: DatasetAuditLog,
+  customer: DbCustomer,
+  ts: Date,
+  refKey: string,
+): TxPayload | null {
+  if (!MONEY_EVENT_TYPES.has(sample.actionType)) return null;
+  if (sample.amountIls == null) return null;
+  const checking = customer.accounts.find((a) => a.accountType === "checking");
+  if (!checking) return null;
+  const isCredit = CREDIT_EVENT_TYPES.has(sample.actionType);
+  const cat = sample.inputDataSummary?.["merchantCategory"] as string | undefined;
+  return {
+    accountId: checking.id,
+    customerProfileId: customer.id,
+    timestamp: ts,
+    description: descriptionForMoneyEvent(sample.actionType, cat),
+    merchantOrRecipient: merchantFor(sample),
+    amount: Math.abs(sample.amountIls),
+    currency: "ILS",
+    direction: isCredit ? "credit" : "debit",
+    status: sample.actionType.endsWith("_rejected") ? "blocked" : "posted",
+    category: categoryForLog(sample),
+    reference: refKey,
+  };
 }
 
 // ---------------------------------------------------------------------------
@@ -227,187 +310,193 @@ function randomIp(): string {
 // ---------------------------------------------------------------------------
 
 async function main() {
-  console.log(
-    `[1/4] Loading dataset (template pool, ~11.4k actions)…`,
-  );
+  console.log("[1/4] Loading dataset…");
   const dataset = JSON.parse(readFileSync(DATASET_PATH, "utf-8")) as Dataset;
 
-  // Build per-customer template pools, plus a global customer pool.
-  const logsByDatasetProfile = new Map<string, DatasetAuditLog[]>();
-  const globalCustomerPool: DatasetAuditLog[] = [];
-  for (const log of dataset.auditLogs) {
-    if (log.actorType !== "customer" || !log.customerProfileId) continue;
-    globalCustomerPool.push(log);
-    const arr = logsByDatasetProfile.get(log.customerProfileId) ?? [];
-    arr.push(log);
-    logsByDatasetProfile.set(log.customerProfileId, arr);
-  }
-
-  console.log(
-    `      window=${EXTEND_DAYS}d  sessions/customer=${SESSIONS_PER_CUSTOMER}  actions/session=${ACTIONS_PER_SESSION_MIN}–${ACTIONS_PER_SESSION_MAX}`,
+  const customerLogPool = dataset.auditLogs.filter(
+    (l) => l.actorType === "customer" && !!l.customerProfileId,
   );
+  const logsByDatasetProfile = new Map<string, DatasetAuditLog[]>();
+  for (const log of customerLogPool) {
+    const arr = logsByDatasetProfile.get(log.customerProfileId!) ?? [];
+    arr.push(log);
+    logsByDatasetProfile.set(log.customerProfileId!, arr);
+  }
+  const hourPicker = buildWeightedHourPicker(customerLogPool);
 
-  console.log(`[2/4] Loading existing customers…`);
-  const customers = await prisma.customerProfile.findMany({
-    include: {
-      user: true,
-      accounts: { where: { accountType: "checking" } },
-    },
+  console.log(`      ${customerLogPool.length.toLocaleString()} customer-actor logs in template pool`);
+
+  console.log("[2/4] Loading existing customers from DB…");
+  const customers: DbCustomer[] = await prisma.customerProfile.findMany({
+    include: { user: true, accounts: true },
   });
   if (customers.length === 0) {
     console.log("No customers in DB — run `npm run seed:dataset` first.");
     return;
   }
-  console.log(`      ${customers.length} customers found`);
-
-  console.log(`[3/4] Generating new sessions and actions…`);
-  type AuditPayload = Parameters<
-    typeof prisma.auditLog.createMany
-  >[0]["data"][number];
-  type TxPayload = Parameters<
-    typeof prisma.transaction.createMany
-  >[0]["data"][number];
+  const customerByDatasetKey = new Map<string, DbCustomer>();
+  for (const c of customers) {
+    customerByDatasetKey.set(c.customerNumber.toLowerCase(), c);
+  }
+  console.log(`      ${customers.length} customers loaded`);
 
   const auditBatch: AuditPayload[] = [];
   const txBatch: TxPayload[] = [];
-
   let sessionCounter = 0;
-  for (const customer of customers) {
-    const datasetKey = customer.customerNumber.toLowerCase();
-    const personalPool = logsByDatasetProfile.get(datasetKey);
-    const pool =
-      personalPool && personalPool.length >= ACTIONS_PER_SESSION_MAX
-        ? personalPool
-        : globalCustomerPool;
-    if (pool.length === 0) continue;
+  const nextSessionId = () =>
+    `sess_more_${(++sessionCounter).toString().padStart(7, "0")}`;
 
-    const checking = customer.accounts[0];
+  if (TOTAL_ACTIONS && Number.isFinite(TOTAL_ACTIONS) && TOTAL_ACTIONS > 0) {
+    // -------- Mode A: exact-count sampling from JSON statistics --------
+    console.log(
+      `[3/4] EXACT-COUNT mode: generating ${TOTAL_ACTIONS.toLocaleString()} actions ` +
+        `over the last ${EXTEND_DAYS}d (distribution follows JSON statistics)…`,
+    );
 
-    for (let s = 0; s < SESSIONS_PER_CUSTOMER; s += 1) {
-      sessionCounter += 1;
-      const sessionId = `sess_ext_${sessionCounter.toString().padStart(7, "0")}`;
-      const ip = randomIp();
-      const startedAt = sessionStartWithinWindow();
-      const nActions = randInt(ACTIONS_PER_SESSION_MIN, ACTIONS_PER_SESSION_MAX);
+    // Sample N actions uniformly with replacement from the pool. Because each
+    // pool entry already encodes (customer × actionType × hour × payload),
+    // this single weighted draw inherits all per-feature frequencies from
+    // the JSON without us having to compute them by hand.
+    const samples: DatasetAuditLog[] = new Array(TOTAL_ACTIONS);
+    for (let i = 0; i < TOTAL_ACTIONS; i += 1) {
+      samples[i] = customerLogPool[Math.floor(Math.random() * customerLogPool.length)];
+    }
 
-      // Build the session: open with a login, mix the body from the template,
-      // close with a logout. This matches the shape of the dataset.
-      const body: DatasetAuditLog[] = [];
-      for (let i = 0; i < nActions; i += 1) {
-        body.push(pool[Math.floor(Math.random() * pool.length)]);
+    // Group by dataset customer so we can wrap consecutive samples in a
+    // shared session id (more realistic than a fresh session per row).
+    const byCustomer = new Map<string, DatasetAuditLog[]>();
+    for (const s of samples) {
+      const arr = byCustomer.get(s.customerProfileId!) ?? [];
+      arr.push(s);
+      byCustomer.set(s.customerProfileId!, arr);
+    }
+
+    let skipped = 0;
+    for (const [datasetKey, slice] of byCustomer) {
+      const customer = customerByDatasetKey.get(datasetKey);
+      if (!customer) {
+        skipped += slice.length;
+        continue;
       }
-      const intent = body[0]?.userIntent ?? "review transactions";
+      // Walk slice in 3–8 chunks, each chunk gets a single session
+      let i = 0;
+      while (i < slice.length) {
+        const sessionLen = Math.min(randInt(3, 8), slice.length - i);
+        const sessionId = nextSessionId();
+        const ip = randomIp();
+        const start = timestampInWindow(hourPicker).getTime();
+        let cursor = start;
+        for (let j = 0; j < sessionLen; j += 1) {
+          const sample = slice[i + j];
+          const ts = new Date(cursor);
+          auditBatch.push(emitAuditFromSample(sample, customer, sessionId, ip, ts));
+          const tx = maybeEmitTransaction(
+            sample,
+            customer,
+            ts,
+            `more_${sessionId}_${j}`,
+          );
+          if (tx) txBatch.push(tx);
+          cursor += randInt(8, 180) * 1000;
+        }
+        i += sessionLen;
+      }
+    }
+    if (skipped > 0) {
+      console.log(
+        `      (skipped ${skipped} samples whose dataset customer is not in this DB)`,
+      );
+    }
+  } else {
+    // -------- Mode B: legacy session-burst per customer --------
+    console.log(
+      `[3/4] SESSION-BURST mode: ${SESSIONS_PER_CUSTOMER} sessions/customer ` +
+        `× ${ACTIONS_PER_SESSION_MIN}–${ACTIONS_PER_SESSION_MAX} actions, window=${EXTEND_DAYS}d…`,
+    );
 
-      let cursor = startedAt.getTime();
-      const stepMs = () => randInt(8, 180) * 1000; // 8 s – 3 min between clicks
+    for (const customer of customers) {
+      const datasetKey = customer.customerNumber.toLowerCase();
+      const personalPool = logsByDatasetProfile.get(datasetKey);
+      const pool =
+        personalPool && personalPool.length >= ACTIONS_PER_SESSION_MAX
+          ? personalPool
+          : customerLogPool;
+      if (pool.length === 0) continue;
 
-      // Login as the opener
-      auditBatch.push({
-        timestamp: new Date(cursor),
-        actorType: "customer",
-        actorId: customer.userId,
-        actorName: customer.fullName,
-        role: `${customer.tier}_customer`,
-        customerTier: customer.tier,
-        actionType: "login",
-        page: "/login",
-        toolOrFeatureUsed: "credential_login",
-        inputDataSummary: null,
-        targetResource: customer.id,
-        amount: null,
-        riskLevel: "low",
-        requiresApproval: false,
-        approvalStatus: "not_required",
-        sessionId,
-        ipAddress: ip,
-        userIntent: intent,
-        actionOutcome: "success",
-        reasonForFlagging: null,
-        createdByAgent: false,
-      });
-      cursor += stepMs();
+      for (let s = 0; s < SESSIONS_PER_CUSTOMER; s += 1) {
+        const sessionId = nextSessionId();
+        const ip = randomIp();
+        const start = timestampInWindow(hourPicker).getTime();
+        const nActions = randInt(ACTIONS_PER_SESSION_MIN, ACTIONS_PER_SESSION_MAX);
 
-      for (const sample of body) {
-        const ts = new Date(cursor);
-        const inputJson =
-          sample.inputDataSummary && Object.keys(sample.inputDataSummary).length > 0
-            ? JSON.stringify(sample.inputDataSummary)
-            : null;
+        // login opener
+        const opener = pool[0];
+        const intent = opener?.userIntent ?? "review transactions";
+        const tOpen = new Date(start);
         auditBatch.push({
-          timestamp: ts,
+          timestamp: tOpen,
           actorType: "customer",
           actorId: customer.userId,
           actorName: customer.fullName,
           role: `${customer.tier}_customer`,
           customerTier: customer.tier,
-          actionType: sample.actionType,
-          page: sample.page ?? null,
-          toolOrFeatureUsed: sample.toolOrFeatureUsed ?? null,
-          inputDataSummary: inputJson,
-          targetResource: sample.targetResource ?? null,
-          amount: sample.amountIls ?? null,
-          riskLevel: sample.riskLevel ?? "low",
-          requiresApproval: Boolean(sample.requiresApproval),
-          approvalStatus: sample.approvalStatus ?? "not_required",
+          actionType: "login",
+          page: "/login",
+          toolOrFeatureUsed: "credential_login",
+          inputDataSummary: null,
+          targetResource: customer.id,
+          amount: null,
+          riskLevel: "low",
+          requiresApproval: false,
+          approvalStatus: "not_required",
           sessionId,
           ipAddress: ip,
           userIntent: intent,
-          actionOutcome: sample.actionOutcome ?? "viewed",
+          actionOutcome: "success",
           reasonForFlagging: null,
           createdByAgent: false,
         });
 
-        if (
-          checking &&
-          MONEY_EVENT_TYPES.has(sample.actionType) &&
-          sample.amountIls != null
-        ) {
-          const isCredit = CREDIT_EVENT_TYPES.has(sample.actionType);
-          const cat =
-            (sample.inputDataSummary?.["merchantCategory"] as string | undefined) ??
-            undefined;
-          txBatch.push({
-            accountId: checking.id,
-            customerProfileId: customer.id,
-            timestamp: ts,
-            description: descriptionForMoneyEvent(sample.actionType, cat),
-            merchantOrRecipient: merchantFor(sample),
-            amount: Math.abs(sample.amountIls),
-            currency: "ILS",
-            direction: isCredit ? "credit" : "debit",
-            status: sample.actionType.endsWith("_rejected") ? "blocked" : "posted",
-            category: categoryForLog(sample),
-            reference: `ext_${sessionId}_${auditBatch.length}`,
-          });
+        let cursor = start + randInt(8, 180) * 1000;
+        for (let i = 0; i < nActions; i += 1) {
+          const sample = pool[Math.floor(Math.random() * pool.length)];
+          const ts = new Date(cursor);
+          auditBatch.push(emitAuditFromSample(sample, customer, sessionId, ip, ts));
+          const tx = maybeEmitTransaction(
+            sample,
+            customer,
+            ts,
+            `more_${sessionId}_${i}`,
+          );
+          if (tx) txBatch.push(tx);
+          cursor += randInt(8, 180) * 1000;
         }
 
-        cursor += stepMs();
+        // logout closer
+        auditBatch.push({
+          timestamp: new Date(cursor),
+          actorType: "customer",
+          actorId: customer.userId,
+          actorName: customer.fullName,
+          role: `${customer.tier}_customer`,
+          customerTier: customer.tier,
+          actionType: "logout",
+          page: "/logout",
+          toolOrFeatureUsed: "session_end",
+          inputDataSummary: null,
+          targetResource: customer.id,
+          amount: null,
+          riskLevel: "low",
+          requiresApproval: false,
+          approvalStatus: "not_required",
+          sessionId,
+          ipAddress: ip,
+          userIntent: intent,
+          actionOutcome: "success",
+          reasonForFlagging: null,
+          createdByAgent: false,
+        });
       }
-
-      // Logout as the closer
-      auditBatch.push({
-        timestamp: new Date(cursor),
-        actorType: "customer",
-        actorId: customer.userId,
-        actorName: customer.fullName,
-        role: `${customer.tier}_customer`,
-        customerTier: customer.tier,
-        actionType: "logout",
-        page: "/logout",
-        toolOrFeatureUsed: "session_end",
-        inputDataSummary: null,
-        targetResource: customer.id,
-        amount: null,
-        riskLevel: "low",
-        requiresApproval: false,
-        approvalStatus: "not_required",
-        sessionId,
-        ipAddress: ip,
-        userIntent: intent,
-        actionOutcome: "success",
-        reasonForFlagging: null,
-        createdByAgent: false,
-      });
     }
   }
 
@@ -415,14 +504,12 @@ async function main() {
     `      generated ${auditBatch.length.toLocaleString()} audit logs and ${txBatch.length.toLocaleString()} transactions`,
   );
 
-  console.log(`[4/4] Inserting…`);
+  console.log("[4/4] Inserting…");
   let inserted = 0;
   for (const batch of chunk(auditBatch, CHUNK_SIZE)) {
     await prisma.auditLog.createMany({ data: batch });
     inserted += batch.length;
-    process.stdout.write(
-      `      audit logs: ${inserted}/${auditBatch.length}\r`,
-    );
+    process.stdout.write(`      audit logs: ${inserted}/${auditBatch.length}\r`);
   }
   process.stdout.write("\n");
 
