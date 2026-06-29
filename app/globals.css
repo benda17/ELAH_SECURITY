@@ -45,3 +45,25 @@ body {
 .recharts-tooltip-wrapper {
   outline: none !important;
 }
+
+/* Slim, subtle scrollbar for scrollable chart panels */
+.elah-scrollable-chart {
+  scrollbar-width: thin;
+  scrollbar-color: rgba(148, 163, 184, 0.35) transparent;
+}
+.elah-scrollable-chart::-webkit-scrollbar {
+  width: 8px;
+}
+.elah-scrollable-chart::-webkit-scrollbar-track {
+  background: transparent;
+}
+.elah-scrollable-chart::-webkit-scrollbar-thumb {
+  background-color: rgba(148, 163, 184, 0.25);
+  border-radius: 999px;
+  border: 2px solid transparent;
+  background-clip: padding-box;
+}
+.elah-scrollable-chart::-webkit-scrollbar-thumb:hover {
+  background-color: rgba(148, 163, 184, 0.45);
+  background-clip: padding-box;
+}

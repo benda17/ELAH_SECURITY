@@ -241,3 +241,124 @@ export async function getActionsByHour() {
   }
   return buckets;
 }
+
+/** Audit activity by day-of-week (Mon..Sun) */
+export async function getWeekdayActivity() {
+  const rows = await prisma.auditLog.findMany({ select: { timestamp: true } });
+  const labels = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"];
+  const counts = [0, 0, 0, 0, 0, 0, 0];
+  for (const r of rows) {
+    const js = r.timestamp.getDay(); // 0=Sun..6=Sat
+    const idx = (js + 6) % 7; // Mon=0..Sun=6
+    counts[idx]++;
+  }
+  return labels.map((label, i) => ({ label, count: counts[i] }));
+}
+
+/** Customer count by tier */
+export async function getTierDistribution() {
+  const rows = await prisma.customerProfile.groupBy({
+    by: ["tier"],
+    _count: { _all: true },
+  });
+  const order = ["basic", "premium", "vip"] as const;
+  return order.map((tier) => ({
+    tier,
+    count: rows.find((r) => r.tier === tier)?._count._all ?? 0,
+  }));
+}
+
+/** Total balance by account type (active accounts only) */
+export async function getBalancesByAccountType() {
+  const rows = await prisma.bankAccount.groupBy({
+    by: ["accountType"],
+    where: { status: "active" },
+    _sum: { currentBalance: true },
+    _count: { _all: true },
+  });
+  return rows
+    .map((r) => ({
+      accountType: r.accountType,
+      total: r._sum.currentBalance ?? 0,
+      count: r._count._all,
+    }))
+    .sort((a, b) => b.total - a.total);
+}
+
+/** Top customers by total debit (= spend) */
+export async function getTopCustomersBySpend(limit = 20) {
+  const rows = await prisma.transaction.groupBy({
+    by: ["customerProfileId"],
+    where: { direction: "debit" },
+    _sum: { amount: true },
+    _count: { _all: true },
+    orderBy: { _sum: { amount: "desc" } },
+    take: limit,
+  });
+  if (rows.length === 0) return [];
+  const profiles = await prisma.customerProfile.findMany({
+    where: { id: { in: rows.map((r) => r.customerProfileId) } },
+    select: { id: true, fullName: true, tier: true },
+  });
+  const byId = new Map(profiles.map((p) => [p.id, p]));
+  return rows.map((r) => {
+    const p = byId.get(r.customerProfileId);
+    return {
+      name: p?.fullName ?? "Unknown",
+      tier: p?.tier ?? "?",
+      total: r._sum.amount ?? 0,
+      count: r._count._all,
+    };
+  });
+}
+
+/** Per-tier averages: balance, transactions, audit actions */
+export async function getTierComparison() {
+  const tiers = await prisma.customerProfile.groupBy({
+    by: ["tier"],
+    _count: { _all: true },
+  });
+
+  const result: {
+    tier: string;
+    customers: number;
+    avgBalance: number;
+    avgTxCount: number;
+    avgActions: number;
+  }[] = [];
+
+  for (const t of tiers) {
+    const profiles = await prisma.customerProfile.findMany({
+      where: { tier: t.tier },
+      include: {
+        accounts: { select: { currentBalance: true } },
+        _count: { select: { transactions: true } },
+      },
+    });
+    const totalBal = profiles.reduce(
+      (s, p) => s + p.accounts.reduce((bs, a) => bs + a.currentBalance, 0),
+      0,
+    );
+    const totalTx = profiles.reduce((s, p) => s + p._count.transactions, 0);
+
+    const auditCounts = await prisma.auditLog.count({
+      where: {
+        customerTier: t.tier,
+        actorType: "customer",
+      },
+    });
+    const customers = t._count._all || 1;
+
+    result.push({
+      tier: t.tier,
+      customers,
+      avgBalance: totalBal / customers,
+      avgTxCount: totalTx / customers,
+      avgActions: auditCounts / customers,
+    });
+  }
+
+  // Sort basic→premium→vip
+  const order = ["basic", "premium", "vip"];
+  return result.sort((a, b) => order.indexOf(a.tier) - order.indexOf(b.tier));
+}

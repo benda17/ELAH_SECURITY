@@ -17,14 +17,20 @@ const TIER_COLORS: Record<string, string> = {
   vip: "#f6c453",
 };
 
-const ROW_HEIGHT = 26;
+const ROW_HEIGHT = 28;
 const MIN_INNER = 200;
 
-export function CustomerActivityChart({
+const fmt = (v: number) =>
+  new Intl.NumberFormat("en-US", {
+    notation: "compact",
+    maximumFractionDigits: 1,
+  }).format(v);
+
+export function TopCustomersChart({
   data,
   containerHeight = 320,
 }: {
-  data: { name: string; tier: string; count: number }[];
+  data: { name: string; tier: string; total: number; count: number }[];
   containerHeight?: number;
 }) {
   const innerHeight = Math.max(MIN_INNER, data.length * ROW_HEIGHT + 16);
@@ -42,7 +48,12 @@ export function CustomerActivityChart({
             margin={{ top: 2, right: 18, left: 4, bottom: 4 }}
           >
             <CartesianGrid horizontal={false} />
-            <XAxis type="number" tickLine={false} axisLine={false} />
+            <XAxis
+              type="number"
+              tickLine={false}
+              axisLine={false}
+              tickFormatter={(v) => `$${fmt(v)}`}
+            />
             <YAxis
               type="category"
               dataKey="name"
@@ -60,8 +71,12 @@ export function CustomerActivityChart({
                 borderRadius: 10,
                 fontSize: 12,
               }}
+              formatter={(value: number, _name, p: any) => [
+                `$${value.toLocaleString()} · ${p.payload.count} txns`,
+                "Spend",
+              ]}
             />
-            <Bar dataKey="count" radius={[0, 6, 6, 0]} barSize={14}>
+            <Bar dataKey="total" radius={[0, 6, 6, 0]} barSize={16}>
               {data.map((d) => (
                 <Cell key={d.name} fill={TIER_COLORS[d.tier] ?? "#9aa7bd"} />
               ))}

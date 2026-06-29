@@ -1,3 +1,4 @@
+import Image from "next/image";
 import {
   Activity,
   ArrowDownRight,
@@ -17,18 +18,28 @@ import { TransactionsByCategoryChart } from "@/components/charts/transactions-by
 import { TransactionVolumeChart } from "@/components/charts/transaction-volume";
 import { TopMerchantsChart } from "@/components/charts/top-merchants";
 import { HourOfDayChart } from "@/components/charts/hour-of-day";
+import { TierDistributionChart } from "@/components/charts/tier-distribution";
+import { TopCustomersChart } from "@/components/charts/top-customers";
+import { BalancesByAccountTypeChart } from "@/components/charts/balances-by-account-type";
+import { WeekdayActivityChart } from "@/components/charts/weekday-activity";
+import { TierComparison } from "@/components/charts/tier-comparison";
 import {
   getActionsByDay,
   getActionsByHour,
   getActionsPerCustomer,
+  getBalancesByAccountType,
   getRecentActivity,
   getRecentRiskEvents,
   getRiskDistribution,
   getStatsOverview,
+  getTierComparison,
+  getTierDistribution,
   getTopActionTypes,
+  getTopCustomersBySpend,
   getTopMerchants,
   getTransactionsByCategory,
   getTransactionVolumeByDay,
+  getWeekdayActivity,
 } from "@/lib/queries";
 import { cn, formatCompact, formatCurrency } from "@/lib/utils";
 
@@ -62,18 +73,28 @@ export default async function Page() {
     recentActivity,
     recentRiskEvents,
     actionsByHour,
+    tierDist,
+    topCustomers,
+    balancesByType,
+    weekdayActivity,
+    tierComparison,
   ] = await Promise.all([
     getStatsOverview(),
     getActionsByDay(14),
-    getTopActionTypes(12),
+    getTopActionTypes(15),
     getRiskDistribution(),
     getActionsPerCustomer(),
     getTransactionsByCategory(),
     getTransactionVolumeByDay(14),
-    getTopMerchants(8),
+    getTopMerchants(12),
     getRecentActivity(12),
     getRecentRiskEvents(5),
     getActionsByHour(),
+    getTierDistribution(),
+    getTopCustomersBySpend(20),
+    getBalancesByAccountType(),
+    getWeekdayActivity(),
+    getTierComparison(),
   ]);
 
   const netFlow = stats.creditTotal - stats.debitTotal;
@@ -82,18 +103,30 @@ export default async function Page() {
     <main className="mx-auto max-w-[1400px] px-6 py-8">
       {/* Header */}
       <header className="mb-8 flex flex-wrap items-end justify-between gap-4">
-        <div>
-          <div className="mb-1 inline-flex items-center gap-2 text-[11px] font-semibold uppercase tracking-[0.2em] text-accent-cyan">
-            <span className="inline-block size-1.5 rounded-full bg-accent-cyan shadow-[0_0_8px_currentColor]" />
-            ELAH Analytics
+        <div className="flex items-end gap-4">
+          <div className="rounded-2xl border border-surface-border bg-surface-raised p-2">
+            <Image
+              src="/elah-logo.png"
+              alt="ELAH Security"
+              width={56}
+              height={56}
+              priority
+              className="size-12 object-contain"
+            />
           </div>
-          <h1 className="text-3xl font-semibold tracking-tight text-ink">
-            Banking activity dashboard
-          </h1>
-          <p className="mt-1 max-w-2xl text-sm text-ink-muted">
-            Read-only view of the ELAH banking simulation database — actions,
-            transactions, risk and customer behavior at a glance.
-          </p>
+          <div>
+            <div className="mb-1 inline-flex items-center gap-2 text-[11px] font-semibold uppercase tracking-[0.2em] text-accent-cyan">
+              <span className="inline-block size-1.5 rounded-full bg-accent-cyan shadow-[0_0_8px_currentColor]" />
+              ELAH Analytics
+            </div>
+            <h1 className="text-3xl font-semibold tracking-tight text-ink">
+              Banking activity dashboard
+            </h1>
+            <p className="mt-1 max-w-2xl text-sm text-ink-muted">
+              Read-only view of the ELAH banking simulation database — actions,
+              transactions, risk and customer behavior at a glance.
+            </p>
+          </div>
         </div>
         <div className="text-right text-xs text-ink-muted">
           <div>
@@ -168,15 +201,48 @@ export default async function Page() {
         />
       </section>
 
-      {/* Row 1: actions over time + risk donut */}
-      <section className="mt-6 grid grid-cols-1 gap-4 lg:grid-cols-3">
+      {/* Population overview: tier + balances + weekday */}
+      <SectionLabel>Customer population</SectionLabel>
+      <section className="grid grid-cols-1 gap-4 lg:grid-cols-3">
+        <div className="panel">
+          <div className="mb-3 panel-title">Tier distribution</div>
+          <TierDistributionChart data={tierDist} />
+        </div>
+        <div className="panel">
+          <div className="mb-3 flex items-end justify-between">
+            <div className="panel-title">Total balances by account type</div>
+            <Legend
+              items={[
+                { color: "#22d3ee", label: "Checking" },
+                { color: "#34d399", label: "Savings" },
+                { color: "#f6c453", label: "Investment" },
+              ]}
+            />
+          </div>
+          <BalancesByAccountTypeChart data={balancesByType} />
+        </div>
+        <div className="panel">
+          <div className="mb-3 flex items-end justify-between">
+            <div className="panel-title">Activity by weekday</div>
+            <Legend
+              items={[
+                { color: "#22d3ee", label: "Weekday" },
+                { color: "#a78bfa", label: "Weekend" },
+              ]}
+            />
+          </div>
+          <WeekdayActivityChart data={weekdayActivity} />
+        </div>
+      </section>
+
+      {/* Activity time series + risk donut */}
+      <SectionLabel>Activity & risk</SectionLabel>
+      <section className="grid grid-cols-1 gap-4 lg:grid-cols-3">
         <div className="panel lg:col-span-2">
           <div className="mb-3 flex items-end justify-between">
             <div>
               <div className="panel-title">Actions per day · last 14 days</div>
-              <div className="text-xs text-ink-muted">
-                Stacked by risk level
-              </div>
+              <div className="text-xs text-ink-muted">Stacked by risk level</div>
             </div>
             <Legend
               items={[
@@ -189,14 +255,12 @@ export default async function Page() {
           </div>
           <ActionsOverTimeChart data={actionsByDay} />
         </div>
-
         <div className="panel">
           <div className="mb-3 panel-title">Risk distribution</div>
           <RiskDistributionChart data={riskDist} />
         </div>
       </section>
 
-      {/* Row 2: action types + customer activity */}
       <section className="mt-4 grid grid-cols-1 gap-4 lg:grid-cols-2">
         <div className="panel">
           <div className="mb-3 panel-title">Top action types</div>
@@ -204,7 +268,12 @@ export default async function Page() {
         </div>
         <div className="panel">
           <div className="mb-3 flex items-end justify-between">
-            <div className="panel-title">Actions per customer</div>
+            <div className="panel-title">
+              Actions per customer
+              <span className="ml-2 text-[10px] font-normal normal-case tracking-normal text-ink-dim">
+                ({perCustomer.length} customers · scroll)
+              </span>
+            </div>
             <Legend
               items={[
                 { color: "#22d3ee", label: "Basic" },
@@ -213,12 +282,13 @@ export default async function Page() {
               ]}
             />
           </div>
-          <CustomerActivityChart data={perCustomer} />
+          <CustomerActivityChart data={perCustomer} containerHeight={420} />
         </div>
       </section>
 
-      {/* Row 3: transaction volume + categories */}
-      <section className="mt-4 grid grid-cols-1 gap-4 lg:grid-cols-3">
+      {/* Money flow */}
+      <SectionLabel>Money flow</SectionLabel>
+      <section className="grid grid-cols-1 gap-4 lg:grid-cols-3">
         <div className="panel lg:col-span-2">
           <div className="mb-3 flex items-end justify-between">
             <div>
@@ -240,20 +310,47 @@ export default async function Page() {
         </div>
       </section>
 
-      {/* Row 4: top merchants + hour-of-day */}
-      <section className="mt-4 grid grid-cols-1 gap-4 lg:grid-cols-2">
+      <section className="mt-4 grid grid-cols-1 gap-4 lg:grid-cols-3">
+        <div className="panel lg:col-span-2">
+          <div className="mb-3 flex items-end justify-between">
+            <div className="panel-title">
+              Top customers by spend
+              <span className="ml-2 text-[10px] font-normal normal-case tracking-normal text-ink-dim">
+                (top {topCustomers.length} · scroll)
+              </span>
+            </div>
+            <Legend
+              items={[
+                { color: "#22d3ee", label: "Basic" },
+                { color: "#a78bfa", label: "Premium" },
+                { color: "#f6c453", label: "VIP" },
+              ]}
+            />
+          </div>
+          <TopCustomersChart data={topCustomers} containerHeight={360} />
+        </div>
         <div className="panel">
           <div className="mb-3 panel-title">Top merchants & recipients</div>
           <TopMerchantsChart data={topMerchants} />
         </div>
+      </section>
+
+      {/* Behavior + tier comparison */}
+      <SectionLabel>Behavior</SectionLabel>
+      <section className="grid grid-cols-1 gap-4 lg:grid-cols-2">
         <div className="panel">
           <div className="mb-3 panel-title">Activity by hour-of-day</div>
           <HourOfDayChart data={actionsByHour} />
         </div>
+        <div className="panel">
+          <div className="mb-3 panel-title">Tier comparison</div>
+          <TierComparison data={tierComparison} />
+        </div>
       </section>
 
-      {/* Row 5: recent activity + risk events */}
-      <section className="mt-4 grid grid-cols-1 gap-4 lg:grid-cols-5">
+      {/* Recent feeds */}
+      <SectionLabel>Most recent</SectionLabel>
+      <section className="grid grid-cols-1 gap-4 lg:grid-cols-5">
         <div className="panel lg:col-span-3">
           <div className="mb-3 panel-title">Recent audit activity</div>
           <ul className="divide-y divide-surface-border/60">
@@ -272,14 +369,9 @@ export default async function Page() {
                 </span>
                 <span className="flex-1 truncate text-ink-muted">
                   {a.actionType}
-                  {a.page ? (
-                    <span className="text-ink-dim"> · {a.page}</span>
-                  ) : null}
+                  {a.page ? <span className="text-ink-dim"> · {a.page}</span> : null}
                   {a.amount ? (
-                    <span className="text-ink-dim">
-                      {" "}
-                      · ${formatCompact(a.amount)}
-                    </span>
+                    <span className="text-ink-dim"> · ${formatCompact(a.amount)}</span>
                   ) : null}
                 </span>
                 <span className="shrink-0 text-xs text-ink-dim">
@@ -296,9 +388,7 @@ export default async function Page() {
         <div className="panel lg:col-span-2">
           <div className="mb-3 panel-title">Recent risk events</div>
           {recentRiskEvents.length === 0 ? (
-            <p className="text-sm text-ink-muted">
-              No risk events recorded yet.
-            </p>
+            <p className="text-sm text-ink-muted">No risk events recorded yet.</p>
           ) : (
             <ul className="space-y-3">
               {recentRiskEvents.map((e) => (
@@ -344,6 +434,17 @@ export default async function Page() {
         {stats.customerTotal} customers
       </footer>
     </main>
+  );
+}
+
+function SectionLabel({ children }: { children: React.ReactNode }) {
+  return (
+    <div className="mb-3 mt-8 flex items-center gap-3">
+      <span className="text-[11px] font-semibold uppercase tracking-[0.22em] text-ink-muted">
+        {children}
+      </span>
+      <span className="h-px flex-1 bg-gradient-to-r from-surface-border to-transparent" />
+    </div>
   );
 }
 
