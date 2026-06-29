@@ -1,0 +1,47 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  color-scheme: dark;
+}
+
+html,
+body {
+  background:
+    radial-gradient(1200px 600px at 80% -10%, rgba(34, 211, 238, 0.08), transparent 60%),
+    radial-gradient(900px 500px at -10% 10%, rgba(167, 139, 250, 0.07), transparent 60%),
+    #060b16;
+  color: theme(colors.ink.DEFAULT);
+  font-family: theme(fontFamily.sans);
+  min-height: 100vh;
+}
+
+@layer components {
+  .panel {
+    @apply rounded-2xl border border-surface-border bg-surface-raised/70 backdrop-blur-sm p-5 shadow-[0_1px_0_rgba(255,255,255,0.03)_inset];
+  }
+  .panel-title {
+    @apply text-[11px] font-semibold uppercase tracking-[0.18em] text-ink-muted;
+  }
+  .stat-value {
+    @apply text-3xl font-semibold tabular-nums tracking-tight text-ink;
+  }
+  .pill {
+    @apply inline-flex items-center gap-1 rounded-full border px-2 py-0.5 text-[10px] font-medium uppercase tracking-wider;
+  }
+}
+
+/* Recharts polish (dark mode) */
+.recharts-cartesian-axis-tick text,
+.recharts-legend-item-text,
+.recharts-text {
+  fill: theme(colors.ink.muted) !important;
+  font-size: 11px;
+}
+.recharts-cartesian-grid line {
+  stroke: rgba(255, 255, 255, 0.06) !important;
+}
+.recharts-tooltip-wrapper {
+  outline: none !important;
+}

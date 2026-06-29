@@ -1,0 +1,343 @@
+// PROJECT ELAH Banking Simulation - Prisma Schema
+// All sensitive design decisions follow the README.md "Data Model Draft" section.
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+// -------------------- Identity & access --------------------
+
+model User {
+  id                  String   @id @default(cuid())
+  email               String   @unique
+  passwordHash        String
+  name                String
+  role                String   // regular_customer | premium_customer | vip_customer | bank_manager | security_reviewer | ai_agent
+  status              String   @default("active") // active | suspended | locked
+  simulatedMfaEnabled Boolean  @default(false)
+  createdAt           DateTime @default(now())
+  lastLoginAt         DateTime?
+
+  customerProfile CustomerProfile?
+  managedCustomers CustomerProfile[] @relation("AssignedManager")
+  managerNotes    ManagerNote[]
+  approvalsMade   ApprovalRequest[] @relation("ApprovalDecidedBy")
+  sessions        Session[]
+  riskReviews     RiskEvent[]  @relation("RiskReviewer")
+}
+
+model Session {
+  id        String   @id @default(cuid())
+  userId    String
+  token     String   @unique
+  createdAt DateTime @default(now())
+  expiresAt DateTime
+  ipAddress String?
+  userAgent String?
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+}
+
+// -------------------- Customer banking entities --------------------
+
+model CustomerProfile {
+  id                 String   @id @default(cuid())
+  userId             String   @unique
+  customerNumber     String   @unique
+  tier               String   // basic | premium | vip
+  fullName           String
+  dateOfBirth        DateTime
+  email              String
+  phone              String
+  address            String
+  employmentStatus   String
+  riskRating         String   @default("standard") // standard | elevated | high
+  assignedManagerId  String?
+  createdAt          DateTime @default(now())
+  updatedAt          DateTime @updatedAt
+
+  user            User           @relation(fields: [userId], references: [id], onDelete: Cascade)
+  assignedManager User?          @relation("AssignedManager", fields: [assignedManagerId], references: [id])
+  accounts        BankAccount[]
+  transactions    Transaction[]
+  documents       Document[]
+  cardRequests    CardRequest[]
+  loanRequests    LoanRequest[]
+  supportTickets  SupportTicket[]
+  managerNotes    ManagerNote[]
+  approvals       ApprovalRequest[]
+  riskEvents      RiskEvent[]
+}
+
+model BankAccount {
+  id                  String   @id @default(cuid())
+  customerProfileId   String
+  accountNumberMasked String
+  accountType         String   // checking | savings | investment
+  currency            String   @default("USD")
+  currentBalance      Float
+  availableBalance    Float
+  status              String   @default("active") // active | frozen | closed
+  openedAt            DateTime @default(now())
+  dailyTransferLimit  Float
+
+  customerProfile CustomerProfile @relation(fields: [customerProfileId], references: [id], onDelete: Cascade)
+  transactions    Transaction[]
+  documents       Document[]
+  cardRequests    CardRequest[]
+
+  @@index([customerProfileId])
+}
+
+model Transaction {
+  id                  String   @id @default(cuid())
+  accountId           String
+  customerProfileId   String
+  timestamp           DateTime @default(now())
+  description         String
+  merchantOrRecipient String
+  amount              Float
+  currency            String   @default("USD")
+  direction           String   // debit | credit
+  status              String   @default("posted") // posted | pending | blocked | reversed
+  category            String   @default("other")
+  reference           String
+  riskFlags           String?  // JSON-encoded string array
+
+  account         BankAccount     @relation(fields: [accountId], references: [id], onDelete: Cascade)
+  customerProfile CustomerProfile @relation(fields: [customerProfileId], references: [id], onDelete: Cascade)
+
+  @@index([accountId])
+  @@index([customerProfileId])
+  @@index([timestamp])
+}
+
+model Document {
+  id                String   @id @default(cuid())
+  customerProfileId String
+  accountId         String?
+  documentType      String   // statement | tax | investment | private | other
+  title             String
+  periodStart       DateTime?
+  periodEnd         DateTime?
+  metadataSummary   String   // JSON-encoded; may contain controlled prompt-injection test text
+  sensitivityLevel  String   @default("standard") // standard | sensitive | restricted
+  availableToTier   String   @default("basic") // basic | premium | vip
+  containsInjectionTest Boolean @default(false)
+  downloadUrlMock   String
+  createdAt         DateTime @default(now())
+
+  customerProfile CustomerProfile @relation(fields: [customerProfileId], references: [id], onDelete: Cascade)
+  account         BankAccount?    @relation(fields: [accountId], references: [id], onDelete: SetNull)
+
+  @@index([customerProfileId])
+}
+
+model CardRequest {
+  id                     String   @id @default(cuid())
+  customerProfileId      String
+  accountId              String
+  cardType               String   // debit | credit
+  requestReason          String   // new | replacement | lost | stolen
+  deliveryAddressSummary String
+  status                 String   @default("submitted") // submitted | approved | rejected | dispatched
+  requiresApproval       Boolean  @default(false)
+  createdAt              DateTime @default(now())
+  updatedAt              DateTime @updatedAt
+
+  customerProfile CustomerProfile @relation(fields: [customerProfileId], references: [id], onDelete: Cascade)
+  account         BankAccount     @relation(fields: [accountId], references: [id], onDelete: Cascade)
+
+  @@index([customerProfileId])
+}
+
+model LoanRequest {
+  id                       String   @id @default(cuid())
+  customerProfileId        String
+  requestedAmount          Float
+  currency                 String   @default("USD")
+  purpose                  String
+  termMonths               Int
+  incomeRange              String
+  employmentStatus         String
+  status                   String   @default("submitted") // submitted | under_review | approved | rejected
+  riskLevel                String   @default("medium")    // low | medium | high | critical
+  requiresManagerApproval  Boolean  @default(true)
+  managerDecisionBy        String?
+  managerDecisionAt        DateTime?
+  decisionReason           String?
+  notes                    String?
+  containsInjectionTest    Boolean  @default(false)
+  createdAt                DateTime @default(now())
+
+  customerProfile CustomerProfile @relation(fields: [customerProfileId], references: [id], onDelete: Cascade)
+
+  @@index([customerProfileId])
+}
+
+model SupportTicket {
+  id                    String   @id @default(cuid())
+  customerProfileId     String
+  category              String
+  subject               String
+  message               String
+  relatedResourceId     String?
+  priority              String   @default("normal") // normal | priority | urgent
+  status                String   @default("open")   // open | in_progress | resolved | closed
+  riskFlags             String?  // JSON-encoded array
+  containsInjectionTest Boolean  @default(false)
+  createdAt             DateTime @default(now())
+  updatedAt             DateTime @updatedAt
+
+  customerProfile CustomerProfile @relation(fields: [customerProfileId], references: [id], onDelete: Cascade)
+
+  @@index([customerProfileId])
+}
+
+model ManagerNote {
+  id                       String   @id @default(cuid())
+  customerProfileId        String
+  managerId                String
+  noteBody                 String
+  category                 String   @default("general")
+  visibility               String   @default("internal") // internal | restricted
+  containsPromptInjectionTest Boolean @default(false)
+  createdAt                DateTime @default(now())
+  updatedAt                DateTime @updatedAt
+
+  customerProfile CustomerProfile @relation(fields: [customerProfileId], references: [id], onDelete: Cascade)
+  manager         User            @relation(fields: [managerId], references: [id])
+
+  @@index([customerProfileId])
+}
+
+// -------------------- Approvals --------------------
+
+model ApprovalRequest {
+  id                    String   @id @default(cuid())
+  requestType           String   // transfer | loan | card | profile_change
+  targetResourceId      String
+  customerProfileId     String
+  requestedByActorType  String   // customer | manager | ai_agent
+  requestedByActorId    String
+  assignedManagerId     String?
+  amount                Float?
+  riskLevel             String   @default("medium")
+  status                String   @default("pending") // pending | approved | rejected | expired
+  decision              String?
+  decisionReason        String?
+  decidedBy             String?
+  decidedAt             DateTime?
+  createdAt             DateTime @default(now())
+  expiresAt             DateTime?
+
+  customerProfile CustomerProfile @relation(fields: [customerProfileId], references: [id], onDelete: Cascade)
+  decider         User?           @relation("ApprovalDecidedBy", fields: [decidedBy], references: [id])
+
+  @@index([customerProfileId])
+  @@index([status])
+}
+
+// -------------------- Logging & risk --------------------
+
+model AuditLog {
+  id                String   @id @default(cuid())
+  timestamp         DateTime @default(now())
+  actorType         String   // customer | manager | admin | ai_agent | anonymous
+  actorId           String?
+  actorName         String?
+  role              String?
+  customerTier      String?
+  actionType        String
+  page              String?
+  toolOrFeatureUsed String?
+  inputDataSummary  String?  // JSON-encoded object
+  targetResource    String?
+  amount            Float?
+  riskLevel         String   @default("low")
+  requiresApproval  Boolean  @default(false)
+  approvalStatus    String   @default("not_required")
+  sessionId         String?
+  ipAddress         String?
+  userIntent        String?
+  actionOutcome     String   @default("viewed")
+  reasonForFlagging String?
+  createdByAgent    Boolean  @default(false)
+
+  @@index([actorId])
+  @@index([actionType])
+  @@index([timestamp])
+  @@index([riskLevel])
+}
+
+model AgentActionLog {
+  id                   String   @id @default(cuid())
+  agentId              String
+  agentSessionId       String
+  timestamp            DateTime @default(now())
+  declaredTask         String
+  interpretedIntent    String
+  actorRoleContext     String
+  page                 String?
+  toolOrFeatureUsed    String?
+  actionType           String
+  targetResource       String?
+  inputDataSummary     String?  // JSON-encoded
+  actionOutcome        String
+  riskLevel            String   @default("low")
+  intentMatchStatus    String   @default("aligned") // aligned | drifting | misaligned | mismatch
+  relatedAuditLogId    String?
+  relatedRiskEventId   String?
+  elahVerdictPlaceholder String? // future field for ELAH reasoning verdict
+
+  @@index([agentId])
+  @@index([agentSessionId])
+}
+
+model RiskEvent {
+  id                       String   @id @default(cuid())
+  timestamp                DateTime @default(now())
+  severity                 String   // low | medium | high | critical
+  eventType                String
+  actorType                String
+  actorId                  String?
+  customerProfileId        String?
+  relatedAuditLogIds       String?  // JSON-encoded array
+  relatedAgentActionLogIds String?  // JSON-encoded array
+  reasonForFlagging        String
+  detectedPattern          String?
+  reviewStatus             String   @default("open") // open | in_review | reviewed | dismissed
+  reviewerId               String?
+  reviewerNotes            String?
+  createdAt                DateTime @default(now())
+  updatedAt                DateTime @updatedAt
+
+  customerProfile CustomerProfile? @relation(fields: [customerProfileId], references: [id], onDelete: SetNull)
+  reviewer        User?            @relation("RiskReviewer", fields: [reviewerId], references: [id])
+
+  @@index([severity])
+  @@index([reviewStatus])
+  @@index([timestamp])
+}
+
+// Static catalog of prompt-injection test scenarios (seeded fixtures only)
+model PromptInjectionScenario {
+  id                       String   @id @default(cuid())
+  name                     String   @unique
+  injectionLocation        String   // support_ticket | manager_note | document_metadata | transaction_description | support_chat | banner_note | loan_note | document_attachment
+  maliciousTextSample      String
+  expectedUnsafeBehavior   String
+  expectedElahDetection    String
+  status                   String   @default("catalogued") // catalogued | enabled | disabled
+  relatedLogFields         String   // JSON-encoded array
+  notes                    String?
+  createdAt                DateTime @default(now())
+  updatedAt                DateTime @updatedAt
+}
