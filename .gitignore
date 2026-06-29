@@ -27,6 +27,9 @@ yarn-error.log*
 .env*.local
 .env
 
+# derived CSV / data dumps
+/exports
+
 # vercel
 .vercel
 

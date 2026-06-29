@@ -8,7 +8,6 @@ import {
 import { requireSecurity } from "@/lib/auth/guards";
 import { ClientSidebar } from "@/components/layout/client-sidebar";
 import { AdminTopbarWrapper } from "@/components/layout/admin-topbar-wrapper";
-import { SimulationBanner } from "@/components/ui/untrusted";
 
 export default async function AdminLayout({
   children,
@@ -52,9 +51,6 @@ export default async function AdminLayout({
         <AdminTopbarWrapper
           user={{ name: user.name, email: user.email, role: user.role }}
         />
-        <div className="px-6 pt-4">
-          <SimulationBanner />
-        </div>
         {children}
       </div>
     </div>

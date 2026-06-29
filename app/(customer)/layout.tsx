@@ -12,7 +12,6 @@ import {
 } from "lucide-react";
 import { requireCustomer } from "@/lib/auth/guards";
 import { tierFromRole, ROLE_LABEL } from "@/lib/auth/roles";
-import { SimulationBanner } from "@/components/ui/untrusted";
 import { ClientSidebar } from "@/components/layout/client-sidebar";
 import { CustomerTopbarWrapper } from "@/components/layout/customer-topbar-wrapper";
 
@@ -52,9 +51,6 @@ export default async function CustomerLayout({
             tier,
           }}
         />
-        <div className="px-6 pt-4">
-          <SimulationBanner />
-        </div>
         {children}
       </div>
     </div>

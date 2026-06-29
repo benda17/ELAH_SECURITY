@@ -8,7 +8,6 @@ import {
 import { requireManager } from "@/lib/auth/guards";
 import { ClientSidebar } from "@/components/layout/client-sidebar";
 import { ManagerTopbarWrapper } from "@/components/layout/manager-topbar-wrapper";
-import { SimulationBanner } from "@/components/ui/untrusted";
 
 export default async function ManagerLayout({
   children,
@@ -32,9 +31,6 @@ export default async function ManagerLayout({
         <ManagerTopbarWrapper
           user={{ name: user.name, email: user.email, role: user.role }}
         />
-        <div className="px-6 pt-4">
-          <SimulationBanner />
-        </div>
         {children}
       </div>
     </div>
