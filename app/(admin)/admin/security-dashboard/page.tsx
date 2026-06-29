@@ -5,25 +5,32 @@ import {
   Bot,
   Bug,
   Activity,
+  Ban,
 } from "lucide-react";
 import { requireSecurity } from "@/lib/auth/guards";
 import { prisma } from "@/lib/db";
 import { writeAuditLog } from "@/lib/logging/logger";
+import { getAnalyticsSnapshot } from "@/lib/logging/analytics";
 import { PageShell, SectionHeader } from "@/components/layout/page-shell";
 import { Card, CardHeader, StatCard } from "@/components/ui/card";
 import { Badge, RiskBadge } from "@/components/ui/badge";
 import { formatDate } from "@/lib/utils";
+import {
+  ActivityTimelineChart,
+  ActorBreakdownChart,
+  HumanVsAgentChart,
+  RiskDonutChart,
+  RiskPatternChart,
+  TopActionsChart,
+} from "@/components/dashboard/log-charts";
 
 export const dynamic = "force-dynamic";
 
 export default async function SecurityDashboardPage() {
   await requireSecurity();
 
-  const [counts, recentCritical, agentActivity, injectionStatus] = await Promise.all([
-    prisma.riskEvent.groupBy({
-      by: ["severity"],
-      _count: { severity: true },
-    }),
+  const [analytics, recentCritical, agentActivity] = await Promise.all([
+    getAnalyticsSnapshot(),
     prisma.auditLog.findMany({
       where: { riskLevel: { in: ["high", "critical"] } },
       orderBy: { timestamp: "desc" },
@@ -33,10 +40,6 @@ export default async function SecurityDashboardPage() {
       orderBy: { timestamp: "desc" },
       take: 5,
     }),
-    prisma.promptInjectionScenario.groupBy({
-      by: ["status"],
-      _count: { status: true },
-    }),
   ]);
 
   await writeAuditLog({
@@ -45,47 +48,127 @@ export default async function SecurityDashboardPage() {
     toolOrFeatureUsed: "security_dashboard",
     riskLevel: "low",
     actionOutcome: "viewed",
+    inputDataSummary: {
+      auditTotal: analytics.totals.audit,
+      riskTotal: analytics.totals.risk,
+      criticalLast24h: analytics.totals.criticalLast24h,
+    },
   });
-
-  const countOf = (sev: string) =>
-    counts.find((c) => c.severity === sev)?._count.severity ?? 0;
 
   return (
     <PageShell>
       <SectionHeader
         title="Security overview"
-        description="Global view of simulated risk activity, agent traces and prompt-injection scenarios."
+        description="Live view of audit logs, risk events, and agent traces. Charts cover the last 24 hours; totals are all-time."
       />
 
-      <div className="grid grid-cols-1 gap-4 md:grid-cols-4">
+      <div className="grid grid-cols-2 gap-4 md:grid-cols-3 lg:grid-cols-6">
         <StatCard
-          label="Critical events"
-          value={String(countOf("critical"))}
-          hint="Severity = critical"
+          label="Audit logs (total)"
+          value={String(analytics.totals.audit)}
+          hint="All structured logs"
+          icon={<Activity className="size-4" />}
+          accent="cyan"
+        />
+        <StatCard
+          label="Risk events"
+          value={String(analytics.totals.risk)}
+          hint="All severities"
+          icon={<ShieldCheck className="size-4" />}
+          accent="gold"
+        />
+        <StatCard
+          label="Agent traces"
+          value={String(analytics.totals.agent)}
+          hint="AI agent actions"
+          icon={<Bot className="size-4" />}
+          accent="amber"
+        />
+        <StatCard
+          label="Critical (24h)"
+          value={String(analytics.totals.criticalLast24h)}
+          hint="High-impact actions"
           icon={<AlertOctagon className="size-4" />}
           accent="rose"
         />
         <StatCard
-          label="High events"
-          value={String(countOf("high"))}
-          hint="Severity = high"
-          icon={<ShieldCheck className="size-4" />}
+          label="Blocked (24h)"
+          value={String(analytics.totals.blockedLast24h)}
+          hint="Policy violations"
+          icon={<Ban className="size-4" />}
+          accent="rose"
+        />
+        <StatCard
+          label="Agent acts (24h)"
+          value={String(analytics.totals.agentLast24h)}
+          hint="createdByAgent=true"
+          icon={<Bug className="size-4" />}
           accent="amber"
         />
-        <StatCard
-          label="Agent traces"
-          value={String(agentActivity.length)}
-          hint="Recent agent actions logged"
-          icon={<Bot className="size-4" />}
-          accent="cyan"
+      </div>
+
+      <Card>
+        <CardHeader
+          title="Activity timeline (24h)"
+          description="Audit log volume per hour, stacked by risk level. Use this to spot spikes."
+          action={
+            <div className="flex items-center gap-3 text-[11px] text-ink-subtle">
+              <LegendDot color="#34d399" label="low" />
+              <LegendDot color="#fbbf24" label="medium" />
+              <LegendDot color="#fb7185" label="high" />
+              <LegendDot color="#f43f5e" label="critical" />
+            </div>
+          }
         />
-        <StatCard
-          label="Scenarios catalogued"
-          value={String(injectionStatus.reduce((s, x) => s + x._count.status, 0))}
-          hint="Prompt-injection test cases"
-          icon={<Bug className="size-4" />}
-          accent="gold"
-        />
+        <ActivityTimelineChart data={analytics.timeline} />
+      </Card>
+
+      <div className="grid grid-cols-1 gap-4 lg:grid-cols-3">
+        <Card>
+          <CardHeader
+            title="Risk distribution"
+            description="All audit logs by risk level."
+          />
+          <RiskDonutChart data={analytics.riskDistribution} />
+        </Card>
+
+        <Card>
+          <CardHeader
+            title="Human vs AI agent"
+            description="Action authorship across all logs."
+          />
+          <HumanVsAgentChart data={analytics.humanVsAgent} />
+        </Card>
+
+        <Card>
+          <CardHeader
+            title="Activity by actor type"
+            description="Top contributors of logged actions."
+          />
+          <ActorBreakdownChart data={analytics.actorBreakdown} />
+        </Card>
+      </div>
+
+      <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
+        <Card>
+          <CardHeader
+            title="Most frequent actions"
+            description="Top 8 action types across the system."
+          />
+          <TopActionsChart data={analytics.topActions} />
+        </Card>
+
+        <Card>
+          <CardHeader
+            title="Risk patterns detected"
+            description="Risk events grouped by detection pattern."
+          />
+          {analytics.riskByPattern.length === 0 ? (
+            <p className="text-sm text-ink-muted">No risk patterns detected.</p>
+          ) : (
+            <RiskPatternChart data={analytics.riskByPattern} />
+          )}
+        </Card>
       </div>
 
       <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
@@ -97,6 +180,11 @@ export default async function SecurityDashboardPage() {
                 Recent critical actions
               </span>
             }
+            action={
+              <Link href="/admin/action-logs">
+                <Badge variant="info">All logs →</Badge>
+              </Link>
+            }
           />
           {recentCritical.length === 0 ? (
             <p className="text-sm text-ink-muted">No high-risk actions recorded.</p>
@@ -105,7 +193,7 @@ export default async function SecurityDashboardPage() {
               {recentCritical.map((l) => (
                 <li
                   key={l.id}
-                  className="flex items-center justify-between py-3 text-sm"
+                  className="flex items-center justify-between gap-3 py-3 text-sm"
                 >
                   <div className="min-w-0">
                     <div className="font-medium text-ink">
@@ -132,12 +220,12 @@ export default async function SecurityDashboardPage() {
             title={
               <span className="inline-flex items-center gap-2">
                 <Bot className="size-4 text-accent-cyan" />
-                Agent activity
+                Recent agent traces
               </span>
             }
             action={
               <Link href="/admin/agent-simulation-logs">
-                <Badge variant="info">See traces</Badge>
+                <Badge variant="info">Open traces →</Badge>
               </Link>
             }
           />
@@ -147,14 +235,14 @@ export default async function SecurityDashboardPage() {
             <ul className="divide-y divide-line">
               {agentActivity.map((a) => (
                 <li key={a.id} className="py-3">
-                  <div className="flex items-center justify-between">
+                  <div className="flex items-center justify-between gap-2">
                     <div className="min-w-0">
-                      <div className="font-medium text-ink text-sm">
+                      <div className="text-sm font-medium text-ink line-clamp-1">
                         {a.declaredTask}
                       </div>
                       <div className="text-xs text-ink-subtle">
-                        {a.actionType.replaceAll("_", " ")} · {a.intentMatchStatus}{" "}
-                        · {formatDate(a.timestamp)}
+                        {a.actionType.replaceAll("_", " ")} ·{" "}
+                        {a.intentMatchStatus} · {formatDate(a.timestamp)}
                       </div>
                     </div>
                     <RiskBadge level={a.riskLevel} />
@@ -215,5 +303,17 @@ export default async function SecurityDashboardPage() {
         </ul>
       </Card>
     </PageShell>
+  );
+}
+
+function LegendDot({ color, label }: { color: string; label: string }) {
+  return (
+    <span className="inline-flex items-center gap-1.5">
+      <span
+        className="inline-block size-2 rounded-full"
+        style={{ background: color }}
+      />
+      <span className="uppercase tracking-widest">{label}</span>
+    </span>
   );
 }
