@@ -173,23 +173,6 @@ export async function getTransactionVolumeByDay(daysBack = 14) {
   }));
 }
 
-/** Top merchants by debit spend */
-export async function getTopMerchants(limit = 8) {
-  const rows = await prisma.transaction.groupBy({
-    by: ["merchantOrRecipient"],
-    where: { direction: "debit" },
-    _sum: { amount: true },
-    _count: { _all: true },
-    orderBy: { _sum: { amount: "desc" } },
-    take: limit,
-  });
-  return rows.map((r) => ({
-    merchant: r.merchantOrRecipient,
-    total: r._sum.amount ?? 0,
-    count: r._count._all,
-  }));
-}
-
 /** Most recent audit entries for an activity feed */
 export async function getRecentActivity(limit = 12) {
   const rows = await prisma.auditLog.findMany({

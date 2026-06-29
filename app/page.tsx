@@ -16,7 +16,6 @@ import { RiskDistributionChart } from "@/components/charts/risk-distribution";
 import { CustomerActivityChart } from "@/components/charts/customer-activity";
 import { TransactionsByCategoryChart } from "@/components/charts/transactions-by-category";
 import { TransactionVolumeChart } from "@/components/charts/transaction-volume";
-import { TopMerchantsChart } from "@/components/charts/top-merchants";
 import { HourOfDayChart } from "@/components/charts/hour-of-day";
 import { TierDistributionChart } from "@/components/charts/tier-distribution";
 import { TopCustomersChart } from "@/components/charts/top-customers";
@@ -36,7 +35,6 @@ import {
   getTierDistribution,
   getTopActionTypes,
   getTopCustomersBySpend,
-  getTopMerchants,
   getTransactionsByCategory,
   getTransactionVolumeByDay,
   getWeekdayActivity,
@@ -69,7 +67,6 @@ export default async function Page() {
     perCustomer,
     txCategories,
     txVolume,
-    topMerchants,
     recentActivity,
     recentRiskEvents,
     actionsByHour,
@@ -86,7 +83,6 @@ export default async function Page() {
     getActionsPerCustomer(),
     getTransactionsByCategory(),
     getTransactionVolumeByDay(14),
-    getTopMerchants(12),
     getRecentActivity(12),
     getRecentRiskEvents(5),
     getActionsByHour(),
@@ -310,8 +306,8 @@ export default async function Page() {
         </div>
       </section>
 
-      <section className="mt-4 grid grid-cols-1 gap-4 lg:grid-cols-3">
-        <div className="panel lg:col-span-2">
+      <section className="mt-4 grid grid-cols-1 gap-4">
+        <div className="panel">
           <div className="mb-3 flex items-end justify-between">
             <div className="panel-title">
               Top customers by spend
@@ -328,10 +324,6 @@ export default async function Page() {
             />
           </div>
           <TopCustomersChart data={topCustomers} containerHeight={360} />
-        </div>
-        <div className="panel">
-          <div className="mb-3 panel-title">Top merchants & recipients</div>
-          <TopMerchantsChart data={topMerchants} />
         </div>
       </section>
 
