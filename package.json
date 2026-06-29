@@ -11,6 +11,8 @@
     "db:seed": "tsx prisma/seed.ts",
     "db:reset": "prisma db push --force-reset && npm run db:seed",
     "db:studio": "prisma studio",
+    "seed:dataset": "tsx scripts/seed-from-dataset.ts",
+    "clean:injection-data": "tsx scripts/clean-injection-data.ts",
     "postinstall": "prisma generate"
   },
   "prisma": {
