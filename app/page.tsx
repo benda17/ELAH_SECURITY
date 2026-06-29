@@ -9,6 +9,7 @@ import {
   Users,
   Wallet,
 } from "lucide-react";
+import { AutoRefresh } from "@/components/auto-refresh";
 import { StatCard } from "@/components/stat-card";
 import { ActionsOverTimeChart } from "@/components/charts/actions-over-time";
 import { ActionTypesChart } from "@/components/charts/action-types";
@@ -124,13 +125,18 @@ export default async function Page() {
             </p>
           </div>
         </div>
-        <div className="text-right text-xs text-ink-muted">
+        <div className="flex flex-col items-end gap-2 text-xs text-ink-muted">
+          <AutoRefresh defaultSeconds={10} />
           <div>
             Generated:{" "}
             <span className="text-ink">
               {new Date().toLocaleString("en-US", {
-                dateStyle: "medium",
-                timeStyle: "short",
+                month: "short",
+                day: "numeric",
+                year: "numeric",
+                hour: "2-digit",
+                minute: "2-digit",
+                second: "2-digit",
               })}
             </span>
           </div>
