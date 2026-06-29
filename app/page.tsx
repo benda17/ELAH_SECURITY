@@ -369,7 +369,7 @@ export default async function Page() {
                   {a.actionType}
                   {a.page ? <span className="text-ink-dim"> · {a.page}</span> : null}
                   {a.amount ? (
-                    <span className="text-ink-dim"> · ${formatCompact(a.amount)}</span>
+                    <span className="text-ink-dim"> · ₪{formatCompact(a.amount)}</span>
                   ) : null}
                 </span>
                 <span className="shrink-0 text-xs text-ink-dim">

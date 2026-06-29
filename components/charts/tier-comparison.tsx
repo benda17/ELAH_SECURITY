@@ -9,7 +9,7 @@ const TIER_COLORS: Record<string, string> = {
 const fmtCurrency = (v: number) =>
   new Intl.NumberFormat("en-US", {
     style: "currency",
-    currency: "USD",
+    currency: "ILS",
     maximumFractionDigits: 0,
   }).format(v);
 
