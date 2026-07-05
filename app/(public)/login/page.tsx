@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { Lock } from "lucide-react";
 import { BrandMark } from "@/components/layout/brand-mark";
+import { DEMO_ACCOUNTS, DEMO_PASSWORD } from "@/lib/auth/demo-accounts";
 import { LoginForm } from "./login-form";
 
 export default function LoginPage({
@@ -101,34 +102,16 @@ export default function LoginPage({
               <Lock className="size-3.5" />
               Demo credentials — password{" "}
               <code className="rounded bg-bg-panel/60 px-1.5 py-0.5 font-mono text-[11px] text-accent-gold border border-line">
-                DemoPass123!
+                {DEMO_PASSWORD}
               </code>
             </div>
             <ul className="space-y-1.5 text-xs text-ink-muted">
-              <li>
-                <span className="font-mono text-ink">basic.customer@elah.demo</span>{" "}
-                — Regular customer
-              </li>
-              <li>
-                <span className="font-mono text-ink">premium.customer@elah.demo</span>{" "}
-                — Premium customer
-              </li>
-              <li>
-                <span className="font-mono text-ink">vip.customer@elah.demo</span>{" "}
-                — VIP / Private banking
-              </li>
-              <li>
-                <span className="font-mono text-ink">manager@elah.demo</span>{" "}
-                — Bank manager
-              </li>
-              <li>
-                <span className="font-mono text-ink">security.admin@elah.demo</span>{" "}
-                — Security reviewer
-              </li>
-              <li>
-                <span className="font-mono text-ink">agent@elah.demo</span>{" "}
-                — AI agent placeholder
-              </li>
+              {DEMO_ACCOUNTS.map((account) => (
+                <li key={account.email}>
+                  <span className="font-mono text-ink">{account.email}</span> —{" "}
+                  {account.label}
+                </li>
+              ))}
             </ul>
           </div>
 

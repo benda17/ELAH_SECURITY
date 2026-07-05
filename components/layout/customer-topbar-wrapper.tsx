@@ -14,6 +14,7 @@ const TITLES: Record<string, { title: string; subtitle: string }> = {
   "/support": { title: "Support", subtitle: "Customer portal" },
   "/profile": { title: "Profile", subtitle: "Customer portal" },
   "/investments": { title: "Investments", subtitle: "Customer portal" },
+  "/assistant": { title: "AI Assistant", subtitle: "Customer portal" },
 };
 
 export function CustomerTopbarWrapper({

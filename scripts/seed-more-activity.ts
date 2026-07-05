@@ -32,7 +32,7 @@
  *                              Default 14. Use 1 for "burst of today's traffic".
  */
 
-import { PrismaClient } from "@prisma/client";
+import { PrismaClient, type Prisma } from "@prisma/client";
 import { readFileSync } from "node:fs";
 import { join } from "node:path";
 
@@ -235,12 +235,8 @@ function merchantFor(log: DatasetAuditLog): string {
   }
 }
 
-type AuditPayload = Parameters<
-  typeof prisma.auditLog.createMany
->[0]["data"][number];
-type TxPayload = Parameters<
-  typeof prisma.transaction.createMany
->[0]["data"][number];
+  type AuditPayload = Prisma.AuditLogCreateManyInput;
+  type TxPayload = Prisma.TransactionCreateManyInput;
 
 function emitAuditFromSample(
   sample: DatasetAuditLog,

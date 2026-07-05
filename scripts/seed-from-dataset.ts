@@ -25,6 +25,7 @@ import { PrismaClient } from "@prisma/client";
 import bcryptjs from "bcryptjs";
 import { readFileSync } from "node:fs";
 import { join } from "node:path";
+import { CANONICAL_DEMO_EMAILS } from "../lib/auth/demo-accounts";
 
 const prisma = new PrismaClient();
 
@@ -696,6 +697,8 @@ async function main() {
   console.log("\n=== Done ===");
   console.log(`Default password for ALL accounts: ${DEFAULT_PASSWORD}\n`);
 
+  await ensureCanonicalDemoEmails();
+
   console.log("Staff users:");
   for (const s of staffEmails) {
     console.log(`  - ${s.email}  (${s.name} — ${s.role})`);
@@ -707,6 +710,35 @@ async function main() {
   }
   if (customerEmails.length > 6) {
     console.log(`  …and ${customerEmails.length - 6} more`);
+  }
+}
+
+async function ensureCanonicalDemoEmails() {
+  console.log("\n[8/8] Ensuring canonical demo login emails…");
+  for (const { email, role } of CANONICAL_DEMO_EMAILS) {
+    const existing = await prisma.user.findUnique({ where: { email } });
+    if (existing) {
+      console.log(`      ✓ ${email}`);
+      continue;
+    }
+    const user = await prisma.user.findFirst({
+      where: { role, status: "active" },
+      orderBy: { createdAt: "asc" },
+      include: { customerProfile: true },
+    });
+    if (!user) {
+      console.log(`      ✗ ${email} — no user for role ${role}`);
+      continue;
+    }
+    const previous = user.email;
+    await prisma.user.update({ where: { id: user.id }, data: { email } });
+    if (user.customerProfile) {
+      await prisma.customerProfile.update({
+        where: { id: user.customerProfile.id },
+        data: { email },
+      });
+    }
+    console.log(`      ↪ ${previous} → ${email}`);
   }
 }
 

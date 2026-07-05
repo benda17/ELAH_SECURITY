@@ -40,6 +40,8 @@ next-env.d.ts
 # Prisma + SQLite
 /prisma/dev.db
 /prisma/dev.db-journal
+/prisma/test-agent.db
+/prisma/test-agent.db-journal
 /prisma/migrations/dev*
 
 # Local log mirrors (the directory is kept via .gitkeep, but contents are local)

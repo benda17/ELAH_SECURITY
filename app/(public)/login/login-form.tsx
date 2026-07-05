@@ -3,6 +3,7 @@
 import { useFormState, useFormStatus } from "react-dom";
 import { AlertTriangle } from "lucide-react";
 import { loginAction, type LoginState } from "@/app/actions/auth";
+import { DEFAULT_DEMO_LOGIN_EMAIL } from "@/lib/auth/demo-accounts";
 import { Button } from "@/components/ui/button";
 import { Field, Input } from "@/components/ui/input";
 
@@ -21,7 +22,7 @@ export function LoginForm({ initialError }: { initialError?: string }) {
           type="email"
           autoComplete="email"
           required
-          defaultValue="basic.customer@elah.demo"
+          defaultValue={DEFAULT_DEMO_LOGIN_EMAIL}
         />
       </Field>
       <Field label="Password" htmlFor="password">

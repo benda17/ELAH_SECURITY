@@ -2,6 +2,7 @@ import Link from "next/link";
 import {
   ArrowRight,
   Bell,
+  Bot,
   Send,
   FileText,
   Landmark,
@@ -221,7 +222,12 @@ export default async function CustomerDashboardPage() {
       </div>
 
       <SectionHeader title="Quick actions" />
-      <div className="grid grid-cols-2 gap-3 md:grid-cols-4">
+      <div className="grid grid-cols-2 gap-3 md:grid-cols-4 lg:grid-cols-5">
+        <QuickAction
+          href="/assistant"
+          label="AI Assistant"
+          icon={<Bot className="size-4" />}
+        />
         <QuickAction
           href="/transfer"
           label="Transfer"

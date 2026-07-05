@@ -12,8 +12,12 @@
     "db:reset": "prisma db push --force-reset && npm run db:seed",
     "db:studio": "prisma studio",
     "seed:dataset": "tsx scripts/seed-from-dataset.ts",
+    "seed:demo-logins": "tsx scripts/ensure-canonical-demo-logins.ts",
     "seed:more": "tsx scripts/seed-more-activity.ts",
+    "seed:agent-scenarios": "tsx scripts/seed-agent-test-scenarios.ts",
     "clean:injection-data": "tsx scripts/clean-injection-data.ts",
+    "test": "vitest run",
+    "test:watch": "vitest",
     "postinstall": "prisma generate"
   },
   "prisma": {
@@ -26,6 +30,7 @@
     "clsx": "^2.1.1",
     "lucide-react": "^0.460.0",
     "next": "14.2.18",
+    "openai": "^4.104.0",
     "react": "^18.3.1",
     "react-dom": "^18.3.1",
     "recharts": "^2.13.3",
@@ -42,6 +47,7 @@
     "prisma": "^5.22.0",
     "tailwindcss": "^3.4.14",
     "tsx": "^4.19.2",
-    "typescript": "^5.6.3"
+    "typescript": "^5.6.3",
+    "vitest": "^4.1.9"
   }
 }

@@ -42,6 +42,7 @@ const CUSTOMER_ROUTES = [
   "/cards",
   "/loans",
   "/support",
+  "/assistant",
   "/profile",
   "/investments",
 ];

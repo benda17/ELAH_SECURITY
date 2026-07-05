@@ -29,6 +29,8 @@ model User {
   approvalsMade   ApprovalRequest[] @relation("ApprovalDecidedBy")
   sessions        Session[]
   riskReviews     RiskEvent[]  @relation("RiskReviewer")
+  agentConversations AgentConversation[]
+  agentPendingActions AgentPendingAction[]
 }
 
 model Session {
@@ -324,6 +326,93 @@ model RiskEvent {
 
   @@index([severity])
   @@index([reviewStatus])
+  @@index([timestamp])
+}
+
+// -------------------- AI Assistant (in-app agent) --------------------
+
+model AgentConversation {
+  id        String   @id @default(cuid())
+  userId    String
+  title     String?  // auto-generated from first user message
+  status    String   @default("active") // active | closed | flagged
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  user           User                 @relation(fields: [userId], references: [id], onDelete: Cascade)
+  messages       AgentMessage[]
+  pendingActions AgentPendingAction[]
+
+  @@index([userId])
+  @@index([status])
+}
+
+model AgentMessage {
+  id             String   @id @default(cuid())
+  conversationId String
+  role           String   // user | assistant | tool | system_internal
+  content        String
+  toolName       String?
+  toolResult     String?  // JSON-encoded
+  latencyMs      Int?
+  createdAt      DateTime @default(now())
+
+  conversation AgentConversation @relation(fields: [conversationId], references: [id], onDelete: Cascade)
+
+  @@index([conversationId])
+  @@index([createdAt])
+}
+
+model AgentPendingAction {
+  id             String   @id @default(cuid())
+  userId         String
+  conversationId String
+  actionType     String
+  toolName       String
+  toolArgs       String   // JSON-encoded
+  summary        String   // human-readable summary shown for confirmation
+  status         String   @default("pending") // pending | confirmed | cancelled | expired | executed
+  createdAt      DateTime @default(now())
+  expiresAt      DateTime
+  executedAt     DateTime?
+  resultSummary  String?
+
+  user         User              @relation(fields: [userId], references: [id], onDelete: Cascade)
+  conversation AgentConversation @relation(fields: [conversationId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([conversationId])
+  @@index([status])
+}
+
+/// Structured event log for all in-app agent activity.
+/// This is separate from AuditLog (which is the app-wide audit trail) and
+/// from AgentActionLog (which is legacy seeded agent-simulation traces).
+model AgentEventLog {
+  id                String   @id @default(cuid())
+  timestamp         DateTime @default(now())
+  eventType         String   // user_message_received | agent_message_created | tool_call_requested | ...
+  userId            String?
+  sessionId         String?
+  conversationId    String?
+  messageId         String?
+  userMessage       String?
+  assistantMessage  String?
+  detectedIntent    String?
+  toolName          String?
+  toolArgsSanitized String?  // JSON-encoded
+  policyDecision    String?  // allow | deny | needs_confirmation
+  policyReasons     String?  // JSON-encoded array
+  riskScore         Int?
+  resultSummary     String?
+  latencyMs         Int?
+  ipAddress         String?
+  userAgent         String?
+  metadata          String?  // JSON-encoded extra fields
+
+  @@index([userId])
+  @@index([conversationId])
+  @@index([eventType])
   @@index([timestamp])
 }
 

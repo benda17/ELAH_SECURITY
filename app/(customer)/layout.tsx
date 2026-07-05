@@ -9,6 +9,7 @@ import {
   MessagesSquare,
   UserCog,
   LineChart,
+  Bot,
 } from "lucide-react";
 import { requireCustomer } from "@/lib/auth/guards";
 import { tierFromRole, ROLE_LABEL } from "@/lib/auth/roles";
@@ -33,6 +34,7 @@ export default async function CustomerLayout({
     { href: "/loans", label: "Loans", icon: <Landmark className="size-4" /> },
     { href: "/investments", label: "Investments", icon: <LineChart className="size-4" /> },
     { href: "/support", label: "Support", icon: <MessagesSquare className="size-4" /> },
+    { href: "/assistant", label: "AI Assistant", icon: <Bot className="size-4" /> },
     { href: "/profile", label: "Profile", icon: <UserCog className="size-4" /> },
   ];
 
