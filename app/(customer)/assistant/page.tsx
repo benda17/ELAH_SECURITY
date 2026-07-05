@@ -4,7 +4,11 @@ import { PageShell, SectionHeader } from "@/components/layout/page-shell";
 import { Card, CardHeader } from "@/components/ui/card";
 import { AgentChat } from "@/components/agent/agent-chat";
 
-export default async function AssistantPage() {
+export default async function AssistantPage({
+  searchParams,
+}: {
+  searchParams: { conversationId?: string };
+}) {
   const user = await requireCustomer();
 
   return (
@@ -25,7 +29,10 @@ export default async function AssistantPage() {
           }
           description="Balances, transactions, transfers, bills, cards, and statements."
         />
-        <AgentChat userName={user.name} />
+        <AgentChat
+          userName={user.name}
+          initialConversationId={searchParams.conversationId}
+        />
       </Card>
     </PageShell>
   );

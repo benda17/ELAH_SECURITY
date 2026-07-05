@@ -9,6 +9,10 @@ const TITLES: Record<string, { title: string; subtitle: string }> = {
     subtitle: "Security portal",
   },
   "/admin/action-logs": { title: "Action logs", subtitle: "Security portal" },
+  "/admin/assistant-logs": {
+    title: "In-app assistant logs",
+    subtitle: "Security portal",
+  },
   "/admin/agent-simulation-logs": {
     title: "Agent simulation logs",
     subtitle: "Security portal",

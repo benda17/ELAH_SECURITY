@@ -20,6 +20,7 @@ import { Card, CardHeader, StatCard } from "@/components/ui/card";
 import { Badge, TierBadge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { formatCurrency, formatDate } from "@/lib/utils";
+import { AssistantActivityPanel } from "@/components/agent/assistant-activity-panel";
 
 export const dynamic = "force-dynamic";
 
@@ -32,7 +33,8 @@ export default async function CustomerDashboardPage() {
   const tier = profile.tier as "basic" | "premium" | "vip";
   const policy = tierPolicy(tier);
 
-  const [accounts, transactions, pendingApprovals, pendingTickets] = await Promise.all([
+  const [accounts, transactions, pendingApprovals, pendingTickets, assistantConversations, assistantEvents] =
+    await Promise.all([
     prisma.bankAccount.findMany({
       where: { customerProfileId: profile.id },
       orderBy: { openedAt: "asc" },
@@ -47,6 +49,25 @@ export default async function CustomerDashboardPage() {
     }),
     prisma.supportTicket.findMany({
       where: { customerProfileId: profile.id, status: { not: "closed" } },
+    }),
+    prisma.agentConversation.findMany({
+      where: { userId: user.id },
+      orderBy: { updatedAt: "desc" },
+      take: 5,
+      include: {
+        messages: { orderBy: { createdAt: "desc" }, take: 1 },
+        _count: { select: { messages: true } },
+      },
+    }),
+    prisma.agentEventLog.findMany({
+      where: {
+        userId: user.id,
+        eventType: {
+          notIn: ["agent_message_created", "agent_intent_classified"],
+        },
+      },
+      orderBy: { timestamp: "desc" },
+      take: 8,
     }),
   ]);
 
@@ -220,6 +241,25 @@ export default async function CustomerDashboardPage() {
           </ul>
         </Card>
       </div>
+
+      <AssistantActivityPanel
+        conversations={assistantConversations.map((c) => ({
+          id: c.id,
+          title: c.title,
+          status: c.status,
+          messageCount: c._count.messages,
+          updatedAt: c.updatedAt,
+          lastMessage: c.messages[0]?.content ?? null,
+        }))}
+        events={assistantEvents.map((e) => ({
+          id: e.id,
+          eventType: e.eventType,
+          toolName: e.toolName,
+          userMessage: e.userMessage,
+          resultSummary: e.resultSummary,
+          timestamp: e.timestamp,
+        }))}
+      />
 
       <SectionHeader title="Quick actions" />
       <div className="grid grid-cols-2 gap-3 md:grid-cols-4 lg:grid-cols-5">

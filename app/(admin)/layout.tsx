@@ -4,6 +4,7 @@ import {
   Bot,
   Bug,
   AlertOctagon,
+  MessagesSquare,
 } from "lucide-react";
 import { requireSecurity } from "@/lib/auth/guards";
 import { ClientSidebar } from "@/components/layout/client-sidebar";
@@ -26,6 +27,11 @@ export default async function AdminLayout({
       href: "/admin/action-logs",
       label: "Action logs",
       icon: <ListChecks className="size-4" />,
+    },
+    {
+      href: "/admin/assistant-logs",
+      label: "Assistant logs",
+      icon: <MessagesSquare className="size-4" />,
     },
     {
       href: "/admin/agent-simulation-logs",

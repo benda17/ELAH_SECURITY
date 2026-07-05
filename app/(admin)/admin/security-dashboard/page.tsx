@@ -15,6 +15,7 @@ import { PageShell, SectionHeader } from "@/components/layout/page-shell";
 import { Card, CardHeader, StatCard } from "@/components/ui/card";
 import { Badge, RiskBadge } from "@/components/ui/badge";
 import { formatDate } from "@/lib/utils";
+import { formatAgentEventLabel, agentEventBadgeVariant } from "@/lib/agent/display";
 import {
   ActivityTimelineChart,
   ActorBreakdownChart,
@@ -29,7 +30,8 @@ export const dynamic = "force-dynamic";
 export default async function SecurityDashboardPage() {
   await requireSecurity();
 
-  const [analytics, recentCritical, agentActivity] = await Promise.all([
+  const [analytics, recentCritical, agentActivity, assistantLogs, assistantLogCount] =
+    await Promise.all([
     getAnalyticsSnapshot(),
     prisma.auditLog.findMany({
       where: { riskLevel: { in: ["high", "critical"] } },
@@ -40,7 +42,24 @@ export default async function SecurityDashboardPage() {
       orderBy: { timestamp: "desc" },
       take: 5,
     }),
+    prisma.agentEventLog.findMany({
+      orderBy: { timestamp: "desc" },
+      take: 8,
+    }),
+    prisma.agentEventLog.count(),
   ]);
+
+  const assistantUserIds = [
+    ...new Set(assistantLogs.map((l) => l.userId).filter((id): id is string => !!id)),
+  ];
+  const assistantUsers =
+    assistantUserIds.length > 0
+      ? await prisma.user.findMany({
+          where: { id: { in: assistantUserIds } },
+          select: { id: true, name: true },
+        })
+      : [];
+  const assistantUserMap = new Map(assistantUsers.map((u) => [u.id, u.name]));
 
   await writeAuditLog({
     actionType: "admin_security_dashboard_viewed",
@@ -62,7 +81,7 @@ export default async function SecurityDashboardPage() {
         description="Live view of audit logs, risk events, and agent traces. Charts cover the last 24 hours; totals are all-time."
       />
 
-      <div className="grid grid-cols-2 gap-4 md:grid-cols-3 lg:grid-cols-6">
+      <div className="grid grid-cols-2 gap-4 md:grid-cols-3 lg:grid-cols-4">
         <StatCard
           label="Audit logs (total)"
           value={String(analytics.totals.audit)}
@@ -83,6 +102,13 @@ export default async function SecurityDashboardPage() {
           hint="AI agent actions"
           icon={<Bot className="size-4" />}
           accent="amber"
+        />
+        <StatCard
+          label="Assistant events"
+          value={String(assistantLogCount)}
+          hint="In-app AI assistant"
+          icon={<Bot className="size-4" />}
+          accent="cyan"
         />
         <StatCard
           label="Critical (24h)"
@@ -253,6 +279,57 @@ export default async function SecurityDashboardPage() {
           )}
         </Card>
       </div>
+
+      <Card>
+        <CardHeader
+          title={
+            <span className="inline-flex items-center gap-2">
+              <Bot className="size-4 text-accent-gold" />
+              In-app assistant logs
+            </span>
+          }
+          description="Live events from customer AI Assistant conversations — tool calls, policy checks, confirmations, and security signals."
+          action={
+            <Link href="/admin/assistant-logs">
+              <Badge variant="info">All assistant logs →</Badge>
+            </Link>
+          }
+        />
+        {assistantLogs.length === 0 ? (
+          <p className="text-sm text-ink-muted">
+            No assistant activity yet. Events appear when customers use the in-app
+            assistant.
+          </p>
+        ) : (
+          <ul className="divide-y divide-line">
+            {assistantLogs.map((log) => (
+              <li
+                key={log.id}
+                className="flex items-start justify-between gap-3 py-3 text-sm"
+              >
+                <div className="min-w-0">
+                  <div className="font-medium text-ink">
+                    {formatAgentEventLabel(log.eventType, log.toolName)}
+                  </div>
+                  <div className="text-xs text-ink-subtle">
+                    {(log.userId ? assistantUserMap.get(log.userId) : null) ??
+                      "Unknown user"}{" "}
+                    · {formatDate(log.timestamp)}
+                  </div>
+                  {(log.userMessage || log.resultSummary) && (
+                    <p className="mt-1 line-clamp-2 text-xs text-ink-muted">
+                      {log.resultSummary ?? log.userMessage}
+                    </p>
+                  )}
+                </div>
+                <Badge variant={agentEventBadgeVariant(log.eventType)}>
+                  {log.eventType.replace(/_/g, " ")}
+                </Badge>
+              </li>
+            ))}
+          </ul>
+        )}
+      </Card>
 
       <Card>
         <CardHeader

@@ -58,6 +58,7 @@ const MANAGER_ROUTES = [
 const ADMIN_ROUTES = [
   "/admin/security-dashboard",
   "/admin/action-logs",
+  "/admin/assistant-logs",
   "/admin/agent-simulation-logs",
   "/admin/prompt-injection-scenarios",
   "/admin/risk-events",
