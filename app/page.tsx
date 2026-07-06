@@ -38,6 +38,7 @@ import {
   AssistantSecurityReasonsChart,
   AssistantSecurityRiskScoreChart,
 } from "@/components/charts/assistant-security-risks";
+import { AssistantModelBanner, AssistantModelExplainer } from "@/components/assistant-model-explainer";
 import {
   assistantEventTone,
   formatAgentEventLabel,
@@ -189,6 +190,8 @@ export default async function Page() {
           </div>
         </div>
       </header>
+
+      <AssistantModelBanner className="mb-6" />
 
       {/* Stat grid */}
       <section className="grid grid-cols-2 gap-4 md:grid-cols-3 xl:grid-cols-6">
@@ -392,6 +395,7 @@ export default async function Page() {
 
       {/* AI Assistant */}
       <SectionLabel>AI Assistant</SectionLabel>
+      <AssistantModelExplainer />
       <section className="grid grid-cols-2 gap-4 md:grid-cols-3 xl:grid-cols-6">
         <StatCard
           label="Assistant events"

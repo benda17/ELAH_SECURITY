@@ -8,6 +8,7 @@ import {
 } from "@/components/charts/intent-matrix";
 import { IntentMatrixView } from "@/components/intent-matrix-view";
 import { IntentMatrixExplainer } from "@/components/intent-matrix-explainer";
+import { AssistantModelBanner, AssistantModelExplainer } from "@/components/assistant-model-explainer";
 import {
   getIntentMatrixOverview,
   getIntentSecurityPanel,
@@ -62,6 +63,9 @@ export default async function IntentMatrixPage() {
       </header>
 
       <main className="mx-auto max-w-7xl space-y-6 px-4 py-6 sm:px-6">
+        <AssistantModelBanner />
+        <AssistantModelExplainer />
+
         {/* Full-width intent scatter */}
         <section className="rounded-2xl border border-surface-border bg-surface-raised p-4 sm:p-6">
           <div className="mb-4 flex flex-wrap items-end justify-between gap-3">
