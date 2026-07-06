@@ -9,6 +9,7 @@ import {
   XAxis,
   YAxis,
 } from "recharts";
+import { CHART_TOOLTIP_PROPS } from "./chart-primitives";
 
 export function HourOfDayChart({
   data,
@@ -33,12 +34,7 @@ export function HourOfDayChart({
         <YAxis tickLine={false} axisLine={false} width={36} />
         <Tooltip
           cursor={{ fill: "rgba(255,255,255,0.04)" }}
-          contentStyle={{
-            background: "#111a2c",
-            border: "1px solid #1f2b45",
-            borderRadius: 10,
-            fontSize: 12,
-          }}
+          {...CHART_TOOLTIP_PROPS}
         />
         <Bar dataKey="count" fill="#a78bfa" radius={[6, 6, 0, 0]} barSize={10} />
       </BarChart>

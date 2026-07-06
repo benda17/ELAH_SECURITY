@@ -10,6 +10,7 @@ import {
   XAxis,
   YAxis,
 } from "recharts";
+import { CHART_TOOLTIP_PROPS } from "./chart-primitives";
 
 const TIER_COLORS: Record<string, string> = {
   basic: "#22d3ee",
@@ -65,12 +66,7 @@ export function TopCustomersChart({
             />
             <Tooltip
               cursor={{ fill: "rgba(255,255,255,0.04)" }}
-              contentStyle={{
-                background: "#111a2c",
-                border: "1px solid #1f2b45",
-                borderRadius: 10,
-                fontSize: 12,
-              }}
+              {...CHART_TOOLTIP_PROPS}
               formatter={(value: number, _name, p: any) => [
                 `$${value.toLocaleString()} · ${p.payload.count} txns`,
                 "Spend",

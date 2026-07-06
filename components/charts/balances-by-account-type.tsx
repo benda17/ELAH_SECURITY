@@ -10,6 +10,7 @@ import {
   XAxis,
   YAxis,
 } from "recharts";
+import { CHART_TOOLTIP_PROPS } from "./chart-primitives";
 
 const COLORS: Record<string, string> = {
   checking: "#22d3ee",
@@ -49,12 +50,7 @@ export function BalancesByAccountTypeChart({
         />
         <Tooltip
           cursor={{ fill: "rgba(255,255,255,0.04)" }}
-          contentStyle={{
-            background: "#111a2c",
-            border: "1px solid #1f2b45",
-            borderRadius: 10,
-            fontSize: 12,
-          }}
+          {...CHART_TOOLTIP_PROPS}
           formatter={(value: number, _n, p: any) => [
             `$${value.toLocaleString()} across ${p.payload.count} accounts`,
             "Total balance",

@@ -43,6 +43,10 @@ using only `prisma.*.findMany` / `groupBy` / `count`.
 ## Charts
 
 - Stat cards: audit actions, transactions, customers, risk events, loans+tickets, net cash flow
+- **AI Assistant**: events, conversations, tool executions, security signals, pending confirmations, flagged chats
+- Assistant events over time (tools / security / other)
+- **Assistant security risks**: 14-day security signal timeline, risk score bands, detection labels
+- Policy decisions, event types, top tools, per-customer activity, recent assistant feed
 - Actions over time (stacked by risk)
 - Risk-level donut
 - Top action types (horizontal bar)

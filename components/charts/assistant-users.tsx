@@ -21,7 +21,7 @@ const TIER_COLORS: Record<string, string> = {
 const ROW_HEIGHT = 26;
 const MIN_INNER = 200;
 
-export function CustomerActivityChart({
+export function AssistantUsersChart({
   data,
   containerHeight = 320,
 }: {
@@ -49,13 +49,17 @@ export function CustomerActivityChart({
               dataKey="name"
               tickLine={false}
               axisLine={false}
-              width={150}
+              width={120}
               tick={{ fontSize: 11 }}
               interval={0}
             />
             <Tooltip
               cursor={{ fill: "rgba(255,255,255,0.04)" }}
               {...CHART_TOOLTIP_PROPS}
+              formatter={(value, _name, item) => [
+                `${value} events · ${(item.payload as { tier: string }).tier} tier`,
+                "Activity",
+              ]}
             />
             <Bar dataKey="count" radius={[0, 6, 6, 0]} barSize={14}>
               {data.map((d) => (

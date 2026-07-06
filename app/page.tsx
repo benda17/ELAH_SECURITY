@@ -1,13 +1,18 @@
 import Image from "next/image";
+import Link from "next/link";
 import {
   Activity,
   ArrowDownRight,
   ArrowUpRight,
+  Bot,
+  BrainCircuit,
   ListChecks,
+  MessageSquare,
   ReceiptText,
   ShieldAlert,
   Users,
   Wallet,
+  Wrench,
 } from "lucide-react";
 import { AutoRefresh } from "@/components/auto-refresh";
 import { StatCard } from "@/components/stat-card";
@@ -23,13 +28,25 @@ import { TopCustomersChart } from "@/components/charts/top-customers";
 import { BalancesByAccountTypeChart } from "@/components/charts/balances-by-account-type";
 import { WeekdayActivityChart } from "@/components/charts/weekday-activity";
 import { TierComparison } from "@/components/charts/tier-comparison";
+import { AssistantEventsOverTimeChart } from "@/components/charts/assistant-events-over-time";
+import { AssistantEventTypesChart } from "@/components/charts/assistant-event-types";
+import { AssistantToolsChart } from "@/components/charts/assistant-tools";
+import { AssistantPolicyChart } from "@/components/charts/assistant-policy";
+import { AssistantUsersChart } from "@/components/charts/assistant-users";
+import {
+  AssistantSecurityTimelineChart,
+  AssistantSecurityReasonsChart,
+  AssistantSecurityRiskScoreChart,
+} from "@/components/charts/assistant-security-risks";
+import {
+  assistantEventTone,
+  formatAgentEventLabel,
+} from "@/lib/agent-display";
 import {
   getActionsByDay,
   getActionsByHour,
   getActionsPerCustomer,
   getBalancesByAccountType,
-  getRecentActivity,
-  getRecentRiskEvents,
   getRiskDistribution,
   getStatsOverview,
   getTierComparison,
@@ -39,24 +56,28 @@ import {
   getTransactionsByCategory,
   getTransactionVolumeByDay,
   getWeekdayActivity,
+  getAssistantStatsOverview,
+  getAssistantEventsByDay,
+  getAssistantEventsByType,
+  getAssistantTopTools,
+  getAssistantPolicyDecisions,
+  getAssistantEventsPerUser,
+  getRecentAssistantEvents,
+  getAssistantSecurityRisksOverTime,
+  getAssistantSecurityRiskReasons,
+  getAssistantSecurityRiskScores,
 } from "@/lib/queries";
-import { cn, formatCompact, formatCurrency } from "@/lib/utils";
+import { cn, formatCurrency } from "@/lib/utils";
 
 export const dynamic = "force-dynamic";
 export const revalidate = 0;
 
-const RISK_PILL: Record<string, string> = {
-  low: "border-accent-cyan/40 bg-accent-cyan/10 text-accent-cyan",
-  medium: "border-accent-amber/40 bg-accent-amber/10 text-accent-amber",
-  high: "border-accent-rose/40 bg-accent-rose/10 text-accent-rose",
-  critical: "border-accent-violet/40 bg-accent-violet/10 text-accent-violet",
-};
-
-const SEVERITY_PILL: Record<string, string> = {
-  low: RISK_PILL.low,
-  medium: RISK_PILL.medium,
-  high: RISK_PILL.high,
-  critical: RISK_PILL.critical,
+const ASSISTANT_PILL: Record<string, string> = {
+  default: "border-surface-border bg-surface-subtle/60 text-ink-muted",
+  success: "border-accent-emerald/40 bg-accent-emerald/10 text-accent-emerald",
+  warning: "border-accent-amber/40 bg-accent-amber/10 text-accent-amber",
+  danger: "border-accent-rose/40 bg-accent-rose/10 text-accent-rose",
+  info: "border-accent-cyan/40 bg-accent-cyan/10 text-accent-cyan",
 };
 
 export default async function Page() {
@@ -68,14 +89,22 @@ export default async function Page() {
     perCustomer,
     txCategories,
     txVolume,
-    recentActivity,
-    recentRiskEvents,
     actionsByHour,
     tierDist,
     topCustomers,
     balancesByType,
     weekdayActivity,
     tierComparison,
+    assistantStats,
+    assistantByDay,
+    assistantEventTypes,
+    assistantTools,
+    assistantPolicy,
+    assistantPerUser,
+    recentAssistantEvents,
+    assistantSecurityTimeline,
+    assistantSecurityReasons,
+    assistantSecurityScores,
   ] = await Promise.all([
     getStatsOverview(),
     getActionsByDay(14),
@@ -84,14 +113,22 @@ export default async function Page() {
     getActionsPerCustomer(),
     getTransactionsByCategory(),
     getTransactionVolumeByDay(14),
-    getRecentActivity(12),
-    getRecentRiskEvents(5),
     getActionsByHour(),
     getTierDistribution(),
     getTopCustomersBySpend(20),
     getBalancesByAccountType(),
     getWeekdayActivity(),
     getTierComparison(),
+    getAssistantStatsOverview(),
+    getAssistantEventsByDay(14),
+    getAssistantEventsByType(12),
+    getAssistantTopTools(10),
+    getAssistantPolicyDecisions(),
+    getAssistantEventsPerUser(15),
+    getRecentAssistantEvents(12),
+    getAssistantSecurityRisksOverTime(14),
+    getAssistantSecurityRiskReasons(10),
+    getAssistantSecurityRiskScores(),
   ]);
 
   const netFlow = stats.creditTotal - stats.debitTotal;
@@ -126,6 +163,13 @@ export default async function Page() {
           </div>
         </div>
         <div className="flex flex-col items-end gap-2 text-xs text-ink-muted">
+          <Link
+            href="/intent-matrix"
+            className="inline-flex items-center gap-1.5 rounded-lg border border-accent-cyan/30 bg-accent-cyan/10 px-3 py-1.5 text-xs font-medium text-accent-cyan hover:bg-accent-cyan/15"
+          >
+            <BrainCircuit className="size-3.5" />
+            Human Intent Matrix
+          </Link>
           <AutoRefresh defaultSeconds={10} />
           <div>
             Generated:{" "}
@@ -346,89 +390,192 @@ export default async function Page() {
         </div>
       </section>
 
-      {/* Recent feeds */}
-      <SectionLabel>Most recent</SectionLabel>
-      <section className="grid grid-cols-1 gap-4 lg:grid-cols-5">
-        <div className="panel lg:col-span-3">
-          <div className="mb-3 panel-title">Recent audit activity</div>
-          <ul className="divide-y divide-surface-border/60">
-            {recentActivity.map((a) => (
-              <li
-                key={a.id}
-                className="flex items-center gap-3 py-2.5 text-sm"
-              >
-                <span
-                  className={cn("pill", RISK_PILL[a.riskLevel] ?? RISK_PILL.low)}
-                >
-                  {a.riskLevel}
-                </span>
-                <span className="min-w-[150px] truncate text-ink">
-                  {a.actorName ?? a.actorType}
-                </span>
-                <span className="flex-1 truncate text-ink-muted">
-                  {a.actionType}
-                  {a.page ? <span className="text-ink-dim"> · {a.page}</span> : null}
-                  {a.amount ? (
-                    <span className="text-ink-dim"> · ₪{formatCompact(a.amount)}</span>
-                  ) : null}
-                </span>
-                <span className="shrink-0 text-xs text-ink-dim">
-                  {new Date(a.timestamp).toLocaleTimeString([], {
-                    hour: "2-digit",
-                    minute: "2-digit",
-                  })}
-                </span>
-              </li>
-            ))}
-          </ul>
-        </div>
+      {/* AI Assistant */}
+      <SectionLabel>AI Assistant</SectionLabel>
+      <section className="grid grid-cols-2 gap-4 md:grid-cols-3 xl:grid-cols-6">
+        <StatCard
+          label="Assistant events"
+          value={assistantStats.eventTotal.toLocaleString()}
+          hint={`${assistantStats.uniqueUsers} active users`}
+          icon={<Bot className="size-4" />}
+          tone="info"
+        />
+        <StatCard
+          label="Conversations"
+          value={assistantStats.conversationTotal.toLocaleString()}
+          hint={`${assistantStats.messageTotal} messages`}
+          icon={<MessageSquare className="size-4" />}
+        />
+        <StatCard
+          label="Tool executions"
+          value={assistantStats.toolExecutions.toLocaleString()}
+          hint={`${assistantStats.toolFailures} failed`}
+          icon={<Wrench className="size-4" />}
+          tone="success"
+        />
+        <StatCard
+          label="Security signals"
+          value={assistantStats.securityEvents.toLocaleString()}
+          hint="Blocked / suspicious / errors"
+          icon={<ShieldAlert className="size-4" />}
+          tone={assistantStats.securityEvents > 0 ? "danger" : "default"}
+        />
+        <StatCard
+          label="Pending confirmations"
+          value={assistantStats.pendingActions.toLocaleString()}
+          hint="Awaiting customer approval"
+          icon={<ListChecks className="size-4" />}
+          tone={assistantStats.pendingActions > 0 ? "warning" : "default"}
+        />
+        <StatCard
+          label="Flagged chats"
+          value={assistantStats.flaggedConversations.toLocaleString()}
+          hint="Injection or policy flags"
+          icon={<ShieldAlert className="size-4" />}
+          tone={assistantStats.flaggedConversations > 0 ? "warning" : "default"}
+        />
+      </section>
 
+      <section className="mt-4 grid grid-cols-1 gap-4 lg:grid-cols-3">
         <div className="panel lg:col-span-2">
-          <div className="mb-3 panel-title">Recent risk events</div>
-          {recentRiskEvents.length === 0 ? (
-            <p className="text-sm text-ink-muted">No risk events recorded yet.</p>
+          <div className="mb-3 flex items-end justify-between">
+            <div>
+              <div className="panel-title">Assistant events · last 14 days</div>
+              <div className="text-xs text-ink-muted">
+                Tool activity, security signals, and other assistant events
+              </div>
+            </div>
+            <Legend
+              items={[
+                { color: "#f6c453", label: "Tools" },
+                { color: "#fb7185", label: "Security" },
+                { color: "#22d3ee", label: "Other" },
+              ]}
+            />
+          </div>
+          {assistantStats.eventTotal === 0 ? (
+            <p className="py-8 text-center text-sm text-ink-muted">
+              No assistant activity yet. Use the banking app at /assistant.
+            </p>
           ) : (
-            <ul className="space-y-3">
-              {recentRiskEvents.map((e) => (
-                <li
-                  key={e.id}
-                  className="rounded-xl border border-surface-border bg-surface-subtle/60 p-3"
-                >
-                  <div className="mb-1 flex items-center gap-2 text-xs">
-                    <span
-                      className={cn(
-                        "pill",
-                        SEVERITY_PILL[e.severity] ?? SEVERITY_PILL.medium,
+            <AssistantEventsOverTimeChart data={assistantByDay} />
+          )}
+        </div>
+        <div className="panel">
+          <div className="mb-3 panel-title">Policy decisions</div>
+          <AssistantPolicyChart data={assistantPolicy} />
+        </div>
+      </section>
+
+      <section className="mt-4 grid grid-cols-1 gap-4 lg:grid-cols-2">
+        <div className="panel">
+          <div className="mb-3 panel-title">Top event types</div>
+          {assistantEventTypes.length === 0 ? (
+            <p className="text-sm text-ink-muted">No events recorded.</p>
+          ) : (
+            <AssistantEventTypesChart data={assistantEventTypes} />
+          )}
+        </div>
+        <div className="panel">
+          <div className="mb-3 panel-title">Most-used tools</div>
+          {assistantTools.length === 0 ? (
+            <p className="text-sm text-ink-muted">No tool calls yet.</p>
+          ) : (
+            <AssistantToolsChart data={assistantTools} />
+          )}
+        </div>
+      </section>
+
+      <section className="mt-4 grid grid-cols-1 gap-4 lg:grid-cols-2">
+        <div className="panel">
+          <div className="mb-3 panel-title">
+            Events per customer
+            <span className="ml-2 text-[10px] font-normal normal-case tracking-normal text-ink-dim">
+              (top {assistantPerUser.length} · scroll)
+            </span>
+          </div>
+          {assistantPerUser.length === 0 ? (
+            <p className="text-sm text-ink-muted">No customer assistant usage yet.</p>
+          ) : (
+            <AssistantUsersChart data={assistantPerUser} containerHeight={320} />
+          )}
+        </div>
+        <div className="panel">
+          <div className="mb-3 panel-title">Recent assistant events</div>
+          {recentAssistantEvents.length === 0 ? (
+            <p className="text-sm text-ink-muted">No assistant events recorded yet.</p>
+          ) : (
+            <ul className="divide-y divide-surface-border/60">
+              {recentAssistantEvents.map((e) => {
+                const tone = assistantEventTone(e.eventType);
+                return (
+                  <li key={e.id} className="flex items-start gap-3 py-2.5 text-sm">
+                    <span className={cn("pill shrink-0", ASSISTANT_PILL[tone])}>
+                      {e.eventType.replace(/_/g, " ")}
+                    </span>
+                    <div className="min-w-0 flex-1">
+                      <div className="font-medium text-ink">
+                        {formatAgentEventLabel(e.eventType, e.toolName)}
+                      </div>
+                      <div className="text-xs text-ink-subtle">{e.userName}</div>
+                      {(e.userMessage || e.resultSummary) && (
+                        <p className="mt-0.5 line-clamp-2 text-xs text-ink-muted">
+                          {e.resultSummary ?? e.userMessage}
+                        </p>
                       )}
-                    >
-                      {e.severity}
-                    </span>
-                    <span className="font-mono text-[11px] text-ink-muted">
-                      {e.eventType}
-                    </span>
-                    <span className="ml-auto text-[11px] text-ink-dim">
-                      {new Date(e.timestamp).toLocaleDateString([], {
-                        month: "short",
-                        day: "numeric",
+                    </div>
+                    <span className="shrink-0 text-xs text-ink-dim">
+                      {new Date(e.timestamp).toLocaleTimeString([], {
+                        hour: "2-digit",
+                        minute: "2-digit",
                       })}
                     </span>
-                  </div>
-                  <p className="text-sm leading-relaxed text-ink">
-                    {e.reasonForFlagging}
-                  </p>
-                  <div className="mt-1 text-[11px] uppercase tracking-wider text-ink-dim">
-                    Review: {e.reviewStatus}
-                  </div>
-                </li>
-              ))}
+                  </li>
+                );
+              })}
             </ul>
           )}
         </div>
       </section>
 
+      <SectionLabel>Assistant security risks</SectionLabel>
+      <section className="grid grid-cols-1 gap-4 lg:grid-cols-3">
+        <div className="panel lg:col-span-2">
+          <div className="mb-3 flex items-end justify-between">
+            <div>
+              <div className="panel-title">Security signals · last 14 days</div>
+              <div className="text-xs text-ink-muted">
+                Suspicious prompts, policy blocks, unauthorized access, and errors logged by the assistant
+              </div>
+            </div>
+            <Legend
+              items={[
+                { color: "#fb7185", label: "Suspicious prompt" },
+                { color: "#fbbf24", label: "Policy blocked" },
+                { color: "#a78bfa", label: "Unauthorized" },
+                { color: "#64748b", label: "Error" },
+              ]}
+            />
+          </div>
+          <AssistantSecurityTimelineChart data={assistantSecurityTimeline} />
+        </div>
+        <div className="panel">
+          <div className="mb-3 panel-title">Risk score bands</div>
+          <AssistantSecurityRiskScoreChart data={assistantSecurityScores} />
+        </div>
+      </section>
+
+      <section className="mt-4 grid grid-cols-1 gap-4">
+        <div className="panel">
+          <div className="mb-3 panel-title">Detection labels &amp; policy reasons</div>
+          <AssistantSecurityReasonsChart data={assistantSecurityReasons} />
+        </div>
+      </section>
+
       <footer className="mt-10 border-t border-surface-border pt-4 text-xs text-ink-dim">
         ELAH Analytics · read-only · {stats.auditTotal.toLocaleString()} audit
-        rows · {stats.transactionTotal.toLocaleString()} transactions across{" "}
+        rows · {stats.transactionTotal.toLocaleString()} transactions ·{" "}
+        {assistantStats.eventTotal.toLocaleString()} assistant events across{" "}
         {stats.customerTotal} customers
       </footer>
     </main>

@@ -9,6 +9,7 @@ import {
   XAxis,
   YAxis,
 } from "recharts";
+import { CHART_TOOLTIP_PROPS } from "./chart-primitives";
 
 type Row = {
   date: string;
@@ -48,12 +49,7 @@ export function TransactionVolumeChart({ data }: { data: Row[] }) {
           tickFormatter={(v) => `$${fmt(v)}`}
         />
         <Tooltip
-          contentStyle={{
-            background: "#111a2c",
-            border: "1px solid #1f2b45",
-            borderRadius: 10,
-            fontSize: 12,
-          }}
+          {...CHART_TOOLTIP_PROPS}
           formatter={(value: number) => `$${value.toLocaleString()}`}
         />
         <Area

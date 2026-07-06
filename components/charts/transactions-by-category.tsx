@@ -1,6 +1,7 @@
 "use client";
 
 import { Cell, Pie, PieChart, ResponsiveContainer, Tooltip } from "recharts";
+import { CHART_TOOLTIP_PROPS } from "./chart-primitives";
 
 const PALETTE = [
   "#22d3ee",
@@ -37,14 +38,7 @@ export function TransactionsByCategoryChart({
               <Cell key={entry.category} fill={PALETTE[i % PALETTE.length]} />
             ))}
           </Pie>
-          <Tooltip
-            contentStyle={{
-              background: "#111a2c",
-              border: "1px solid #1f2b45",
-              borderRadius: 10,
-              fontSize: 12,
-            }}
-          />
+          <Tooltip {...CHART_TOOLTIP_PROPS} />
         </PieChart>
       </ResponsiveContainer>
 

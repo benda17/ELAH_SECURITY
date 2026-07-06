@@ -4,6 +4,7 @@ const config: Config = {
   content: [
     "./app/**/*.{ts,tsx}",
     "./components/**/*.{ts,tsx}",
+    "./lib/**/*.{ts,tsx}",
   ],
   theme: {
     extend: {
@@ -14,6 +15,7 @@ const config: Config = {
           dim: "#6b7689",
         },
         surface: {
+          base: "#060b16",
           DEFAULT: "#0b1220",
           raised: "#111a2c",
           subtle: "#152036",

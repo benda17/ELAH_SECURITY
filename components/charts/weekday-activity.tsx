@@ -10,6 +10,7 @@ import {
   XAxis,
   YAxis,
 } from "recharts";
+import { CHART_TOOLTIP_PROPS } from "./chart-primitives";
 
 const COLOR_WEEKDAY = "#22d3ee";
 const COLOR_WEEKEND = "#a78bfa";
@@ -27,12 +28,7 @@ export function WeekdayActivityChart({
         <YAxis tickLine={false} axisLine={false} width={42} />
         <Tooltip
           cursor={{ fill: "rgba(255,255,255,0.04)" }}
-          contentStyle={{
-            background: "#111a2c",
-            border: "1px solid #1f2b45",
-            borderRadius: 10,
-            fontSize: 12,
-          }}
+          {...CHART_TOOLTIP_PROPS}
         />
         <Bar dataKey="count" radius={[8, 8, 0, 0]} barSize={28}>
           {data.map((d) => (

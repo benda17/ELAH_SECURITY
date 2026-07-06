@@ -345,3 +345,570 @@ export async function getTierComparison() {
   const order = ["basic", "premium", "vip"];
   return result.sort((a, b) => order.indexOf(a.tier) - order.indexOf(b.tier));
 }
+
+// -------------------- AI Assistant metrics --------------------
+
+export async function getAssistantStatsOverview() {
+  const [
+    eventTotal,
+    conversationTotal,
+    messageTotal,
+    toolExecutions,
+    toolFailures,
+    securityEvents,
+    pendingActions,
+    flaggedConversations,
+    uniqueUsers,
+  ] = await Promise.all([
+    prisma.agentEventLog.count(),
+    prisma.agentConversation.count(),
+    prisma.agentMessage.count(),
+    prisma.agentEventLog.count({ where: { eventType: "tool_call_executed" } }),
+    prisma.agentEventLog.count({ where: { eventType: "tool_call_failed" } }),
+    prisma.agentEventLog.count({
+      where: {
+        eventType: {
+          in: [
+            "suspicious_prompt_detected",
+            "unauthorized_access_attempt",
+            "policy_check_failed",
+            "agent_error",
+          ],
+        },
+      },
+    }),
+    prisma.agentPendingAction.count({ where: { status: "pending" } }),
+    prisma.agentConversation.count({ where: { status: "flagged" } }),
+    prisma.agentEventLog.groupBy({
+      by: ["userId"],
+      where: { userId: { not: null } },
+    }),
+  ]);
+
+  return {
+    eventTotal,
+    conversationTotal,
+    messageTotal,
+    toolExecutions,
+    toolFailures,
+    securityEvents,
+    pendingActions,
+    flaggedConversations,
+    uniqueUsers: uniqueUsers.length,
+  };
+}
+
+/** Assistant events per day (last N days), split by category */
+export async function getAssistantEventsByDay(daysBack = 14) {
+  const since = new Date(Date.now() - daysBack * 24 * 60 * 60 * 1000);
+  const rows = await prisma.agentEventLog.findMany({
+    where: { timestamp: { gte: since } },
+    select: { timestamp: true, eventType: true },
+  });
+
+  const securityTypes = new Set([
+    "suspicious_prompt_detected",
+    "unauthorized_access_attempt",
+    "policy_check_failed",
+    "agent_error",
+  ]);
+  const toolTypes = new Set([
+    "tool_call_executed",
+    "tool_call_failed",
+    "tool_call_requested",
+  ]);
+
+  const buckets = new Map<
+    string,
+    { tools: number; security: number; other: number }
+  >();
+  for (let i = daysBack - 1; i >= 0; i--) {
+    const d = new Date(Date.now() - i * 24 * 60 * 60 * 1000);
+    const key = d.toISOString().slice(0, 10);
+    buckets.set(key, { tools: 0, security: 0, other: 0 });
+  }
+
+  for (const r of rows) {
+    const key = r.timestamp.toISOString().slice(0, 10);
+    const slot = buckets.get(key);
+    if (!slot) continue;
+    if (securityTypes.has(r.eventType)) slot.security++;
+    else if (toolTypes.has(r.eventType)) slot.tools++;
+    else slot.other++;
+  }
+
+  return Array.from(buckets.entries()).map(([date, v]) => ({
+    date,
+    label: new Date(date).toLocaleDateString("en-US", {
+      month: "short",
+      day: "numeric",
+    }),
+    ...v,
+    total: v.tools + v.security + v.other,
+  }));
+}
+
+/** Top assistant event types */
+export async function getAssistantEventsByType(limit = 12) {
+  const rows = await prisma.agentEventLog.groupBy({
+    by: ["eventType"],
+    _count: { _all: true },
+    orderBy: { _count: { eventType: "desc" } },
+    take: limit,
+  });
+  return rows.map((r) => ({
+    eventType: r.eventType,
+    count: r._count._all,
+  }));
+}
+
+/** Most-used assistant tools (executed + failed) */
+export async function getAssistantTopTools(limit = 10) {
+  const rows = await prisma.agentEventLog.groupBy({
+    by: ["toolName"],
+    _count: { _all: true },
+    where: {
+      toolName: { not: null },
+      eventType: { in: ["tool_call_executed", "tool_call_failed", "tool_call_requested"] },
+    },
+    orderBy: { _count: { toolName: "desc" } },
+    take: limit,
+  });
+  return rows
+    .filter((r) => r.toolName)
+    .map((r) => ({
+      toolName: r.toolName!.replace(/_/g, " "),
+      count: r._count._all,
+    }));
+}
+
+/** Policy decision breakdown */
+export async function getAssistantPolicyDecisions() {
+  const rows = await prisma.agentEventLog.groupBy({
+    by: ["policyDecision"],
+    _count: { _all: true },
+    where: { policyDecision: { not: null } },
+  });
+  const order = ["allow", "needs_confirmation", "deny"] as const;
+  return order.map((decision) => ({
+    decision,
+    count: rows.find((r) => r.policyDecision === decision)?._count._all ?? 0,
+  }));
+}
+
+/** Assistant activity per customer user */
+export async function getAssistantEventsPerUser(limit = 15) {
+  const rows = await prisma.agentEventLog.groupBy({
+    by: ["userId"],
+    _count: { _all: true },
+    where: { userId: { not: null } },
+    orderBy: { _count: { userId: "desc" } },
+    take: limit,
+  });
+  if (rows.length === 0) return [];
+
+  const users = await prisma.user.findMany({
+    where: { id: { in: rows.map((r) => r.userId!).filter(Boolean) } },
+    select: {
+      id: true,
+      name: true,
+      customerProfile: { select: { tier: true } },
+    },
+  });
+  const byId = new Map(users.map((u) => [u.id, u]));
+
+  return rows.map((r) => {
+    const u = byId.get(r.userId!);
+    return {
+      name: u?.name ?? "Unknown",
+      tier: u?.customerProfile?.tier ?? "?",
+      count: r._count._all,
+    };
+  });
+}
+
+/** Recent in-app assistant events */
+export async function getRecentAssistantEvents(limit = 12) {
+  const rows = await prisma.agentEventLog.findMany({
+    orderBy: { timestamp: "desc" },
+    take: limit,
+    select: {
+      id: true,
+      timestamp: true,
+      eventType: true,
+      userId: true,
+      toolName: true,
+      userMessage: true,
+      resultSummary: true,
+      policyDecision: true,
+      riskScore: true,
+    },
+  });
+
+  const userIds = [...new Set(rows.map((r) => r.userId).filter(Boolean))] as string[];
+  const users =
+    userIds.length > 0
+      ? await prisma.user.findMany({
+          where: { id: { in: userIds } },
+          select: { id: true, name: true },
+        })
+      : [];
+  const byId = new Map(users.map((u) => [u.id, u.name]));
+
+  return rows.map((r) => ({
+    ...r,
+    userName: r.userId ? byId.get(r.userId) ?? "Unknown" : "—",
+    timestamp: r.timestamp.toISOString(),
+  }));
+}
+
+/** Conversation status breakdown */
+export async function getAssistantConversationStatus() {
+  const rows = await prisma.agentConversation.groupBy({
+    by: ["status"],
+    _count: { _all: true },
+  });
+  const order = ["active", "flagged", "closed"] as const;
+  return order.map((status) => ({
+    status,
+    count: rows.find((r) => r.status === status)?._count._all ?? 0,
+  }));
+}
+
+const ASSISTANT_SECURITY_EVENT_TYPES = [
+  "suspicious_prompt_detected",
+  "policy_check_failed",
+  "unauthorized_access_attempt",
+  "agent_error",
+] as const;
+
+function parseJsonArray(raw: string | null | undefined): string[] {
+  if (!raw) return [];
+  try {
+    const parsed = JSON.parse(raw) as unknown;
+    return Array.isArray(parsed)
+      ? parsed.filter((v): v is string => typeof v === "string")
+      : [];
+  } catch {
+    return [];
+  }
+}
+
+function riskBand(score: number | null | undefined): "low" | "medium" | "high" | "critical" {
+  if (score == null) return "low";
+  if (score >= 75) return "critical";
+  if (score >= 50) return "high";
+  if (score >= 25) return "medium";
+  return "low";
+}
+
+/** Security-related assistant events per day, stacked by type */
+export async function getAssistantSecurityRisksOverTime(daysBack = 14) {
+  const since = new Date(Date.now() - daysBack * 24 * 60 * 60 * 1000);
+  const rows = await prisma.agentEventLog.findMany({
+    where: {
+      timestamp: { gte: since },
+      eventType: { in: [...ASSISTANT_SECURITY_EVENT_TYPES] },
+    },
+    select: { timestamp: true, eventType: true },
+  });
+
+  const buckets = new Map<
+    string,
+    {
+      suspicious_prompt: number;
+      policy_failed: number;
+      unauthorized: number;
+      agent_error: number;
+    }
+  >();
+
+  for (let i = daysBack - 1; i >= 0; i--) {
+    const d = new Date(Date.now() - i * 24 * 60 * 60 * 1000);
+    buckets.set(d.toISOString().slice(0, 10), {
+      suspicious_prompt: 0,
+      policy_failed: 0,
+      unauthorized: 0,
+      agent_error: 0,
+    });
+  }
+
+  for (const r of rows) {
+    const key = r.timestamp.toISOString().slice(0, 10);
+    const slot = buckets.get(key);
+    if (!slot) continue;
+    switch (r.eventType) {
+      case "suspicious_prompt_detected":
+        slot.suspicious_prompt++;
+        break;
+      case "policy_check_failed":
+        slot.policy_failed++;
+        break;
+      case "unauthorized_access_attempt":
+        slot.unauthorized++;
+        break;
+      case "agent_error":
+        slot.agent_error++;
+        break;
+    }
+  }
+
+  return Array.from(buckets.entries()).map(([date, v]) => ({
+    date,
+    label: new Date(date).toLocaleDateString("en-US", {
+      month: "short",
+      day: "numeric",
+    }),
+    ...v,
+    total: v.suspicious_prompt + v.policy_failed + v.unauthorized + v.agent_error,
+  }));
+}
+
+/** Top injection / policy detection labels from assistant security events */
+export async function getAssistantSecurityRiskReasons(limit = 10) {
+  const rows = await prisma.agentEventLog.findMany({
+    where: { eventType: { in: [...ASSISTANT_SECURITY_EVENT_TYPES] } },
+    select: { policyReasons: true, eventType: true, resultSummary: true },
+  });
+
+  const counts = new Map<string, number>();
+  for (const row of rows) {
+    const reasons = parseJsonArray(row.policyReasons);
+    if (reasons.length > 0) {
+      for (const reason of reasons) {
+        counts.set(reason, (counts.get(reason) ?? 0) + 1);
+      }
+    } else if (row.resultSummary) {
+      counts.set(row.resultSummary, (counts.get(row.resultSummary) ?? 0) + 1);
+    } else {
+      counts.set(row.eventType, (counts.get(row.eventType) ?? 0) + 1);
+    }
+  }
+
+  return [...counts.entries()]
+    .sort((a, b) => b[1] - a[1])
+    .slice(0, limit)
+    .map(([label, count]) => ({ label, count }));
+}
+
+/** Risk score bands for assistant-documented security events */
+export async function getAssistantSecurityRiskScores() {
+  const rows = await prisma.agentEventLog.findMany({
+    where: { eventType: { in: [...ASSISTANT_SECURITY_EVENT_TYPES] } },
+    select: { riskScore: true },
+  });
+
+  const bands = { low: 0, medium: 0, high: 0, critical: 0 };
+  for (const r of rows) {
+    bands[riskBand(r.riskScore)]++;
+  }
+
+  return (["low", "medium", "high", "critical"] as const).map((band) => ({
+    band,
+    count: bands[band],
+  }));
+}
+
+function parseIntentJson<T>(raw: string | null | undefined, fallback: T): T {
+  if (!raw) return fallback;
+  try {
+    return JSON.parse(raw) as T;
+  } catch {
+    return fallback;
+  }
+}
+
+export async function getIntentMatrixOverview(daysBack = 14) {
+  const since = new Date(Date.now() - daysBack * 24 * 60 * 60 * 1000);
+  const where = { timestamp: { gte: since } };
+  const [events, totalEventCount, seeds, aggregates] = await Promise.all([
+    prisma.agentIntentEvent.findMany({
+      where,
+      orderBy: { timestamp: "desc" },
+      take: 3000,
+    }),
+    prisma.agentIntentEvent.count({ where }),
+    prisma.intentMatrixSeed.findMany({ orderBy: { intentId: "asc" } }),
+    prisma.agentIntentAggregate.findMany({
+      where: { dateBucket: { gte: since.toISOString().slice(0, 10) }, userId: "__global__" },
+    }),
+  ]);
+
+  const distribution = new Map<string, number>();
+  const heatmap = new Map<string, number>();
+  for (const e of events) {
+    distribution.set(e.intentId, (distribution.get(e.intentId) ?? 0) + 1);
+    const key = `${e.intentId}:${e.riskLevel}`;
+    heatmap.set(key, (heatmap.get(key) ?? 0) + 1);
+  }
+
+  const baseline = new Map(seeds.map((s) => [s.intentId, s.baselineWeight]));
+
+  return {
+    totalEventCount,
+    displayedPointCount: events.length,
+    uniqueIntentTypes: distribution.size,
+    points: events.map((e) => ({
+      id: e.id,
+      x: e.x,
+      y: e.y,
+      z: e.z,
+      riskLevel: e.riskLevel,
+      actionStatus: e.actionStatus,
+      intentId: e.intentId,
+      intentLabel: e.intentLabel,
+      userId: e.userId,
+      timestamp: e.timestamp.toISOString(),
+      messageSnippet: e.rawUserMessage.slice(0, 80),
+      toolName: e.toolName,
+      policyDecision: e.policyDecision,
+    })),
+    distribution: [...distribution.entries()]
+      .map(([intentId, count]) => ({
+        intentId,
+        count,
+        baselineWeight: baseline.get(intentId) ?? 0,
+        label: seeds.find((s) => s.intentId === intentId)?.label ?? intentId,
+      }))
+      .sort((a, b) => b.count - a.count),
+    heatmap: [...heatmap.entries()].map(([key, count]) => {
+      const [intentId, riskLevel] = key.split(":");
+      return { intentId, riskLevel, count };
+    }),
+    taxonomy: seeds.map((s) => ({
+      intentId: s.intentId,
+      label: s.label,
+      baselineWeight: s.baselineWeight,
+      x: s.x,
+      y: s.y,
+      z: s.z,
+    })),
+    aggregates,
+    security: {
+      injections: events.filter((e) => e.intentId === "unsafe_prompt_injection"),
+      blocked: events.filter((e) => e.actionStatus === "blocked"),
+      highRiskUnconfirmed: events.filter(
+        (e) =>
+          e.requiresConfirmation &&
+          e.riskLevel === "high" &&
+          e.actionStatus === "executed" &&
+          e.policyDecision === "allow",
+      ),
+      failed: events.filter((e) => e.actionStatus === "failed"),
+    },
+  };
+}
+
+export async function getIntentUserBehavior(daysBack = 14) {
+  const since = new Date(Date.now() - daysBack * 24 * 60 * 60 * 1000);
+  const rows = await prisma.agentIntentEvent.findMany({
+    where: { timestamp: { gte: since } },
+    select: {
+      userId: true,
+      intentId: true,
+      riskLevel: true,
+      actionStatus: true,
+      timestamp: true,
+    },
+    orderBy: { timestamp: "desc" },
+  });
+
+  const users = await prisma.user.findMany({
+    select: { id: true, name: true, email: true },
+  });
+  const userNames = new Map(users.map((u) => [u.id, u.name]));
+
+  const byUser = new Map<
+    string,
+    {
+      intents: Map<string, number>;
+      riskSum: number;
+      count: number;
+      confirmed: number;
+      blocked: number;
+      lastActivity: Date;
+    }
+  >();
+
+  for (const row of rows) {
+    let slot = byUser.get(row.userId);
+    if (!slot) {
+      slot = {
+        intents: new Map(),
+        riskSum: 0,
+        count: 0,
+        confirmed: 0,
+        blocked: 0,
+        lastActivity: row.timestamp,
+      };
+      byUser.set(row.userId, slot);
+    }
+    slot.count++;
+    slot.intents.set(row.intentId, (slot.intents.get(row.intentId) ?? 0) + 1);
+    slot.riskSum +=
+      row.riskLevel === "critical"
+        ? 4
+        : row.riskLevel === "high"
+          ? 3
+          : row.riskLevel === "medium"
+            ? 2
+            : 1;
+    if (row.actionStatus === "confirmed" || row.actionStatus === "executed") {
+      slot.confirmed++;
+    }
+    if (row.actionStatus === "blocked") slot.blocked++;
+    if (row.timestamp > slot.lastActivity) slot.lastActivity = row.timestamp;
+  }
+
+  return [...byUser.entries()]
+    .map(([userId, slot]) => ({
+      userId,
+      userName: userNames.get(userId) ?? userId,
+      mostCommonIntent:
+        [...slot.intents.entries()].sort((a, b) => b[1] - a[1])[0]?.[0] ?? "—",
+      avgRisk: slot.count ? slot.riskSum / slot.count : 0,
+      confirmedActions: slot.confirmed,
+      blockedActions: slot.blocked,
+      lastActivity: slot.lastActivity.toISOString(),
+      messageCount: slot.count,
+    }))
+    .sort((a, b) => b.messageCount - a.messageCount);
+}
+
+export async function getIntentSecurityPanel(daysBack = 14) {
+  const since = new Date(Date.now() - daysBack * 24 * 60 * 60 * 1000);
+  const rows = await prisma.agentIntentEvent.findMany({
+    where: { timestamp: { gte: since } },
+    orderBy: { timestamp: "desc" },
+    take: 200,
+  });
+
+  return {
+    promptInjectionAttempts: rows
+      .filter((r) => r.intentId === "unsafe_prompt_injection")
+      .map((r) => ({
+        id: r.id,
+        userId: r.userId,
+        timestamp: r.timestamp.toISOString(),
+        message: r.rawUserMessage.slice(0, 120),
+        patterns: parseIntentJson<string[]>(r.suspiciousPatterns, []),
+      })),
+    blockedToolCalls: rows
+      .filter((r) => r.actionStatus === "blocked" && r.toolName)
+      .map((r) => ({
+        id: r.id,
+        userId: r.userId,
+        toolName: r.toolName,
+        policyDecision: r.policyDecision,
+        timestamp: r.timestamp.toISOString(),
+      })),
+    highRiskWithoutConfirmation: rows.filter(
+      (r) =>
+        r.requiresConfirmation &&
+        (r.riskLevel === "high" || r.riskLevel === "critical") &&
+        r.actionStatus === "executed" &&
+        r.policyDecision === "allow",
+    ),
+    failedConfirmations: rows.filter((r) => r.actionStatus === "failed"),
+  };
+}
