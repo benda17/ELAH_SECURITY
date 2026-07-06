@@ -51,6 +51,12 @@ export default async function IntentMatrixPage() {
           </div>
           <div className="flex items-center gap-3">
             <Link
+              href="/elah-model-roadmap"
+              className="rounded-lg border border-accent-gold/30 bg-accent-gold/10 px-3 py-1.5 text-xs font-medium text-accent-gold hover:bg-accent-gold/15"
+            >
+              ELAH Model Roadmap
+            </Link>
+            <Link
               href="/"
               className="inline-flex items-center gap-1 rounded-lg border border-surface-border px-3 py-1.5 text-xs text-ink-muted hover:text-ink"
             >

@@ -7,6 +7,7 @@ import {
   Bot,
   BrainCircuit,
   ListChecks,
+  Map,
   MessageSquare,
   ReceiptText,
   ShieldAlert,
@@ -164,6 +165,13 @@ export default async function Page() {
           </div>
         </div>
         <div className="flex flex-col items-end gap-2 text-xs text-ink-muted">
+          <Link
+            href="/elah-model-roadmap"
+            className="inline-flex items-center gap-1.5 rounded-lg border border-accent-gold/30 bg-accent-gold/10 px-3 py-1.5 text-xs font-medium text-accent-gold hover:bg-accent-gold/15"
+          >
+            <Map className="size-3.5" />
+            ELAH Model Roadmap
+          </Link>
           <Link
             href="/intent-matrix"
             className="inline-flex items-center gap-1.5 rounded-lg border border-accent-cyan/30 bg-accent-cyan/10 px-3 py-1.5 text-xs font-medium text-accent-cyan hover:bg-accent-cyan/15"
