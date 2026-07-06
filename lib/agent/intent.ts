@@ -1,6 +1,7 @@
 import type { AgentIntent } from "./types";
 
-const CONFIRM = /^(confirm|yes|yes please|proceed|go ahead|do it|ok|okay|approve|approved)\.?$/i;
+const CONFIRM =
+  /^(confirm|yes(?:,\s*(?:go ahead|confirm the action|please proceed)| please proceed| that's right)?|yes that's right|proceed(?: please)?|go ahead(?: and complete it)?|do it|ok(?: confirm)?|okay|approve(?: the action)?|approved|that's correct(?: — do it)?)\.?$/i;
 const CANCEL = /^(cancel|no|stop|never mind|nevermind|abort|don't|do not)\.?$/i;
 
 export function isConfirmMessage(text: string): boolean {

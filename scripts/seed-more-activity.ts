@@ -7,6 +7,10 @@
  *   1. EXACT-COUNT mode  (recommended)
  *      Pass a positive integer and the script will produce exactly that
  *      many audit-log rows, sampled from the published JSON dataset.
+ *      Mappable actions are simulated via the in-app AI assistant (/assistant):
+ *      the script sends natural-language requests, auto-confirms when needed,
+ *      and writes AgentEventLog + conversation rows. Login/logout and actions
+ *      the assistant cannot perform still use direct audit rows.
  *      The sample naturally inherits the dataset's statistics:
  *        - which customer performed it (per-customer share)
  *        - what action was taken (per-action-type share)
@@ -30,11 +34,18 @@
  * Other tunables (env, both modes):
  *   EXTEND_DAYS                window of recent days to spread activity over.
  *                              Default 14. Use 1 for "burst of today's traffic".
+ *   ASSISTANT_SEED=false       disable AI-assistant chat simulation (legacy audit-only).
  */
 
 import { PrismaClient, type Prisma } from "@prisma/client";
 import { readFileSync } from "node:fs";
 import { join } from "node:path";
+import {
+  datasetActionToAssistantMessage,
+  DIRECT_AUDIT_ACTIONS,
+  pickConfirmPhrase,
+} from "./lib/dataset-to-assistant-message";
+import { simulateAssistantChat } from "./lib/simulate-assistant-chat";
 
 const prisma = new PrismaClient();
 
@@ -53,6 +64,7 @@ const EXTEND_DAYS = Number(process.env.EXTEND_DAYS ?? 14);
 const SESSIONS_PER_CUSTOMER = Number(process.env.SESSIONS_PER_CUSTOMER ?? 12);
 const ACTIONS_PER_SESSION_MIN = Number(process.env.ACTIONS_PER_SESSION_MIN ?? 3);
 const ACTIONS_PER_SESSION_MAX = Number(process.env.ACTIONS_PER_SESSION_MAX ?? 8);
+const ASSISTANT_SEED = process.env.ASSISTANT_SEED !== "false";
 
 // ---------------------------------------------------------------------------
 // Types (subset of the dataset we actually use here)
@@ -238,6 +250,53 @@ function merchantFor(log: DatasetAuditLog): string {
   type AuditPayload = Prisma.AuditLogCreateManyInput;
   type TxPayload = Prisma.TransactionCreateManyInput;
 
+async function processSampleAction(
+  sample: DatasetAuditLog,
+  customer: DbCustomer,
+  sessionId: string,
+  ip: string,
+  ts: Date,
+  refKey: string,
+  auditBatch: AuditPayload[],
+  txBatch: TxPayload[],
+  stats: { assistant: number; direct: number },
+) {
+  if (DIRECT_AUDIT_ACTIONS.has(sample.actionType)) {
+    auditBatch.push(emitAuditFromSample(sample, customer, sessionId, ip, ts));
+    stats.direct += 1;
+    return;
+  }
+
+  if (ASSISTANT_SEED) {
+    const message = datasetActionToAssistantMessage({
+      actionType: sample.actionType,
+      amountIls: sample.amountIls,
+      inputDataSummary: sample.inputDataSummary,
+      userIntent: sample.userIntent,
+      seedKey: sample.logId,
+    });
+    if (message) {
+      await simulateAssistantChat({
+        prisma,
+        customer,
+        message,
+        sessionId,
+        ipAddress: ip,
+        at: ts,
+        autoConfirm: true,
+        confirmSeed: sample.logId,
+      });
+      stats.assistant += 1;
+      return;
+    }
+  }
+
+  auditBatch.push(emitAuditFromSample(sample, customer, sessionId, ip, ts));
+  const tx = maybeEmitTransaction(sample, customer, ts, refKey);
+  if (tx) txBatch.push(tx);
+  stats.direct += 1;
+}
+
 function emitAuditFromSample(
   sample: DatasetAuditLog,
   customer: DbCustomer,
@@ -338,6 +397,7 @@ async function main() {
 
   const auditBatch: AuditPayload[] = [];
   const txBatch: TxPayload[] = [];
+  const stats = { assistant: 0, direct: 0 };
   let sessionCounter = 0;
   const nextSessionId = () =>
     `sess_more_${(++sessionCounter).toString().padStart(7, "0")}`;
@@ -346,7 +406,7 @@ async function main() {
     // -------- Mode A: exact-count sampling from JSON statistics --------
     console.log(
       `[3/4] EXACT-COUNT mode: generating ${TOTAL_ACTIONS.toLocaleString()} actions ` +
-        `over the last ${EXTEND_DAYS}d (distribution follows JSON statistics)…`,
+        `over the last ${EXTEND_DAYS}d (assistant chat: ${ASSISTANT_SEED ? "on" : "off"})…`,
     );
 
     // Sample N actions uniformly with replacement from the pool. Because each
@@ -385,14 +445,17 @@ async function main() {
         for (let j = 0; j < sessionLen; j += 1) {
           const sample = slice[i + j];
           const ts = new Date(cursor);
-          auditBatch.push(emitAuditFromSample(sample, customer, sessionId, ip, ts));
-          const tx = maybeEmitTransaction(
+          await processSampleAction(
             sample,
             customer,
+            sessionId,
+            ip,
             ts,
             `more_${sessionId}_${j}`,
+            auditBatch,
+            txBatch,
+            stats,
           );
-          if (tx) txBatch.push(tx);
           cursor += randInt(8, 180) * 1000;
         }
         i += sessionLen;
@@ -407,7 +470,8 @@ async function main() {
     // -------- Mode B: legacy session-burst per customer --------
     console.log(
       `[3/4] SESSION-BURST mode: ${SESSIONS_PER_CUSTOMER} sessions/customer ` +
-        `× ${ACTIONS_PER_SESSION_MIN}–${ACTIONS_PER_SESSION_MAX} actions, window=${EXTEND_DAYS}d…`,
+        `× ${ACTIONS_PER_SESSION_MIN}–${ACTIONS_PER_SESSION_MAX} actions, window=${EXTEND_DAYS}d ` +
+        `(assistant chat: ${ASSISTANT_SEED ? "on" : "off"})…`,
     );
 
     for (const customer of customers) {
@@ -457,14 +521,17 @@ async function main() {
         for (let i = 0; i < nActions; i += 1) {
           const sample = pool[Math.floor(Math.random() * pool.length)];
           const ts = new Date(cursor);
-          auditBatch.push(emitAuditFromSample(sample, customer, sessionId, ip, ts));
-          const tx = maybeEmitTransaction(
+          await processSampleAction(
             sample,
             customer,
+            sessionId,
+            ip,
             ts,
             `more_${sessionId}_${i}`,
+            auditBatch,
+            txBatch,
+            stats,
           );
-          if (tx) txBatch.push(tx);
           cursor += randInt(8, 180) * 1000;
         }
 
@@ -497,7 +564,10 @@ async function main() {
   }
 
   console.log(
-    `      generated ${auditBatch.length.toLocaleString()} audit logs and ${txBatch.length.toLocaleString()} transactions`,
+    `      generated ${stats.assistant.toLocaleString()} assistant conversations, ` +
+      `${stats.direct.toLocaleString()} direct audit rows, ` +
+      `${auditBatch.length.toLocaleString()} batched audit logs, ` +
+      `${txBatch.length.toLocaleString()} batched transactions`,
   );
 
   console.log("[4/4] Inserting…");
@@ -519,8 +589,10 @@ async function main() {
 
   const auditTotal = await prisma.auditLog.count();
   const txTotal = await prisma.transaction.count();
+  const agentEvents = await prisma.agentEventLog.count();
+  const conversations = await prisma.agentConversation.count();
   console.log(
-    `\n=== Done ===\nAuditLog total now: ${auditTotal.toLocaleString()}\nTransaction total now: ${txTotal.toLocaleString()}`,
+    `\n=== Done ===\nAuditLog total now: ${auditTotal.toLocaleString()}\nTransaction total now: ${txTotal.toLocaleString()}\nAgentEventLog total now: ${agentEvents.toLocaleString()}\nAgentConversation total now: ${conversations.toLocaleString()}`,
   );
 }
 

@@ -1,0 +1,121 @@
+{
+  "account_balance_viewed": [
+    "What's my account balance?",
+    "How much money do I have?",
+    "Show me my current balance",
+    "Can you tell me what's in my checking account?",
+    "I want to see my available balance",
+    "What's left in my account?",
+    "Check my balance please",
+    "How much is in my bank account right now?",
+    "Give me a balance update",
+    "What are my account totals?"
+  ],
+  "transactions_viewed": [
+    "Show my last 5 transactions",
+    "What were my recent transactions?",
+    "List my latest account activity",
+    "Can I see recent charges on my account?",
+    "Show recent payments and debits",
+    "Display my transaction history",
+    "What happened on my account lately?",
+    "Pull up my most recent transactions",
+    "I need to review recent activity",
+    "Show me what went through my account recently"
+  ],
+  "transaction_search_filtered": [
+    "Show my last 5 transactions",
+    "Find transactions from this month",
+    "Search my recent account activity",
+    "Filter my latest charges",
+    "Show transactions matching my last search",
+    "Look up recent debits on my account"
+  ],
+  "spending_summary": [
+    "How much did I spend this month?",
+    "Give me a spending summary",
+    "Break down my expenses this month",
+    "What did I spend on lately?",
+    "Show my spending by category",
+    "How much have I spent so far?",
+    "Summarize my monthly expenses",
+    "Where did my money go this month?"
+  ],
+  "bill_payment": [
+    "Pay my {{bill}} of {{amount}} shekels",
+    "Please pay the {{bill}} — {{amount}} ILS",
+    "I need to pay {{amount}} for my {{bill}}",
+    "Settle my {{bill}} bill for {{amount}}",
+    "Can you pay {{amount}} shekels to {{bill}}?",
+    "Make a {{amount}} shekel payment for {{bill}}",
+    "Handle my {{bill}} payment of {{amount}}",
+    "Transfer {{amount}} to pay the {{bill}}"
+  ],
+  "internal_transfer": [
+    "Move {{amount}} shekels from checking to savings",
+    "Transfer {{amount}} from my checking to savings account",
+    "Please move {{amount}} ILS into savings",
+    "Shift {{amount}} shekels between my accounts",
+    "Put {{amount}} into my savings from checking",
+    "Internal transfer of {{amount}} to savings",
+    "Move {{amount}} to my savings please",
+    "From checking to savings — {{amount}} shekels"
+  ],
+  "external_transfer": [
+    "Transfer {{amount}} shekels to {{recipient}}",
+    "Send {{amount}} ILS to {{recipient}}",
+    "Pay {{recipient}} {{amount}} shekels",
+    "Wire {{amount}} to {{recipient}}",
+    "I want to send {{amount}} to {{recipient}}",
+    "Please transfer {{amount}} to {{recipient}}'s account",
+    "Send money to {{recipient}} — {{amount}} shekels",
+    "Make a {{amount}} shekel payment to {{recipient}}"
+  ],
+  "statement_download": [
+    "Download my latest statement",
+    "I need my monthly statement PDF",
+    "Get my bank statement please",
+    "Can I download my account statement?",
+    "Send me the latest monthly report",
+    "Pull my most recent statement",
+    "I want a PDF of my statement",
+    "Show me how to get my monthly statement"
+  ],
+  "support_escalation": [
+    "I need help with my account — please open a support ticket",
+    "Can I speak to someone about my account?",
+    "Open a support case for me",
+    "I need customer support please",
+    "Help me with an account issue",
+    "Connect me with a representative",
+    "I'd like to talk to support",
+    "Please escalate this to a human agent"
+  ],
+  "dashboard_greeting": [
+    "Hello, what can you help me with today?",
+    "Hi — what banking tasks can you do?",
+    "Good morning, I need some help with my account",
+    "Hey, what services can you assist with?",
+    "Hello assistant, I'm checking my options",
+    "Hi there — guide me through what I can do here"
+  ],
+  "investment_viewed": [
+    "What's my investment account balance?",
+    "Show my investment portfolio balance",
+    "How much is in my investment account?",
+    "Check my investment account please",
+    "What's the value of my investments?"
+  ],
+  "confirm_action": [
+    "Confirm",
+    "Yes, go ahead",
+    "Yes please proceed",
+    "That's correct — do it",
+    "Approve",
+    "Go ahead and complete it",
+    "Yes, confirm the action",
+    "Proceed please",
+    "OK confirm",
+    "Yes that's right"
+  ]
+}

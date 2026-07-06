@@ -416,6 +416,86 @@ model AgentEventLog {
   @@index([timestamp])
 }
 
+// -------------------- Human Intent Matrix (AI assistant analytics) --------------------
+
+model IntentMatrixSeed {
+  intentId             String   @id
+  label                String
+  examples             String   // JSON-encoded string[]
+  hVector              String   // JSON-encoded [5]
+  bVector              String   // JSON-encoded [5]
+  sVector              String   // JSON-encoded [5]
+  x                    Float
+  y                    Float
+  z                    Float
+  baselineWeight       Float
+  requiresConfirmation Boolean  @default(false)
+  allowedTools         String   // JSON-encoded string[]
+  policyAction         String
+  createdAt            DateTime @default(now())
+  updatedAt            DateTime @updatedAt
+}
+
+model AgentIntentEvent {
+  id                   String   @id @default(cuid())
+  timestamp            DateTime @default(now())
+  userId               String
+  sessionId            String?
+  conversationId       String
+  messageId            String
+  rawUserMessage       String
+  normalizedMessage    String
+  intentId             String
+  intentLabel          String
+  confidence           Float
+  hVector              String
+  bVector              String
+  sVector              String
+  x                    Float
+  y                    Float
+  z                    Float
+  baselineWeight       Float
+  riskLevel            String
+  requiresConfirmation Boolean
+  toolName             String?
+  toolArgsSanitized    String?
+  policyDecision       String?
+  actionStatus         String   @default("classified")
+  suspiciousPatterns   String   @default("[]")
+  source               String   @default("ai_assistant")
+  createdAt            DateTime @default(now())
+
+  @@index([userId])
+  @@index([conversationId])
+  @@index([messageId])
+  @@index([intentId])
+  @@index([riskLevel])
+  @@index([actionStatus])
+  @@index([timestamp])
+}
+
+model AgentIntentAggregate {
+  id             String   @id @default(cuid())
+  dateBucket     String
+  intentId       String
+  userId         String
+  count          Int      @default(0)
+  avgX           Float    @default(0)
+  avgY           Float    @default(0)
+  avgZ           Float    @default(0)
+  avgConfidence  Float    @default(0)
+  avgRisk        Float    @default(0)
+  confirmedCount Int      @default(0)
+  blockedCount   Int      @default(0)
+  failedCount    Int      @default(0)
+  lastSeenAt     DateTime @default(now())
+
+  @@unique([dateBucket, intentId, userId])
+  @@index([dateBucket])
+  @@index([intentId])
+  @@index([userId])
+}
+
 // Static catalog of prompt-injection test scenarios (seeded fixtures only)
 model PromptInjectionScenario {
   id                       String   @id @default(cuid())

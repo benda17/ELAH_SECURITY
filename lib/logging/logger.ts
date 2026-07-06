@@ -41,6 +41,38 @@ const LOG_DIR = process.env.LOG_DIR ?? "./logs";
 const LOG_MIRROR =
   (process.env.LOG_MIRROR_JSONL ?? "true").toLowerCase() === "true";
 
+let activeToolAuditDefaults: Partial<WriteAuditLogInput> | null = null;
+
+/** Supplies actor/session defaults for audit rows written during tool execution. */
+export function runWithToolAuditContext<T>(
+  defaults: Partial<WriteAuditLogInput>,
+  fn: () => Promise<T>,
+): Promise<T> {
+  const prev = activeToolAuditDefaults;
+  activeToolAuditDefaults = { ...prev, ...defaults };
+  return fn().finally(() => {
+    activeToolAuditDefaults = prev;
+  });
+}
+
+function safeSessionId(explicit?: string | null) {
+  if (explicit) return explicit;
+  try {
+    return getSessionId();
+  } catch {
+    return null;
+  }
+}
+
+function safeClientIp(explicit?: string | null) {
+  if (explicit) return explicit;
+  try {
+    return clientIp();
+  } catch {
+    return "127.0.0.1";
+  }
+}
+
 async function appendJsonl(filename: string, payload: Record<string, unknown>) {
   if (!LOG_MIRROR) return;
   try {
@@ -58,7 +90,11 @@ async function appendJsonl(filename: string, payload: Record<string, unknown>) {
  * Tries to auto-fill actor context from the current session when not provided.
  */
 export async function writeAuditLog(input: WriteAuditLogInput) {
-  let { actorType, actorId, actorName, role, customerTier } = input;
+  const defaults = activeToolAuditDefaults ?? {};
+  let { actorType, actorId, actorName, role, customerTier } = {
+    ...defaults,
+    ...input,
+  };
 
   if (!actorId) {
     const u = await getSessionUser().catch(() => null);
@@ -91,8 +127,8 @@ export async function writeAuditLog(input: WriteAuditLogInput) {
       riskLevel: input.riskLevel ?? "low",
       requiresApproval: input.requiresApproval ?? false,
       approvalStatus: input.approvalStatus ?? "not_required",
-      sessionId: input.sessionId ?? getSessionId(),
-      ipAddress: input.ipAddress ?? clientIp(),
+      sessionId: safeSessionId(input.sessionId ?? defaults.sessionId),
+      ipAddress: safeClientIp(input.ipAddress ?? defaults.ipAddress),
       userIntent: input.userIntent ?? null,
       actionOutcome: input.actionOutcome ?? "viewed",
       reasonForFlagging: input.reasonForFlagging ?? null,

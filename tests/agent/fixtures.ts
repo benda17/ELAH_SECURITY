@@ -18,6 +18,9 @@ export interface TestFixtures {
 const DEMO_PASSWORD = "DemoPass123!";
 
 async function clearDatabase() {
+  await prisma.agentIntentEvent.deleteMany();
+  await prisma.agentIntentAggregate.deleteMany();
+  await prisma.intentMatrixSeed.deleteMany();
   await prisma.agentEventLog.deleteMany();
   await prisma.agentMessage.deleteMany();
   await prisma.agentPendingAction.deleteMany();
@@ -197,6 +200,8 @@ export async function seedTestFixtures(): Promise<TestFixtures> {
 }
 
 export async function clearAgentTables() {
+  await prisma.agentIntentEvent.deleteMany();
+  await prisma.agentIntentAggregate.deleteMany();
   await prisma.agentEventLog.deleteMany();
   await prisma.agentMessage.deleteMany();
   await prisma.agentPendingAction.deleteMany();

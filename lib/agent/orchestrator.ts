@@ -1,8 +1,14 @@
 import "server-only";
 import { prisma } from "@/lib/db";
-import { tierPolicy } from "@/lib/auth/roles";
+import { tierPolicy, actorTypeFromRole, tierFromRole } from "@/lib/auth/roles";
+import { runWithToolAuditContext } from "@/lib/logging/logger";
 import type { SessionUser } from "@/lib/auth/session";
 import { classifyIntent, isCancelMessage, isConfirmMessage } from "./intent";
+import {
+  classifyAgentIntent,
+  recordIntentEvent,
+  updateIntentEvent,
+} from "./intent-matrix";
 import { callLLM, type LLMMessage } from "./llm";
 import { sanitizeToolArgs, writeAgentEvent } from "./logger";
 import {
@@ -28,6 +34,21 @@ const PENDING_TTL_MINUTES = 10;
 
 function firstName(fullName: string) {
   return fullName.split(/\s+/)[0] || fullName;
+}
+
+function toolAuditDefaults(
+  user: SessionUser,
+  audit: { ipAddress: string; sessionCookieId: string | null },
+) {
+  return {
+    actorType: actorTypeFromRole(user.role),
+    actorId: user.id,
+    actorName: user.name,
+    role: user.role,
+    customerTier: user.customerProfile?.tier ?? tierFromRole(user.role),
+    sessionId: audit.sessionCookieId,
+    ipAddress: audit.ipAddress,
+  };
 }
 
 function riskScoreFor(decision: PolicyDecision, injection: boolean): number {
@@ -108,6 +129,40 @@ async function loadHistory(conversationId: string): Promise<LLMMessage[]> {
   }));
 }
 
+async function trackUserIntent(
+  input: HandleAgentChatInput,
+  conversationId: string,
+  messageId: string,
+  toolCallContext?: { toolName?: string | null; policyDecision?: string | null },
+) {
+  const history = await loadHistory(conversationId);
+  const classification = classifyAgentIntent({
+    message: input.message,
+    conversationContext: {
+      conversationId,
+      recentMessages: history,
+    },
+    toolCallContext,
+  });
+  const eventId = await recordIntentEvent({
+    userId: input.user.id,
+    sessionId: input.sessionCookieId,
+    conversationId,
+    messageId,
+    rawUserMessage: input.message,
+    classification,
+  });
+  return { classification, eventId };
+}
+
+async function patchIntent(
+  eventId: string | null,
+  patch: Parameters<typeof updateIntentEvent>[1],
+) {
+  if (!eventId) return;
+  await updateIntentEvent(eventId, patch);
+}
+
 async function pendingActionView(
   pending: Awaited<ReturnType<typeof prisma.agentPendingAction.findFirst>>,
 ): Promise<AgentPendingActionView | null> {
@@ -185,8 +240,12 @@ export async function handleAgentChat(
     userAgent: input.userAgent,
   });
 
+  const { classification: matrixIntent, eventId: intentEventId } =
+    await trackUserIntent(input, conversation.id, userMsg.id);
+
   const injection = detectPromptInjection(input.message);
-  if (injection.matched) {
+  const unsafeMatrixIntent = matrixIntent.intentId === "unsafe_prompt_injection";
+  if (injection.matched || unsafeMatrixIntent) {
     const reply =
       "I can't help with that request. I'm only able to assist with your own banking tasks using approved channels.";
     const assistantMsg = await prisma.agentMessage.create({
@@ -196,6 +255,14 @@ export async function handleAgentChat(
         content: reply,
         latencyMs: Date.now() - started,
       },
+    });
+    await patchIntent(intentEventId, {
+      actionStatus: "blocked",
+      policyDecision: "deny",
+      suspiciousPatterns: [
+        ...matrixIntent.suspiciousPatterns,
+        ...injection.labels,
+      ],
     });
     await writeAgentEvent({
       eventType: "suspicious_prompt_detected",
@@ -207,10 +274,13 @@ export async function handleAgentChat(
       assistantMessage: reply,
       detectedIntent: "prompt_injection_attempt",
       policyDecision: "deny",
-      policyReasons: injection.labels,
+      policyReasons: injection.matched ? injection.labels : matrixIntent.matchedSignals,
       riskScore: 90,
       latencyMs: Date.now() - started,
-      metadata: { patterns: injection.patterns },
+      metadata: {
+        patterns: injection.patterns,
+        matrixIntent: matrixIntent.intentId,
+      },
     });
     await prisma.agentConversation.update({
       where: { id: conversation.id },
@@ -273,6 +343,12 @@ export async function handleAgentChat(
       toolArgsSanitized: JSON.parse(pending.toolArgs),
       resultSummary: reply,
       latencyMs: Date.now() - started,
+    });
+    await patchIntent(intentEventId, {
+      toolName: pending.toolName,
+      toolArgs: JSON.parse(pending.toolArgs) as Record<string, unknown>,
+      actionStatus: "cancelled",
+      policyDecision: "deny",
     });
     return {
       ok: true,
@@ -341,6 +417,12 @@ export async function handleAgentChat(
         policyReasons: policyDecision.reasons,
         latencyMs: Date.now() - started,
       });
+      await patchIntent(intentEventId, {
+        toolName: pending.toolName,
+        toolArgs,
+        policyDecision: policyDecision.decision,
+        actionStatus: "failed",
+      });
       return {
         ok: true,
         conversationId: conversation.id,
@@ -386,7 +468,10 @@ export async function handleAgentChat(
     });
 
     const toolStarted = Date.now();
-    const result = await executeTool(pending.toolName, toolArgs, ctx);
+    const result = await runWithToolAuditContext(
+      toolAuditDefaults(input.user, input),
+      () => executeTool(pending.toolName, toolArgs, ctx),
+    );
     await prisma.agentPendingAction.update({
       where: { id: pending.id },
       data: {
@@ -424,6 +509,12 @@ export async function handleAgentChat(
       policyDecision: "allow",
       resultSummary: result.summary,
       latencyMs: Date.now() - toolStarted,
+    });
+    await patchIntent(intentEventId, {
+      toolName: pending.toolName,
+      toolArgs,
+      policyDecision: "allow",
+      actionStatus: result.ok ? "executed" : "failed",
     });
 
     return {
@@ -475,6 +566,11 @@ export async function handleAgentChat(
       latencyMs: Date.now() - started,
       metadata: { source: "conversation_history", patterns: historyInjection.patterns },
     });
+    await patchIntent(intentEventId, {
+      actionStatus: "blocked",
+      policyDecision: "deny",
+      suspiciousPatterns: historyInjection.labels,
+    });
     return {
       ok: true,
       conversationId: conversation.id,
@@ -518,6 +614,10 @@ export async function handleAgentChat(
       policyDecision: "deny",
       riskScore: 70,
       latencyMs: Date.now() - started,
+    });
+    await patchIntent(intentEventId, {
+      actionStatus: "blocked",
+      policyDecision: "deny",
     });
     return {
       ok: true,
@@ -613,6 +713,12 @@ export async function handleAgentChat(
         latencyMs: Date.now() - started,
       },
     });
+    await patchIntent(intentEventId, {
+      toolName,
+      toolArgs,
+      policyDecision: policyDecision.decision,
+      actionStatus: "blocked",
+    });
     return {
       ok: true,
       conversationId: conversation.id,
@@ -663,6 +769,12 @@ export async function handleAgentChat(
       resultSummary: summary,
       latencyMs: Date.now() - started,
     });
+    await patchIntent(intentEventId, {
+      toolName,
+      toolArgs,
+      policyDecision: "needs_confirmation",
+      actionStatus: "pending_confirmation",
+    });
     return {
       ok: true,
       conversationId: conversation.id,
@@ -677,7 +789,10 @@ export async function handleAgentChat(
 
   // Safe read-only or auto-approved action — execute immediately
   const toolStarted = Date.now();
-  const result = await executeTool(toolName, toolArgs, ctx);
+  const result = await runWithToolAuditContext(
+    toolAuditDefaults(input.user, input),
+    () => executeTool(toolName, toolArgs, ctx),
+  );
   let reply = plan.reply;
   if (result.ok) {
     reply = result.summary;
@@ -768,6 +883,12 @@ export async function handleAgentChat(
     policyDecision: "allow",
     resultSummary: result.summary,
     latencyMs: Date.now() - toolStarted,
+  });
+  await patchIntent(intentEventId, {
+    toolName,
+    toolArgs,
+    policyDecision: "allow",
+    actionStatus: result.ok ? "executed" : "failed",
   });
 
   await prisma.agentConversation.update({
