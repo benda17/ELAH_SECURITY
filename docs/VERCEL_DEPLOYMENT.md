@@ -5,8 +5,8 @@ This repo is **Project 1** of the ELAH stack. Deploy it as its own Vercel projec
 | | |
 |---|---|
 | **Git remote** | [github.com/benda17/ELAH_SECURITY](https://github.com/benda17/ELAH_SECURITY) |
-| **Deploy branch** | `banking-system` |
-| **Companion app** | ELAH Platform (`platform` branch) |
+| **Deploy branch** | `ELAH_BANKING_SYSTEM` |
+| **Companion app** | ELAH Founder Platform (`ELAH_FOUNDER_PLATFORM` branch) |
 
 ## Environment variables
 
@@ -28,6 +28,12 @@ npm run db:push && npm run build
 
 ## After deploy
 
-Set the Platform project's `BANKING_APP_URL` to this deployment's URL so analytics can link to the live demo.
+Set the Founder Platform project's `BANKING_APP_URL` to this deployment's URL so analytics can link to the live demo.
 
-See also: `../elah-analytics-dashboard/docs/VERCEL_TWO_PROJECTS.md` (full two-project guide).
+## Clone
+
+```bash
+git clone -b ELAH_BANKING_SYSTEM https://github.com/benda17/ELAH_SECURITY.git
+```
+
+See also: `docs/VERCEL_TWO_PROJECTS.md` on the `ELAH_FOUNDER_PLATFORM` branch.
