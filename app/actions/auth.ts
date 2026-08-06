@@ -1,6 +1,7 @@
 "use server";
 
 import { redirect } from "next/navigation";
+import { isRedirectError } from "next/dist/client/components/redirect";
 import { z } from "zod";
 import { prisma } from "@/lib/db";
 import { verifyPassword } from "@/lib/auth/password";
@@ -40,61 +41,71 @@ export async function loginAction(
   }
 
   const { email, password } = parsed.data;
-  const user = await prisma.user.findUnique({
-    where: { email: email.toLowerCase() },
-  });
 
-  if (!user || !(await verifyPassword(password, user.passwordHash))) {
+  try {
+    const user = await prisma.user.findUnique({
+      where: { email: email.toLowerCase() },
+    });
+
+    if (!user || !(await verifyPassword(password, user.passwordHash))) {
+      await writeAuditLog({
+        actorType: "anonymous",
+        actorName: email,
+        actionType: "login_failed",
+        page: "/login",
+        toolOrFeatureUsed: "login_form",
+        riskLevel: "medium",
+        actionOutcome: "failed",
+        reasonForFlagging: "Invalid email or password.",
+        ipAddress: clientIp(),
+        inputDataSummary: { emailDomain: email.split("@")[1] ?? null },
+      }).catch(() => undefined);
+      return { error: "Invalid email or password." };
+    }
+
+    if (user.status !== "active") {
+      return { error: "This account is not active." };
+    }
+
+    await createSession(user.id);
+
     await writeAuditLog({
-      actorType: "anonymous",
-      actorName: email,
-      actionType: "login_failed",
+      actorType: actorTypeFromRole(user.role),
+      actorId: user.id,
+      actorName: user.name,
+      role: user.role,
+      customerTier: tierFromRole(user.role),
+      actionType: "login",
       page: "/login",
       toolOrFeatureUsed: "login_form",
-      riskLevel: "medium",
-      actionOutcome: "failed",
-      reasonForFlagging: "Invalid email or password.",
-      ipAddress: clientIp(),
-      inputDataSummary: { emailDomain: email.split("@")[1] ?? null },
+      riskLevel: "low",
+      actionOutcome: "succeeded",
+      inputDataSummary: { method: "credentials" },
     });
-    return { error: "Invalid email or password." };
-  }
 
-  if (user.status !== "active") {
-    return { error: "This account is not active." };
-  }
-
-  await createSession(user.id);
-
-  await writeAuditLog({
-    actorType: actorTypeFromRole(user.role),
-    actorId: user.id,
-    actorName: user.name,
-    role: user.role,
-    customerTier: tierFromRole(user.role),
-    actionType: "login",
-    page: "/login",
-    toolOrFeatureUsed: "login_form",
-    riskLevel: "low",
-    actionOutcome: "succeeded",
-    inputDataSummary: { method: "credentials" },
-  });
-
-  if (CUSTOMER_ROLES.includes(user.role as (typeof CUSTOMER_ROLES)[number])) {
+    if (CUSTOMER_ROLES.includes(user.role as (typeof CUSTOMER_ROLES)[number])) {
+      redirect("/dashboard");
+    }
+    if (user.role === ROLES.BANK_MANAGER) {
+      redirect("/manager/dashboard");
+    }
+    if (user.role === ROLES.SECURITY_REVIEWER) {
+      redirect("/admin/security-dashboard");
+    }
+    if (user.role === ROLES.AI_AGENT) {
+      // AI agent accounts have no live UI yet; route them to admin so reviewers
+      // can demo the placeholder agent session pages.
+      redirect("/admin/agent-simulation-logs");
+    }
     redirect("/dashboard");
+  } catch (err) {
+    if (isRedirectError(err)) throw err;
+    console.error("[loginAction] database/auth failure", err);
+    return {
+      error:
+        "Sign-in is temporarily unavailable (database). Check DATABASE_URL points to hosted Postgres.",
+    };
   }
-  if (user.role === ROLES.BANK_MANAGER) {
-    redirect("/manager/dashboard");
-  }
-  if (user.role === ROLES.SECURITY_REVIEWER) {
-    redirect("/admin/security-dashboard");
-  }
-  if (user.role === ROLES.AI_AGENT) {
-    // AI agent accounts have no live UI yet; route them to admin so reviewers
-    // can demo the placeholder agent session pages.
-    redirect("/admin/agent-simulation-logs");
-  }
-  redirect("/dashboard");
 }
 
 export async function logoutAction() {

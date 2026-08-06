@@ -1,8 +1,5 @@
 {
-  "buildCommand": "npm run db:push && npm run build",
+  "buildCommand": "npx prisma db push && npx prisma db seed && npm run build",
   "framework": "nextjs",
-  "installCommand": "npm install",
-  "env": {
-    "DATABASE_URL": "file:./dev.db"
-  }
+  "installCommand": "npm install"
 }

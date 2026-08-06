@@ -10,18 +10,20 @@ This repo is **Project 1** of the ELAH stack. Deploy it as its own Vercel projec
 
 ## Environment variables
 
-Copy from `.env.example`:
+| Variable | Notes |
+|----------|--------|
+| `DATABASE_URL` | **Required.** Hosted Postgres (`postgresql://…`). SQLite will not work on Vercel. Free option: [Neon](https://neon.tech). |
+| `AUTH_SECRET` | `openssl rand -base64 48` |
+| `OPENAI_API_KEY` | Optional — powers the in-app AI assistant |
 
-- `DATABASE_URL` — SQLite path locally; use Postgres (or Turso/libSQL) in production
-- `AUTH_SECRET` — `openssl rand -base64 48`
-- `OPENAI_API_KEY` — optional, powers the in-app AI assistant
+See `deploy/README.md` and `deploy/vercel-banking.env`.
 
 ## Build command
 
 Vercel runs:
 
 ```bash
-npm run db:push && npm run build
+npx prisma db push && npx prisma db seed && npm run build
 ```
 
 (configured in `vercel.json`)

@@ -1,14 +1,26 @@
 # Deploying ELAH Banking System on Vercel
 
-## Environment variables
+## Why login failed with SQLite
 
-Use **`deploy/vercel-banking.env`** — import it into Vercel instead of typing each variable by hand.
+Vercel serverless has no persistent local filesystem. `DATABASE_URL=file:./dev.db` can pass the build but **login and any write fail at runtime**. Use hosted **Postgres**.
+
+## 1) Create a free Postgres database
+
+1. Sign up at [neon.tech](https://neon.tech) (or use Vercel → Storage → Neon / Postgres).
+2. Create a project / database.
+3. Copy the connection string (must start with `postgresql://` and usually includes `?sslmode=require`).
+
+## 2) Environment variables
+
+Use **`deploy/vercel-banking.env`** as a template:
 
 1. Open your Banking Vercel project.
 2. **Settings → Environment Variables**.
-3. Click **Import .env** (or paste the file contents into the bulk editor).
-4. Select **Production**, **Preview**, and **Development**.
-5. Save, then **Deployments → Redeploy** on branch **`ELAH_BANKING_SYSTEM`**.
+3. Set at least:
+   - `DATABASE_URL` = your Neon/Postgres URL (not `file:./…`)
+   - `AUTH_SECRET` = long random string (`openssl rand -base64 48`)
+4. Apply to **Production**, **Preview**, and **Development**.
+5. Save, then redeploy branch **`ELAH_BANKING_SYSTEM`**.
 
 ## Project settings
 
@@ -17,10 +29,11 @@ Use **`deploy/vercel-banking.env`** — import it into Vercel instead of typing 
 | Production branch | `ELAH_BANKING_SYSTEM` |
 | Framework | Next.js |
 | Root directory | *(blank)* |
-| Build command | `npm run db:push && npm run build` |
+| Build command | `npx prisma db push && npx prisma db seed && npm run build` |
+
+Build will create tables and seed demo users (`DemoPass123!`).
 
 ## Notes
 
-- `DATABASE_URL=file:./dev.db` matches the current SQLite Prisma schema and unblocks the build.
-- For a persistent production database, switch to Vercel Postgres and update `DATABASE_URL` later.
-- Add `OPENAI_API_KEY` in Vercel when you want the real AI assistant (not included in the env file).
+- Add `OPENAI_API_KEY` in Vercel when you want the real AI assistant.
+- Git remote for this deploy branch: [benda17/ELAH_SECURITY](https://github.com/benda17/ELAH_SECURITY) → `ELAH_BANKING_SYSTEM`.

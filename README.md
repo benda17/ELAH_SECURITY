@@ -12,7 +12,7 @@ A working Next.js banking simulation that implements the customer / manager / se
 
 - **Next.js 14** (App Router) + **React 18** + **TypeScript** (strict)
 - **Tailwind CSS 3** with a custom dark navy / gold / cyan design system
-- **Prisma 5 ORM** + **SQLite** (zero-config local database)
+- **Prisma 5 ORM** + **Postgres** (Docker locally; Neon / Vercel Postgres in production)
 - **Custom credential auth** — bcryptjs password hashing + HMAC-signed session cookies stored in a `Session` table (no third-party SaaS, no NextAuth dependency)
 - **Zod** for input validation in all Server Actions
 - **lucide-react** icons, **recharts** (optional charts), **tailwind-merge** + **clsx**
@@ -24,7 +24,8 @@ A working Next.js banking simulation that implements the customer / manager / se
 # 1) Install (this also runs prisma generate via postinstall)
 npm install
 
-# 2) Initialize the database (SQLite at prisma/dev.db) and seed demo data
+# 2) Start Postgres, then create schema + seed demo data
+docker compose up -d
 npm run db:push
 npm run db:seed
 # or, to nuke and re-seed in one command:
@@ -57,11 +58,13 @@ After login, each role is auto-routed to its portal: customers → `/dashboard`,
 Copy `.env.example` to `.env` and adjust as needed. Defaults are safe for local-only use.
 
 ```bash
-DATABASE_URL="file:./dev.db"       # Prisma SQLite
+DATABASE_URL="postgresql://elah:elah@localhost:5432/elah_banking?schema=public"
 AUTH_SECRET="..."                  # HMAC key for session cookies (32+ bytes recommended)
 LOG_MIRROR_JSONL="true"            # also mirror logs to /logs/*.jsonl
 LOG_DIR="./logs"                   # where mirrored JSONL logs are written
 ```
+
+On Vercel, `DATABASE_URL` must be a hosted Postgres URL (Neon / Vercel Postgres). SQLite is not supported on Vercel serverless.
 
 Never commit real secrets. Generate a fresh `AUTH_SECRET` with `openssl rand -base64 48` for any non-toy deployment.
 
@@ -69,7 +72,7 @@ Never commit real secrets. Generate a fresh `AUTH_SECRET` with `openssl rand -ba
 
 Every meaningful read, write, search, approval, download, profile edit, support action and (future) AI-agent action generates a structured log. Logs are written through one function (`lib/logging/logger.ts → writeAuditLog`) so the schema stays consistent.
 
-**Primary storage** — SQLite tables via Prisma:
+**Primary storage** — Postgres tables via Prisma:
 
 - `AuditLog` — full structured action log, matching the README "AuditLog" schema (logId, timestamp, actorType, actorId, actorName, role, customerTier, actionType, page, toolOrFeatureUsed, inputDataSummary, targetResource, amount, riskLevel, requiresApproval, approvalStatus, sessionId, ipAddress, userIntent, actionOutcome, reasonForFlagging, createdByAgent)
 - `AgentActionLog` — placeholder for future AI-agent traces (declaredTask, interpretedIntent, intentMatchStatus, elahVerdictPlaceholder…) — already seeded with 3 demo traces
@@ -179,7 +182,7 @@ Every "malicious" string is prefixed with `[SIMULATION ONLY — …]` and render
   /risk        → heuristics (injection detector + transfer risk levels)
   db.ts, utils.ts
 /prisma
-  schema.prisma, seed.ts, dev.db (generated)
+  schema.prisma, seed.ts
 /logs
   audit-logs.jsonl, agent-action-logs.jsonl, risk-events.jsonl  (generated)
 /scripts
@@ -191,17 +194,17 @@ Every "malicious" string is prefixed with `[SIMULATION ONLY — …]` and render
 ```bash
 npm run dev         # Next.js dev server on :3000
 npm run build       # production build (type-checks the whole tree)
-npm run db:push     # apply prisma/schema.prisma to SQLite
+npm run db:push     # apply prisma/schema.prisma to Postgres
 npm run db:seed     # re-seed demo data
 npm run db:reset    # force-reset + reseed
-npm run db:studio   # open Prisma Studio for the SQLite database
+npm run db:studio   # open Prisma Studio
 ```
 
 ### Known limitations / next phase
 
 - **No real auth provider.** Sessions are cookie + DB only; password reset is a static placeholder page.
 - **Server actions over the wire.** All write paths use Next.js Server Actions, which need a real browser (curl can't trivially submit them). The `scripts/verify-routes.ts` smoke test mints a session in the database and hits every route to confirm server-rendering succeeds.
-- **No real money / no real banking integration.** All "balance updates" happen in SQLite only.
+- **No real money / no real banking integration.** All "balance updates" happen in Postgres only.
 - **The AI agent persona has no live UI yet** — `agent@elah.demo` logs in and is routed to the agent-simulation-logs page. Phase 5 will let an agent actually execute tool calls.
 - **Prompt-injection scenarios are static fixtures.** Phase 6 will introduce a controlled scenario runner that uses seeded malicious text to drive a sandboxed agent and feed ELAH the resulting traces.
 - **ELAH verdicts are placeholder strings.** Phase 7 will connect real reasoning verdicts to audit + agent action logs.
