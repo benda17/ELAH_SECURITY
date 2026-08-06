@@ -50,3 +50,6 @@ next-env.d.ts
 # Editor
 .vscode/
 .idea/
+
+# One-off migration venv
+.migrate-venv/
