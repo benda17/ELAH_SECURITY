@@ -9,7 +9,7 @@ Unified Next.js workspace for the ELAH banking demo analytics and founder admin 
 | **Banking System** | `/banking/*` | Demo analytics, intent matrix, agent logs, users, tool actions, training dataset |
 | **Founder & Manager Admin** | `/founder/*` | Company roadmap, model roadmap, fundraising, content engine, settings |
 
-Landing hub: **http://localhost:3001/** — choose Banking System or Founder Admin.
+Login: **http://localhost:3001/login** — founder credentials gate the whole platform.
 
 The interactive banking demo itself runs separately (default **http://localhost:3002**). The Banking System sidebar links to it via `BANKING_APP_URL`.
 

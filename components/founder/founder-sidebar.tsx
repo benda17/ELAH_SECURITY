@@ -11,7 +11,7 @@ import {
   GitBranch,
   LayoutDashboard,
   ListTodo,
-  Megaphone,
+  LogOut,
   Milestone,
   PenLine,
   Scale,
@@ -20,6 +20,7 @@ import {
   Users,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { founderLogoutAction } from "@/app/actions/founder-auth";
 
 const PRIMARY_NAV = [
   { href: "/founder/overview", label: "Overview", icon: LayoutDashboard },
@@ -106,12 +107,17 @@ export function FounderSidebar() {
         )}
       </nav>
       <div className="space-y-1 border-t border-surface-border p-3 text-xs">
-        <Link href="/" className="flex items-center gap-1 text-ink-muted hover:text-ink">
-          <Megaphone className="size-3" /> ELAH Home
-        </Link>
         <Link href="/banking/dashboard" className="block text-ink-muted hover:text-ink">
-          → Banking System
+          → Banking analytics
         </Link>
+        <form action={founderLogoutAction}>
+          <button
+            type="submit"
+            className="flex w-full items-center gap-1 text-left text-ink-muted hover:text-ink"
+          >
+            <LogOut className="size-3" /> Sign out
+          </button>
+        </form>
       </div>
     </aside>
   );

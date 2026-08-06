@@ -4,7 +4,6 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import Image from "next/image";
 import {
-  Activity,
   BrainCircuit,
   Database,
   ExternalLink,
@@ -61,9 +60,6 @@ export function BankingSidebar() {
         })}
       </nav>
       <div className="space-y-1 border-t border-surface-border p-3 text-xs">
-        <Link href="/" className="flex items-center gap-1 text-ink-muted hover:text-ink">
-          <Activity className="size-3" /> ELAH Home
-        </Link>
         <Link href="/founder/overview" className="block text-ink-muted hover:text-ink">
           → Founder Admin
         </Link>

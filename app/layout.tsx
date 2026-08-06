@@ -2,8 +2,8 @@ import type { Metadata } from "next";
 import "./globals.css";
 
 export const metadata: Metadata = {
-  title: "ELAH Analytics Dashboard",
-  description: "Read-only analytics dashboard for the ELAH banking simulation database.",
+  title: "ELAH Founder Platform",
+  description: "ELAH founder admin, roadmap, and banking analytics.",
 };
 
 export default function RootLayout({
