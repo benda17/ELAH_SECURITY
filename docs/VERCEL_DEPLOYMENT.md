@@ -4,9 +4,9 @@ This repo is **Project 1** of the ELAH stack. Deploy it as its own Vercel projec
 
 | | |
 |---|---|
-| **Git remote** | `https://github.com/elah-security/ELAH_SECURITY-Banking-System.git` |
-| **Deploy branch** | `feature/elah-banking-system` |
-| **Companion app** | ELAH Platform (`elah-analytics-dashboard`, branch `analytics-dashboard`) |
+| **Git remote** | [github.com/benda17/ELAH_SECURITY](https://github.com/benda17/ELAH_SECURITY) |
+| **Deploy branch** | `banking-system` |
+| **Companion app** | ELAH Platform (`platform` branch) |
 
 ## Environment variables
 
