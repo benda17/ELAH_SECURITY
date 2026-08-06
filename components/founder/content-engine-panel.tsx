@@ -38,30 +38,63 @@ export function GenerateDraftButton() {
   );
 }
 
+export function ConnectLinkedInButton({ oauthConfigured }: { oauthConfigured: boolean }) {
+  if (!oauthConfigured) {
+    return (
+      <p className="text-xs text-ink-dim">
+        Set <code>LINKEDIN_CLIENT_ID</code> and <code>LINKEDIN_CLIENT_SECRET</code> in Vercel,
+        then reconnect.
+      </p>
+    );
+  }
+
+  return (
+    <a
+      href="/api/linkedin/connect"
+      className="inline-flex rounded-lg border border-accent-gold/40 bg-accent-gold/10 px-4 py-2 text-sm font-medium text-accent-gold hover:bg-accent-gold/20"
+    >
+      Connect LinkedIn
+    </a>
+  );
+}
+
 export function DraftActions({
   draftId,
   body,
   status,
+  canPublish,
 }: {
   draftId: string;
   body: string;
   status: string;
+  canPublish: boolean;
 }) {
   const router = useRouter();
   const [text, setText] = useState(body);
   const [busy, setBusy] = useState(false);
+  const [message, setMessage] = useState<string | null>(null);
 
-  async function patch(action: "approve" | "reject" | "edit") {
+  async function patch(action: "approve" | "reject" | "edit" | "publish") {
     setBusy(true);
-    await fetch(`/api/founder/content-engine/drafts/${draftId}`, {
-      method: "PATCH",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(
-        action === "edit" ? { action, text } : { action },
-      ),
-    });
-    setBusy(false);
-    router.refresh();
+    setMessage(null);
+    try {
+      const res = await fetch(`/api/founder/content-engine/drafts/${draftId}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(action === "edit" ? { action, text } : { action }),
+      });
+      const data = (await res.json()) as { ok: boolean; error?: string };
+      if (!data.ok) {
+        setMessage(data.error ?? "Action failed");
+      } else if (action === "publish") {
+        setMessage("Published to LinkedIn.");
+      }
+      router.refresh();
+    } catch {
+      setMessage("Request failed");
+    } finally {
+      setBusy(false);
+    }
   }
 
   if (status === "published") {
@@ -101,7 +134,17 @@ export function DraftActions({
         >
           Reject
         </button>
+        <button
+          type="button"
+          disabled={busy || !canPublish}
+          onClick={() => patch("publish")}
+          className="rounded border border-accent-cyan/40 px-2 py-1 text-xs text-accent-cyan disabled:cursor-not-allowed disabled:opacity-40"
+          title={canPublish ? "Publish this draft to LinkedIn" : "Connect LinkedIn first"}
+        >
+          Publish to LinkedIn
+        </button>
       </div>
+      {message && <p className="text-xs text-ink-muted">{message}</p>}
     </div>
   );
 }

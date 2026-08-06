@@ -1,6 +1,8 @@
 import "server-only";
 import { prisma } from "@/lib/prisma";
 import { getContentEngineConfig } from "./config";
+import { generatePostBody } from "./llm";
+import { publishTextToLinkedIn } from "./linkedin";
 
 const DEFAULT_TOPICS = [
   "AI security in banking assistants",
@@ -26,7 +28,7 @@ export async function scanSourceEvents(): Promise<number> {
 
 export async function generateLinkedInDraft(
   trigger: "manual" | "cron",
-): Promise<{ runId: string; draftId: string | null; error?: string }> {
+): Promise<{ runId: string; draftId: string | null; error?: string; published?: boolean }> {
   const config = getContentEngineConfig();
   if (!config.enabled && trigger === "cron") {
     return { runId: "", draftId: null, error: "Content engine disabled" };
@@ -44,13 +46,7 @@ export async function generateLinkedInDraft(
     });
 
     const topic = source?.title ?? DEFAULT_TOPICS[0]!;
-    let body: string;
-
-    if (process.env.OPENAI_API_KEY) {
-      body = await generateWithOpenAI(topic, source?.summary);
-    } else {
-      body = buildFallbackDraft(topic);
-    }
+    const { text: body, provider } = await generatePostBody(topic, source?.summary);
 
     const draft = await prisma.linkedInPostDraft.create({
       data: {
@@ -70,17 +66,34 @@ export async function generateLinkedInDraft(
       });
     }
 
+    const logLines = [`Draft generated via ${provider}`, draft.id];
+    let published = false;
+
+    if (config.autoPublish) {
+      const result = await publishTextToLinkedIn(body);
+      if (result.ok) {
+        await prisma.linkedInPostDraft.update({
+          where: { id: draft.id },
+          data: { status: "published", publishedAt: new Date() },
+        });
+        published = true;
+        logLines.push(`Auto-published${result.postId ? ` (${result.postId})` : ""}`);
+      } else {
+        logLines.push(`Auto-publish skipped/failed: ${result.error}`);
+      }
+    }
+
     await prisma.contentEngineRun.update({
       where: { id: run.id },
       data: {
         status: "success",
         completedAt: new Date(),
         draftCount: 1,
-        log: JSON.stringify(["Draft generated", draft.id]),
+        log: JSON.stringify(logLines),
       },
     });
 
-    return { runId: run.id, draftId: draft.id };
+    return { runId: run.id, draftId: draft.id, published };
   } catch (err) {
     const message = err instanceof Error ? err.message : "Unknown error";
     await prisma.contentEngineRun.update({
@@ -96,44 +109,19 @@ export async function generateLinkedInDraft(
   }
 }
 
-async function generateWithOpenAI(topic: string, context?: string | null): Promise<string> {
-  const res = await fetch("https://api.openai.com/v1/chat/completions", {
-    method: "POST",
-    headers: {
-      Authorization: `Bearer ${process.env.OPENAI_API_KEY}`,
-      "Content-Type": "application/json",
-    },
-    body: JSON.stringify({
-      model: process.env.OPENAI_MODEL ?? "gpt-4o-mini",
-      temperature: 0.7,
-      messages: [
-        {
-          role: "system",
-          content:
-            "You write concise LinkedIn posts for ELAH, an AI security company focused on banking assistant intention scoring. Professional, founder voice, no hype. 120-180 words.",
-        },
-        {
-          role: "user",
-          content: `Topic: ${topic}\nContext: ${context ?? "ELAH banking MVP"}\nWrite one LinkedIn post.`,
-        },
-      ],
-    }),
+export async function publishDraftById(
+  draftId: string,
+): Promise<{ ok: boolean; error?: string }> {
+  const draft = await prisma.linkedInPostDraft.findUnique({ where: { id: draftId } });
+  if (!draft) return { ok: false, error: "Draft not found" };
+  if (draft.status === "published") return { ok: true };
+
+  const result = await publishTextToLinkedIn(draft.body);
+  if (!result.ok) return { ok: false, error: result.error };
+
+  await prisma.linkedInPostDraft.update({
+    where: { id: draftId },
+    data: { status: "published", publishedAt: new Date() },
   });
-
-  if (!res.ok) {
-    throw new Error(`OpenAI API error: ${res.status}`);
-  }
-
-  const json = (await res.json()) as {
-    choices?: Array<{ message?: { content?: string } }>;
-  };
-  return json.choices?.[0]?.message?.content?.trim() ?? buildFallbackDraft(topic);
-}
-
-function buildFallbackDraft(topic: string): string {
-  return `We're building ELAH to score human intention in banking AI assistants — not to replace bank policy, but to give security teams a calibrated 0–1 intention signal with explainable coordinates.
-
-Today's focus: ${topic}.
-
-If you're exploring agentic banking or AI security pilots, I'd welcome a conversation.`;
+  return { ok: true };
 }

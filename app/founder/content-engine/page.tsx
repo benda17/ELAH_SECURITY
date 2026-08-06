@@ -1,4 +1,5 @@
 import { getContentEngineConfig } from "@/lib/founder/content-engine/config";
+import { getPublishCredentials, linkedInOAuthConfigured } from "@/lib/founder/content-engine/linkedin";
 import {
   getLinkedInIntegration,
   listContentEngineRuns,
@@ -6,22 +7,29 @@ import {
   listSourceEvents,
 } from "@/lib/founder/content-engine/repository";
 import {
+  ConnectLinkedInButton,
   DraftActions,
   GenerateDraftButton,
 } from "@/components/founder/content-engine-panel";
 
 export const dynamic = "force-dynamic";
 
-export default async function ContentEnginePage() {
+export default async function ContentEnginePage({
+  searchParams,
+}: {
+  searchParams?: { linkedin?: string };
+}) {
   const config = getContentEngineConfig();
-  const [drafts, runs, sources, integration] = await Promise.all([
+  const [drafts, runs, sources, integration, publishCreds] = await Promise.all([
     listLinkedInDrafts(),
     listContentEngineRuns(),
     listSourceEvents(),
     getLinkedInIntegration(),
+    getPublishCredentials(),
   ]);
 
-  const publishDisabled = !config.linkedInReady || !config.autoPublish;
+  const canPublish = Boolean(publishCreds);
+  const linkedinFlash = searchParams?.linkedin;
 
   return (
     <div className="space-y-6">
@@ -29,10 +37,21 @@ export default async function ContentEnginePage() {
         <p className="panel-title">Content automation</p>
         <h1 className="text-2xl font-semibold">Content Engine</h1>
         <p className="mt-1 max-w-2xl text-sm text-ink-muted">
-          LinkedIn draft generation for founder posts. Configure secrets in Vercel — never
-          paste production keys into this UI.
+          Free Groq (or Gemini) draft generation + LinkedIn publishing. Configure secrets in
+          Vercel — never paste production keys into this UI.
         </p>
       </header>
+
+      {linkedinFlash === "connected" && (
+        <p className="rounded-lg border border-accent-emerald/40 bg-accent-emerald/10 px-3 py-2 text-sm text-accent-emerald">
+          LinkedIn connected. You can publish drafts.
+        </p>
+      )}
+      {linkedinFlash?.startsWith("error:") && (
+        <p className="rounded-lg border border-accent-rose/40 bg-accent-rose/10 px-3 py-2 text-sm text-accent-rose">
+          LinkedIn connect failed: {decodeURIComponent(linkedinFlash.slice(6))}
+        </p>
+      )}
 
       <section className="panel">
         <h2 className="mb-3 text-sm font-semibold">Setup checklist</h2>
@@ -57,11 +76,10 @@ export default async function ContentEnginePage() {
             </li>
           ))}
         </ul>
-        {config.missingRequired.length > 0 && (
-          <p className="mt-3 text-xs text-accent-amber">
-            Missing required: {config.missingRequired.join(", ")}
-          </p>
-        )}
+        <p className="mt-3 text-xs text-ink-muted">
+          LLM ready: {config.llmReady ? "yes" : "no"} · LinkedIn publish ready:{" "}
+          {canPublish ? "yes" : "no"}
+        </p>
       </section>
 
       <section className="panel grid gap-4 md:grid-cols-2">
@@ -69,26 +87,16 @@ export default async function ContentEnginePage() {
           <h2 className="mb-2 text-sm font-semibold">Generate draft</h2>
           <GenerateDraftButton />
           <p className="mt-2 text-xs text-ink-dim">
-            Engine enabled: {config.enabled ? "yes" : "no (set CONTENT_ENGINE_ENABLED=true)"}
+            Engine enabled: {config.enabled ? "yes" : "no (set CONTENT_ENGINE_ENABLED=true for cron)"}
           </p>
         </div>
         <div>
-          <h2 className="mb-2 text-sm font-semibold">Publish</h2>
-          <button
-            type="button"
-            disabled
-            className="cursor-not-allowed rounded-lg border border-surface-border px-4 py-2 text-sm text-ink-dim"
-            title={
-              publishDisabled
-                ? "Configure LinkedIn + CONTENT_AUTO_PUBLISH in Vercel first"
-                : undefined
-            }
-          >
-            Publish to LinkedIn (disabled)
-          </button>
+          <h2 className="mb-2 text-sm font-semibold">LinkedIn</h2>
+          <ConnectLinkedInButton oauthConfigured={linkedInOAuthConfigured()} />
           <p className="mt-2 text-xs text-ink-dim">
-            LinkedIn configured: {config.linkedInReady ? "yes" : "no"} · Auto-publish:{" "}
-            {config.autoPublish ? "on" : "off (recommended)"}
+            Connected: {canPublish ? "yes" : "no"} · Auto-publish:{" "}
+            {config.autoPublish ? "on" : "off"}
+            {integration?.authorUrn ? ` · ${integration.authorUrn}` : ""}
           </p>
         </div>
       </section>
@@ -102,7 +110,12 @@ export default async function ContentEnginePage() {
           <li>
             Daily cron: <code>0 15 * * *</code> UTC (≈ 18:00 Israel Daylight Time)
           </li>
-          <li>Endpoint: <code>/api/cron/generate-linkedin-draft</code></li>
+          <li>
+            Endpoint: <code>/api/cron/generate-linkedin-draft</code>
+          </li>
+          <li>
+            OAuth callback: <code>/api/linkedin/callback</code>
+          </li>
         </ul>
       </section>
 
@@ -113,7 +126,9 @@ export default async function ContentEnginePage() {
             {sources.map((s) => (
               <li key={s.id} className="rounded border border-surface-border px-2 py-1.5">
                 <p className="font-medium text-ink">{s.title}</p>
-                <p className="text-ink-dim">{s.sourceType} · {s.processed ? "processed" : "new"}</p>
+                <p className="text-ink-dim">
+                  {s.sourceType} · {s.processed ? "processed" : "new"}
+                </p>
               </li>
             ))}
           </ul>
@@ -130,9 +145,7 @@ export default async function ContentEnginePage() {
                 <p className="text-ink-dim">
                   {r.startedAt.toISOString()} · {r.draftCount} draft(s)
                 </p>
-                {r.errorMessage && (
-                  <p className="text-accent-rose">{r.errorMessage}</p>
-                )}
+                {r.errorMessage && <p className="text-accent-rose">{r.errorMessage}</p>}
               </li>
             ))}
           </ul>
@@ -151,19 +164,17 @@ export default async function ContentEnginePage() {
                   <p className="text-sm font-medium">{d.title ?? "Untitled draft"}</p>
                   <span className="text-xs capitalize text-ink-dim">{d.status}</span>
                 </div>
-                <DraftActions draftId={d.id} body={d.body} status={d.status} />
+                <DraftActions
+                  draftId={d.id}
+                  body={d.body}
+                  status={d.status}
+                  canPublish={canPublish}
+                />
               </div>
             ))
           )}
         </div>
       </section>
-
-      {integration && (
-        <p className="text-xs text-ink-dim">
-          LinkedIn integration record present · publish enabled:{" "}
-          {integration.publishEnabled ? "yes" : "no"}
-        </p>
-      )}
     </div>
   );
 }

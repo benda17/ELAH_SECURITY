@@ -13,6 +13,7 @@ export async function middleware(request: NextRequest) {
     pathname.startsWith("/favicon") ||
     pathname.startsWith("/elah-logo") ||
     pathname.startsWith("/api/cron") ||
+    pathname.startsWith("/api/linkedin") ||
     pathname.includes(".")
   ) {
     return NextResponse.next();

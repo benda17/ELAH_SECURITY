@@ -57,10 +57,13 @@ Never commit `.env` with real secrets.
 ### Content Engine
 
 - UI: `/founder/content-engine`
+- Free draft generation via **Groq** (`GROQ_API_KEY`) or Gemini (`GEMINI_API_KEY`)
 - Manual generate: `POST /api/founder/content-engine/generate`
 - Cron: `GET /api/cron/generate-linkedin-draft` (requires `CRON_SECRET`)
+- LinkedIn: Connect at `/api/linkedin/connect` (needs `LINKEDIN_CLIENT_ID` / `LINKEDIN_CLIENT_SECRET`), then **Publish to LinkedIn** on a draft
 
-Drafts are generated but **not auto-published** unless `CONTENT_AUTO_PUBLISH=true` and LinkedIn credentials are configured.
+Set `CONTENT_ENGINE_ENABLED=true` for daily cron. Keep `CONTENT_AUTO_PUBLISH=false` until a manual publish succeeds.
+
 
 ## Legacy routes
 

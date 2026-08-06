@@ -591,6 +591,10 @@ model ContentEngineRun {
 model LinkedInIntegration {
   id              String    @id @default(cuid())
   organizationId  String?
+  authorUrn       String?
+  accessToken     String?
+  refreshToken    String?
+  tokenExpiresAt  DateTime?
   accessTokenSet  Boolean   @default(false)
   publishEnabled  Boolean   @default(false)
   lastConnectedAt DateTime?
