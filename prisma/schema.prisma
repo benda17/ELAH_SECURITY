@@ -496,6 +496,52 @@ model AgentIntentAggregate {
   @@index([userId])
 }
 
+// -------------------- ELAH training dataset (MVP data layer) --------------------
+
+model ElahTrainingEvent {
+  id                       String   @id @default(cuid())
+  createdAt                DateTime @default(now())
+  updatedAt                DateTime @updatedAt
+  appId                    String
+  userIdHash               String
+  sessionId                String?
+  conversationId           String
+  messageId                String   @unique
+  userQuestion             String
+  assistantAnswer          String
+  previousUserMessages     String   @default("[]")
+  previousAssistantMessages String  @default("[]")
+  plannedTool              String?
+  executedTool             String?
+  toolArgsSanitized        String   @default("{}")
+  toolResultSummary        String?
+  actionOutcome            String
+  amountBucket             String
+  recipientType            String
+  accountContext           String
+  userHadActiveSession     Boolean  @default(false)
+  mfaStatus                String   @default("unknown")
+  finalIntent              String
+  elahScoreLabel           Float
+  humanAgency              Float
+  financialRisk            Float
+  emotionalUrgency         Float
+  labelSource              String
+  labelConfidence          Float
+  matchedSignals           String   @default("[]")
+  weakSignals              String   @default("[]")
+  negativeSignals          String   @default("[]")
+  notes                    String?
+
+  @@index([createdAt])
+  @@index([finalIntent])
+  @@index([labelSource])
+  @@index([actionOutcome])
+  @@index([elahScoreLabel])
+  @@index([conversationId])
+  @@index([userIdHash])
+}
+
 // Static catalog of prompt-injection test scenarios (seeded fixtures only)
 model PromptInjectionScenario {
   id                       String   @id @default(cuid())

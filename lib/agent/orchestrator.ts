@@ -18,6 +18,8 @@ import {
   type PolicyDecision,
 } from "./policy";
 import { executeTool, summarizeTool } from "./tools";
+import { recordElahTrainingEventForTurn } from "@/lib/elah/training-event";
+import type { ElahActionOutcome } from "@/lib/elah/types";
 import {
   filterToolArgs,
   sanitizeClientError,
@@ -243,6 +245,25 @@ export async function handleAgentChat(
   const { classification: matrixIntent, eventId: intentEventId } =
     await trackUserIntent(input, conversation.id, userMsg.id);
 
+  async function commitElahTurn(args: {
+    assistantAnswer: string;
+    plannedTool?: string | null;
+    executedTool?: string | null;
+    toolArgs?: Record<string, unknown> | null;
+    toolResultSummary?: string | null;
+    actionOutcome: ElahActionOutcome;
+  }) {
+    await recordElahTrainingEventForTurn({
+      userId: input.user.id,
+      sessionId: input.sessionCookieId,
+      conversationId: conversation.id,
+      userMessageId: userMsg.id,
+      userQuestion: input.message,
+      matrixClassification: matrixIntent,
+      ...args,
+    }).catch((err) => console.error("[elah-training]", err));
+  }
+
   const injection = detectPromptInjection(input.message);
   const unsafeMatrixIntent = matrixIntent.intentId === "unsafe_prompt_injection";
   if (injection.matched || unsafeMatrixIntent) {
@@ -285,6 +306,10 @@ export async function handleAgentChat(
     await prisma.agentConversation.update({
       where: { id: conversation.id },
       data: { status: "flagged", updatedAt: new Date() },
+    });
+    await commitElahTurn({
+      assistantAnswer: reply,
+      actionOutcome: "blocked",
     });
     return {
       ok: true,
@@ -350,6 +375,12 @@ export async function handleAgentChat(
       actionStatus: "cancelled",
       policyDecision: "deny",
     });
+    await commitElahTurn({
+      assistantAnswer: reply,
+      plannedTool: pending.toolName,
+      toolArgs: JSON.parse(pending.toolArgs) as Record<string, unknown>,
+      actionOutcome: "cancelled",
+    });
     return {
       ok: true,
       conversationId: conversation.id,
@@ -373,6 +404,11 @@ export async function handleAgentChat(
         conversationId: conversation.id,
         toolName: pending.toolName,
         resultSummary: "pending action args corrupt",
+      });
+      await commitElahTurn({
+        assistantAnswer: reply,
+        plannedTool: pending.toolName,
+        actionOutcome: "refused",
       });
       return {
         ok: true,
@@ -423,6 +459,12 @@ export async function handleAgentChat(
         policyDecision: policyDecision.decision,
         actionStatus: "failed",
       });
+      await commitElahTurn({
+        assistantAnswer: reply,
+        plannedTool: pending.toolName,
+        toolArgs,
+        actionOutcome: "failed",
+      });
       return {
         ok: true,
         conversationId: conversation.id,
@@ -446,6 +488,12 @@ export async function handleAgentChat(
     });
     if (claim.count === 0) {
       const reply = "That confirmation has expired or was already handled.";
+      await commitElahTurn({
+        assistantAnswer: reply,
+        plannedTool: pending.toolName,
+        toolArgs,
+        actionOutcome: "refused",
+      });
       return {
         ok: true,
         conversationId: conversation.id,
@@ -516,6 +564,14 @@ export async function handleAgentChat(
       policyDecision: "allow",
       actionStatus: result.ok ? "executed" : "failed",
     });
+    await commitElahTurn({
+      assistantAnswer: reply,
+      plannedTool: pending.toolName,
+      executedTool: pending.toolName,
+      toolArgs,
+      toolResultSummary: result.summary,
+      actionOutcome: result.ok ? "executed" : "failed",
+    });
 
     return {
       ok: true,
@@ -571,6 +627,10 @@ export async function handleAgentChat(
       policyDecision: "deny",
       suspiciousPatterns: historyInjection.labels,
     });
+    await commitElahTurn({
+      assistantAnswer: reply,
+      actionOutcome: "blocked",
+    });
     return {
       ok: true,
       conversationId: conversation.id,
@@ -619,6 +679,10 @@ export async function handleAgentChat(
       actionStatus: "blocked",
       policyDecision: "deny",
     });
+    await commitElahTurn({
+      assistantAnswer: plan.reply,
+      actionOutcome: "refused",
+    });
     return {
       ok: true,
       conversationId: conversation.id,
@@ -649,6 +713,10 @@ export async function handleAgentChat(
       assistantMessage: plan.reply,
       detectedIntent: plan.intent,
       latencyMs: Date.now() - started,
+    });
+    await commitElahTurn({
+      assistantAnswer: plan.reply,
+      actionOutcome: "conversational",
     });
     return {
       ok: true,
@@ -719,6 +787,12 @@ export async function handleAgentChat(
       policyDecision: policyDecision.decision,
       actionStatus: "blocked",
     });
+    await commitElahTurn({
+      assistantAnswer: reply,
+      plannedTool: toolName,
+      toolArgs,
+      actionOutcome: "blocked",
+    });
     return {
       ok: true,
       conversationId: conversation.id,
@@ -774,6 +848,13 @@ export async function handleAgentChat(
       toolArgs,
       policyDecision: "needs_confirmation",
       actionStatus: "pending_confirmation",
+    });
+    await commitElahTurn({
+      assistantAnswer: reply,
+      plannedTool: toolName,
+      toolArgs,
+      toolResultSummary: summary,
+      actionOutcome: "pending_confirmation",
     });
     return {
       ok: true,
@@ -841,6 +922,14 @@ export async function handleAgentChat(
           resultSummary: freezeSummary,
           latencyMs: Date.now() - started,
         });
+        await commitElahTurn({
+          assistantAnswer: reply,
+          plannedTool: "freeze_card",
+          executedTool: "get_cards",
+          toolArgs: { cardId: target.cardId },
+          toolResultSummary: result.summary,
+          actionOutcome: "pending_confirmation",
+        });
         return {
           ok: true,
           conversationId: conversation.id,
@@ -894,6 +983,15 @@ export async function handleAgentChat(
   await prisma.agentConversation.update({
     where: { id: conversation.id },
     data: { updatedAt: new Date() },
+  });
+
+  await commitElahTurn({
+    assistantAnswer: reply,
+    plannedTool: toolName,
+    executedTool: toolName,
+    toolArgs,
+    toolResultSummary: result.summary,
+    actionOutcome: result.ok ? "executed" : "failed",
   });
 
   return {
