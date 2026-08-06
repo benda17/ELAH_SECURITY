@@ -52,8 +52,11 @@ export default async function ContentEnginePage({
           <p className="panel-title">Content automation</p>
           <h1 className="text-2xl font-semibold">Content Engine</h1>
           <p className="mt-1 max-w-2xl text-sm text-ink-muted">
-            Generate, review, and publish LinkedIn posts. Free Groq/Gemini drafting + LinkedIn
-            publish.
+            Generate, review, and publish LinkedIn posts. Configure secrets under{" "}
+            <a href="/founder/settings" className="text-accent-cyan hover:underline">
+              Settings
+            </a>
+            .
           </p>
         </div>
         <div className="flex flex-wrap items-center gap-3">
@@ -142,73 +145,45 @@ export default async function ContentEnginePage({
         </div>
       </section>
 
-      <details className="panel">
-        <summary className="cursor-pointer text-sm font-semibold">Setup &amp; operations</summary>
-        <div className="mt-4 space-y-6">
-          <div>
-            <h3 className="mb-2 text-xs font-semibold uppercase tracking-wider text-ink-dim">
-              Environment
-            </h3>
-            <ul className="space-y-2 text-sm">
-              {config.envVars.map((v) => (
-                <li key={v.key} className="flex items-start justify-between gap-4">
-                  <div>
-                    <code className="text-accent-cyan">{v.key}</code>
-                    <p className="text-xs text-ink-dim">{v.description}</p>
-                  </div>
-                  <span
-                    className={
-                      v.configured
-                        ? "text-xs text-accent-emerald"
-                        : v.required
-                          ? "text-xs text-accent-rose"
-                          : "text-xs text-ink-dim"
-                    }
-                  >
-                    {v.configured ? (v.displayValue ?? "Set") : v.required ? "Missing" : "Optional"}
-                  </span>
+      <div className="grid gap-4 lg:grid-cols-2">
+        <section className="panel">
+          <h2 className="mb-3 panel-title">Source events</h2>
+          <ul className="max-h-48 space-y-2 overflow-y-auto text-xs">
+            {sources.length === 0 ? (
+              <li className="text-ink-muted">No source events yet.</li>
+            ) : (
+              sources.map((s) => (
+                <li key={s.id} className="rounded border border-surface-border px-2 py-1.5">
+                  <p className="font-medium text-ink">{s.title}</p>
+                  <p className="text-ink-dim">
+                    {s.sourceType} · {s.processed ? "processed" : "new"}
+                  </p>
                 </li>
-              ))}
-            </ul>
-            <p className="mt-3 text-xs text-ink-muted">
-              LLM ready: {config.llmReady ? "yes" : "no"} · Engine enabled:{" "}
-              {config.enabled ? "yes" : "no"}
-            </p>
-          </div>
-
-          <div className="grid gap-4 lg:grid-cols-2">
-            <div>
-              <h3 className="mb-2 panel-title">Source events</h3>
-              <ul className="max-h-48 space-y-2 overflow-y-auto text-xs">
-                {sources.map((s) => (
-                  <li key={s.id} className="rounded border border-surface-border px-2 py-1.5">
-                    <p className="font-medium text-ink">{s.title}</p>
-                    <p className="text-ink-dim">
-                      {s.sourceType} · {s.processed ? "processed" : "new"}
-                    </p>
-                  </li>
-                ))}
-              </ul>
-            </div>
-            <div>
-              <h3 className="mb-2 panel-title">Run logs</h3>
-              <ul className="max-h-48 space-y-2 overflow-y-auto text-xs">
-                {runs.map((r) => (
-                  <li key={r.id} className="rounded border border-surface-border px-2 py-1.5">
-                    <p className="text-ink">
-                      {r.trigger} · <span className="capitalize">{r.status}</span>
-                    </p>
-                    <p className="text-ink-dim">
-                      {r.startedAt.toISOString()} · {r.draftCount} draft(s)
-                    </p>
-                    {r.errorMessage && <p className="text-accent-rose">{r.errorMessage}</p>}
-                  </li>
-                ))}
-              </ul>
-            </div>
-          </div>
-        </div>
-      </details>
+              ))
+            )}
+          </ul>
+        </section>
+        <section className="panel">
+          <h2 className="mb-3 panel-title">Run logs</h2>
+          <ul className="max-h-48 space-y-2 overflow-y-auto text-xs">
+            {runs.length === 0 ? (
+              <li className="text-ink-muted">No runs yet.</li>
+            ) : (
+              runs.map((r) => (
+                <li key={r.id} className="rounded border border-surface-border px-2 py-1.5">
+                  <p className="text-ink">
+                    {r.trigger} · <span className="capitalize">{r.status}</span>
+                  </p>
+                  <p className="text-ink-dim">
+                    {r.startedAt.toISOString()} · {r.draftCount} draft(s)
+                  </p>
+                  {r.errorMessage && <p className="text-accent-rose">{r.errorMessage}</p>}
+                </li>
+              ))
+            )}
+          </ul>
+        </section>
+      </div>
     </div>
   );
 }
