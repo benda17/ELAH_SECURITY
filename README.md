@@ -34,7 +34,9 @@ Never commit `.env` with real secrets.
 
 ## Deploy on Vercel
 
-1. Import this repository as a Vercel project.
+**Git:** [benda17/ELAH_SECURITY](https://github.com/benda17/ELAH_SECURITY) — branch **`ELAH_FOUNDER_PLATFORM`**
+
+1. Import the repository as a Vercel project (production branch: `ELAH_FOUNDER_PLATFORM`).
 2. Add all variables from `.env.example` under **Settings → Environment Variables**.
 3. Set `DATABASE_URL` to your production database (SQLite on Vercel requires persistent storage — for production, migrate to Postgres or use a hosted SQLite volume).
 4. Set `CRON_SECRET` to a long random string. Vercel Cron sends `Authorization: Bearer <CRON_SECRET>` to cron routes.
