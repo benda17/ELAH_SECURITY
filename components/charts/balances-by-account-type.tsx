@@ -40,7 +40,9 @@ export function BalancesByAccountTypeChart({
           dataKey="accountType"
           tickLine={false}
           axisLine={false}
-          tick={{ textTransform: "capitalize" }}
+          tickFormatter={(v: string) =>
+            String(v).charAt(0).toUpperCase() + String(v).slice(1)
+          }
         />
         <YAxis
           tickLine={false}

@@ -493,6 +493,112 @@ model AgentIntentAggregate {
   @@index([userId])
 }
 
+// -------------------- ELAH training dataset (MVP data layer) --------------------
+
+model ElahTrainingEvent {
+  id                        String   @id @default(cuid())
+  createdAt                 DateTime @default(now())
+  updatedAt                 DateTime @updatedAt
+  appId                     String
+  userIdHash                String
+  sessionId                 String?
+  conversationId            String
+  messageId                 String   @unique
+  userQuestion              String
+  assistantAnswer           String
+  previousUserMessages      String   @default("[]")
+  previousAssistantMessages String   @default("[]")
+  plannedTool               String?
+  executedTool              String?
+  toolArgsSanitized         String   @default("{}")
+  toolResultSummary         String?
+  actionOutcome             String
+  amountBucket              String
+  recipientType             String
+  accountContext            String
+  userHadActiveSession      Boolean  @default(false)
+  mfaStatus                 String   @default("unknown")
+  finalIntent               String
+  elahScoreLabel            Float
+  humanAgency               Float
+  financialRisk             Float
+  emotionalUrgency          Float
+  labelSource               String
+  labelConfidence           Float
+  matchedSignals            String   @default("[]")
+  weakSignals               String   @default("[]")
+  negativeSignals           String   @default("[]")
+  notes                     String?
+
+  @@index([createdAt])
+  @@index([finalIntent])
+  @@index([labelSource])
+  @@index([actionOutcome])
+  @@index([elahScoreLabel])
+  @@index([conversationId])
+  @@index([userIdHash])
+}
+
+// -------------------- Founder content engine --------------------
+
+model ContentSourceEvent {
+  id          String   @id @default(cuid())
+  sourceType  String   // news | product_update | funding | research
+  title       String
+  summary     String?
+  url         String?
+  capturedAt  DateTime @default(now())
+  metadata    String   @default("{}")
+  processed   Boolean  @default(false)
+  createdAt   DateTime @default(now())
+
+  @@index([capturedAt])
+  @@index([processed])
+}
+
+model LinkedInPostDraft {
+  id            String    @id @default(cuid())
+  title         String?
+  body          String
+  hashtags      String    @default("[]")
+  status        String    @default("draft") // draft | approved | rejected | published
+  sourceEventId String?
+  runId         String?
+  reviewerNotes String?
+  scheduledFor  DateTime?
+  publishedAt   DateTime?
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+
+  @@index([status])
+  @@index([createdAt])
+}
+
+model ContentEngineRun {
+  id           String   @id @default(cuid())
+  trigger      String   // manual | cron
+  status       String   // running | success | failed
+  startedAt    DateTime @default(now())
+  completedAt  DateTime?
+  draftCount   Int      @default(0)
+  errorMessage String?
+  log          String   @default("[]")
+
+  @@index([startedAt])
+  @@index([status])
+}
+
+model LinkedInIntegration {
+  id              String    @id @default(cuid())
+  organizationId  String?
+  accessTokenSet  Boolean   @default(false)
+  publishEnabled  Boolean   @default(false)
+  lastConnectedAt DateTime?
+  configNotes     String?
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
+}
+
 // Static catalog of prompt-injection test scenarios (seeded fixtures only)
 model PromptInjectionScenario {
   id                       String   @id @default(cuid())
@@ -506,4 +612,146 @@ model PromptInjectionScenario {
   notes                    String?
   createdAt                DateTime @default(now())
   updatedAt                DateTime @updatedAt
+}
+
+// -------------------- Founder roadmap (internal operating dashboard) --------------------
+
+model RoadmapMilestone {
+  id                   String        @id @default(cuid())
+  title                String
+  description          String?
+  targetDate           DateTime?
+  status               String        @default("not_started")
+  completionPercentage Int           @default(0)
+  exitCriteria         String?
+  risks                String?
+  owner                String?
+  evidence             String?
+  order                Int           @default(0)
+  createdAt            DateTime      @default(now())
+  updatedAt            DateTime      @updatedAt
+  tasks                RoadmapTask[]
+}
+
+model RoadmapTask {
+  id                 String            @id @default(cuid())
+  title              String
+  description        String?
+  category           String
+  workstream         String
+  phase              String
+  status             String            @default("backlog")
+  priority           String            @default("medium")
+  owner              String?
+  createdAt          DateTime          @default(now())
+  updatedAt          DateTime          @updatedAt
+  startDate          DateTime?
+  dueDate            DateTime?
+  completedAt        DateTime?
+  estimatedEffort    String?
+  actualEffort       String?
+  progressPercentage Int               @default(0)
+  milestoneId        String?
+  parentTaskId       String?
+  dependencyIds      String            @default("[]")
+  blockedBy          String?
+  blockingReason     String?
+  successCriteria    String?
+  deliverables       String?
+  notes              String?
+  links              String            @default("[]")
+  tags               String            @default("[]")
+  riskLevel          String?
+  isCriticalPath     Boolean           @default(false)
+  order              Int               @default(0)
+  milestone          RoadmapMilestone? @relation(fields: [milestoneId], references: [id], onDelete: SetNull)
+  parent             RoadmapTask?      @relation("RoadmapTaskHierarchy", fields: [parentTaskId], references: [id], onDelete: SetNull)
+  children           RoadmapTask[]     @relation("RoadmapTaskHierarchy")
+
+  @@index([phase])
+  @@index([status])
+  @@index([workstream])
+  @@index([milestoneId])
+  @@index([isCriticalPath])
+  @@index([dueDate])
+}
+
+model RoadmapContact {
+  id              String    @id @default(cuid())
+  name            String
+  organization    String?
+  role            String?
+  contactType     String
+  email           String?
+  linkedInUrl     String?
+  sector          String?
+  relevance       String?
+  outreachStatus  String    @default("research")
+  lastContactDate DateTime?
+  nextFollowUp    DateTime?
+  notes           String?
+  associatedTasks String    @default("[]")
+  potentialValue  String?
+  priority        String    @default("medium")
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
+
+  @@index([outreachStatus])
+  @@index([contactType])
+  @@index([nextFollowUp])
+}
+
+model RoadmapDecision {
+  id             String    @id @default(cuid())
+  question       String
+  context        String?
+  options        String    @default("[]")
+  chosenOption   String?
+  status         String    @default("open")
+  owner          String?
+  decisionDate   DateTime?
+  rationale      String?
+  risks          String?
+  relatedTaskIds String    @default("[]")
+  createdAt      DateTime  @default(now())
+  updatedAt      DateTime  @updatedAt
+
+  @@index([status])
+}
+
+model RoadmapExperiment {
+  id             String   @id @default(cuid())
+  title          String
+  hypothesis     String?
+  testMethod     String?
+  dataset        String?
+  successMetric  String?
+  baseline       String?
+  result         String?
+  conclusion     String?
+  followUpAction String?
+  milestoneId    String?
+  status         String   @default("planned")
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  @@index([status])
+}
+
+model RoadmapRisk {
+  id             String   @id @default(cuid())
+  description    String
+  riskType       String?
+  probability    String?
+  impact         String?
+  severity       String?
+  mitigationPlan String?
+  owner          String?
+  status         String   @default("open")
+  relatedTaskIds String   @default("[]")
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  @@index([status])
+  @@index([severity])
 }

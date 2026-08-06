@@ -2,10 +2,12 @@ import Image from "next/image";
 import Link from "next/link";
 import { ArrowLeft, Map } from "lucide-react";
 import { ArchitectureFlow } from "@/components/elah-roadmap/architecture-flow";
+import { FirstRoundPlan } from "@/components/elah-roadmap/first-round-plan";
 import { IntentTaxonomy } from "@/components/elah-roadmap/intent-taxonomy";
 import { ProductDefinitionCard } from "@/components/elah-roadmap/product-definition-card";
 import { RoadmapHero } from "@/components/elah-roadmap/roadmap-hero";
 import { RoadmapTimeline } from "@/components/elah-roadmap/roadmap-timeline";
+import { TwelveMonthGoals } from "@/components/elah-roadmap/twelve-month-goals";
 import { ScoringContractCard } from "@/components/elah-roadmap/scoring-contract-card";
 import { TaskBoard } from "@/components/elah-roadmap/task-board";
 import { ThresholdSimulator } from "@/components/elah-roadmap/threshold-simulator";
@@ -35,10 +37,16 @@ export default function ElahModelRoadmapPage() {
           </div>
           <div className="flex flex-wrap items-center gap-2">
             <Link
-              href="/intent-matrix"
+              href="/banking/intent-matrix"
               className="rounded-lg border border-surface-border px-3 py-1.5 text-xs text-ink-muted hover:text-ink"
             >
               Intent Matrix
+            </Link>
+            <Link
+              href="/banking/training-dataset"
+              className="rounded-lg border border-accent-emerald/30 bg-accent-emerald/10 px-3 py-1.5 text-xs font-medium text-accent-emerald hover:bg-accent-emerald/15"
+            >
+              Training Dataset
             </Link>
             <Link
               href="/"
@@ -57,6 +65,8 @@ export default function ElahModelRoadmapPage() {
         <ArchitectureFlow />
         <ScoringContractCard />
         <IntentTaxonomy />
+        <FirstRoundPlan />
+        <TwelveMonthGoals />
         <RoadmapTimeline />
         <TaskBoard />
         <ThresholdSimulator />

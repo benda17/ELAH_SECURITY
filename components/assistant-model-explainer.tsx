@@ -69,7 +69,7 @@ export function AssistantModelExplainer() {
           </p>
         </div>
         <Link
-          href="/intent-matrix"
+          href="/banking/intent-matrix"
           className="inline-flex items-center gap-1.5 rounded-lg border border-accent-cyan/30 bg-accent-cyan/5 px-3 py-1.5 text-xs font-medium text-accent-cyan transition hover:bg-accent-cyan/10"
         >
           Human Intent Matrix
@@ -168,7 +168,7 @@ export function AssistantModelExplainer() {
             <strong className="text-ink">Security risk</strong> (privacy,
             irreversibility, anomaly). These collapse to a 3D point (agency ×
             financial risk × urgency) used on the{" "}
-            <Link href="/intent-matrix" className="text-accent-cyan hover:underline">
+            <Link href="/banking/intent-matrix" className="text-accent-cyan hover:underline">
               Intent Matrix
             </Link>{" "}
             page. Classification runs in the orchestrator alongside tool and

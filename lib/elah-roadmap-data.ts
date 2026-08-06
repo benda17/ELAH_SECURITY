@@ -328,3 +328,42 @@ export const TASK_GROUPS: TaskGroup[] = [
   "Evaluation",
   "Demo",
 ];
+
+export const FIRST_ROUND_PLAN = {
+  targetRaise: "$400K",
+  roundType: "Pre-seed / angel-pre-seed",
+  runway: "12 months",
+  mainMilestone:
+    "Install ELAH inside a first client's demo or development environment",
+  description:
+    "ELAH is planning a $400K pre-seed / angel-pre-seed round to fund 12 months of focused execution. The goal is to turn the current technical MVP into a pilot-ready AI security model: a separate lightweight ELAH service that scores human intention, returns explainable graph coordinates, and can be installed in a first client demo or development environment.",
+  closingStatement:
+    "$400K to turn the current MVP into a pilot-ready AI security model.",
+} as const;
+
+export const USE_OF_FUNDS = [
+  { category: "Backend / AI expert", amount: 160_000, amountLabel: "$160K" },
+  { category: "Dataset creation, labeling, data science", amount: 70_000, amountLabel: "$70K" },
+  { category: "Cloud, compute, databases, tools", amount: 50_000, amountLabel: "$50K" },
+  { category: "Legal, company setup, contracts", amount: 25_000, amountLabel: "$25K" },
+  { category: "Security / compliance review", amount: 30_000, amountLabel: "$30K" },
+  { category: "Product / dashboard polish", amount: 20_000, amountLabel: "$20K" },
+  { category: "Customer discovery, pilots, travel", amount: 30_000, amountLabel: "$30K" },
+  { category: "Buffer", amount: 15_000, amountLabel: "$15K" },
+] as const;
+
+export const USE_OF_FUNDS_TOTAL = {
+  amount: 400_000,
+  amountLabel: "$400K",
+} as const;
+
+export const TWELVE_MONTH_GOALS = [
+  "Establish the legal company and basic operational infrastructure.",
+  "Hire or deeply involve one backend / AI expert.",
+  "Convert 25,000+ existing logs into a clean, labeled training dataset.",
+  "Expand the dataset with synthetic and public-pattern banking events.",
+  "Build a separate ELAH scoring service with versioned model outputs.",
+  "Train the first lightweight ELAH model and benchmark accuracy/explainability.",
+  "Integrate ELAH scores, coordinates, and explanations into the analytics dashboard.",
+  "Reach one client pilot or demo/development-environment installation.",
+] as const;

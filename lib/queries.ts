@@ -912,3 +912,271 @@ export async function getIntentSecurityPanel(daysBack = 14) {
     failedConfirmations: rows.filter((r) => r.actionStatus === "failed"),
   };
 }
+
+// -------------------- ELAH Training Dataset --------------------
+
+export type TrainingDatasetFilters = {
+  finalIntent?: string;
+  labelSource?: string;
+  actionOutcome?: string;
+  minScore?: number;
+  maxScore?: number;
+  daysBack?: number;
+};
+
+export async function getTrainingDatasetOverview(filters: TrainingDatasetFilters = {}) {
+  const daysBack = filters.daysBack ?? 30;
+  const since = new Date(Date.now() - daysBack * 24 * 60 * 60 * 1000);
+  const where = {
+    createdAt: { gte: since },
+    ...(filters.finalIntent ? { finalIntent: filters.finalIntent } : {}),
+    ...(filters.labelSource ? { labelSource: filters.labelSource } : {}),
+    ...(filters.actionOutcome ? { actionOutcome: filters.actionOutcome } : {}),
+    ...(filters.minScore != null || filters.maxScore != null
+      ? {
+          elahScoreLabel: {
+            ...(filters.minScore != null ? { gte: filters.minScore } : {}),
+            ...(filters.maxScore != null ? { lte: filters.maxScore } : {}),
+          },
+        }
+      : {}),
+  };
+
+  const [total, byIntent, byLabelSource, scoreAgg, recent] = await Promise.all([
+    prisma.elahTrainingEvent.count({ where }),
+    prisma.elahTrainingEvent.groupBy({
+      by: ["finalIntent"],
+      where,
+      _count: { _all: true },
+      orderBy: { _count: { finalIntent: "desc" } },
+    }),
+    prisma.elahTrainingEvent.groupBy({
+      by: ["labelSource"],
+      where,
+      _count: { _all: true },
+    }),
+    prisma.elahTrainingEvent.aggregate({
+      where,
+      _avg: { elahScoreLabel: true },
+      _min: { elahScoreLabel: true },
+      _max: { elahScoreLabel: true },
+    }),
+    prisma.elahTrainingEvent.findMany({
+      where,
+      orderBy: { createdAt: "desc" },
+      take: 50,
+      select: {
+        id: true,
+        createdAt: true,
+        userQuestion: true,
+        assistantAnswer: true,
+        finalIntent: true,
+        elahScoreLabel: true,
+        humanAgency: true,
+        financialRisk: true,
+        emotionalUrgency: true,
+        plannedTool: true,
+        actionOutcome: true,
+        labelSource: true,
+      },
+    }),
+  ]);
+
+  return {
+    total,
+    avgScore: scoreAgg._avg.elahScoreLabel ?? 0,
+    minScore: scoreAgg._min.elahScoreLabel ?? 0,
+    maxScore: scoreAgg._max.elahScoreLabel ?? 0,
+    byIntent: byIntent.map((r) => ({
+      finalIntent: r.finalIntent,
+      count: r._count._all,
+    })),
+    byLabelSource: byLabelSource.map((r) => ({
+      labelSource: r.labelSource,
+      count: r._count._all,
+    })),
+    recent: recent.map((r) => ({
+      ...r,
+      createdAt: r.createdAt.toISOString(),
+    })),
+  };
+}
+
+/** Paginated agent event log for banking admin */
+export async function getAgentEventLogs(limit = 100) {
+  const rows = await prisma.agentEventLog.findMany({
+    orderBy: { timestamp: "desc" },
+    take: limit,
+    select: {
+      id: true,
+      timestamp: true,
+      eventType: true,
+      userId: true,
+      conversationId: true,
+      toolName: true,
+      userMessage: true,
+      assistantMessage: true,
+      policyDecision: true,
+      policyReasons: true,
+      riskScore: true,
+      resultSummary: true,
+      latencyMs: true,
+    },
+  });
+
+  const userIds = [...new Set(rows.map((r) => r.userId).filter(Boolean))] as string[];
+  const users =
+    userIds.length > 0
+      ? await prisma.user.findMany({
+          where: { id: { in: userIds } },
+          select: { id: true, name: true, email: true },
+        })
+      : [];
+  const byId = new Map(users.map((u) => [u.id, u]));
+
+  return rows.map((r) => ({
+    ...r,
+    userName: r.userId ? byId.get(r.userId)?.name ?? "Unknown" : "—",
+    userEmail: r.userId ? byId.get(r.userId)?.email ?? "" : "",
+    timestamp: r.timestamp.toISOString(),
+  }));
+}
+
+/** Banking customers with assistant activity summary */
+export async function getBankingUsersWithAssistantStats(limit = 50) {
+  const customers = await prisma.user.findMany({
+    where: {
+      role: { in: ["regular_customer", "premium_customer", "vip_customer"] },
+    },
+    select: {
+      id: true,
+      name: true,
+      email: true,
+      role: true,
+      status: true,
+      lastLoginAt: true,
+      customerProfile: { select: { tier: true, customerNumber: true } },
+      _count: {
+        select: {
+          agentConversations: true,
+          agentPendingActions: true,
+        },
+      },
+    },
+    orderBy: { createdAt: "desc" },
+    take: limit,
+  });
+
+  const eventCounts = await prisma.agentEventLog.groupBy({
+    by: ["userId"],
+    _count: { _all: true },
+    where: { userId: { in: customers.map((c) => c.id) } },
+  });
+  const eventsByUser = new Map(
+    eventCounts.map((r) => [r.userId, r._count._all]),
+  );
+
+  return customers.map((c) => ({
+    id: c.id,
+    name: c.name,
+    email: c.email,
+    role: c.role,
+    status: c.status,
+    tier: c.customerProfile?.tier ?? "—",
+    customerNumber: c.customerProfile?.customerNumber ?? "—",
+    lastLoginAt: c.lastLoginAt?.toISOString() ?? null,
+    conversations: c._count.agentConversations,
+    pendingActions: c._count.agentPendingActions,
+    eventCount: eventsByUser.get(c.id) ?? 0,
+  }));
+}
+
+/** Pending and recent agent tool actions */
+export async function getAgentPendingActions(limit = 50) {
+  const rows = await prisma.agentPendingAction.findMany({
+    orderBy: { createdAt: "desc" },
+    take: limit,
+    include: {
+      user: { select: { name: true, email: true } },
+    },
+  });
+
+  return rows.map((r) => ({
+    id: r.id,
+    actionType: r.actionType,
+    toolName: r.toolName,
+    summary: r.summary,
+    status: r.status,
+    userName: r.user.name,
+    userEmail: r.user.email,
+    conversationId: r.conversationId,
+    createdAt: r.createdAt.toISOString(),
+    expiresAt: r.expiresAt.toISOString(),
+    executedAt: r.executedAt?.toISOString() ?? null,
+    resultSummary: r.resultSummary,
+  }));
+}
+
+/** Recent tool call executions from event log */
+export async function getRecentToolCallEvents(limit = 50) {
+  const rows = await prisma.agentEventLog.findMany({
+    where: {
+      eventType: {
+        in: ["tool_call_executed", "tool_call_failed", "tool_call_requested"],
+      },
+    },
+    orderBy: { timestamp: "desc" },
+    take: limit,
+    select: {
+      id: true,
+      timestamp: true,
+      eventType: true,
+      userId: true,
+      toolName: true,
+      policyDecision: true,
+      resultSummary: true,
+      latencyMs: true,
+    },
+  });
+
+  const userIds = [...new Set(rows.map((r) => r.userId).filter(Boolean))] as string[];
+  const users =
+    userIds.length > 0
+      ? await prisma.user.findMany({
+          where: { id: { in: userIds } },
+          select: { id: true, name: true },
+        })
+      : [];
+  const byId = new Map(users.map((u) => [u.id, u.name]));
+
+  return rows.map((r) => ({
+    ...r,
+    userName: r.userId ? byId.get(r.userId) ?? "Unknown" : "—",
+    timestamp: r.timestamp.toISOString(),
+  }));
+}
+
+export async function getTrainingFilterOptions() {
+  const [intents, sources, outcomes] = await Promise.all([
+    prisma.elahTrainingEvent.groupBy({
+      by: ["finalIntent"],
+      _count: { _all: true },
+      orderBy: { _count: { finalIntent: "desc" } },
+      take: 30,
+    }),
+    prisma.elahTrainingEvent.groupBy({
+      by: ["labelSource"],
+      _count: { _all: true },
+    }),
+    prisma.elahTrainingEvent.groupBy({
+      by: ["actionOutcome"],
+      _count: { _all: true },
+    }),
+  ]);
+
+  return {
+    intents: intents.map((r) => r.finalIntent),
+    labelSources: sources.map((r) => r.labelSource),
+    actionOutcomes: outcomes.map((r) => r.actionOutcome),
+  };
+}
