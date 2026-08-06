@@ -14,7 +14,8 @@ If you're exploring agentic banking or AI security pilots, I'd welcome a convers
 type ChatResult = { text: string; provider: string };
 
 /**
- * Prefer free providers: Groq → Gemini → OpenAI (optional paid) → template fallback.
+ * Free providers only: Groq → Gemini → template fallback.
+ * OpenAI is intentionally not used (avoids paid credit / 429 quota errors).
  */
 export async function generatePostBody(
   topic: string,
@@ -22,10 +23,12 @@ export async function generatePostBody(
 ): Promise<ChatResult> {
   const userContent = `Topic: ${topic}\nContext: ${context ?? "ELAH banking MVP"}\nWrite one LinkedIn post.`;
 
-  if (process.env.GROQ_API_KEY?.trim()) {
+  const groqKey = process.env.GROQ_API_KEY?.trim();
+  if (groqKey) {
     const text = await chatCompletions({
+      provider: "Groq",
       url: "https://api.groq.com/openai/v1/chat/completions",
-      apiKey: process.env.GROQ_API_KEY.trim(),
+      apiKey: groqKey,
       model: process.env.GROQ_MODEL?.trim() || "llama-3.3-70b-versatile",
       system: SYSTEM_PROMPT,
       user: userContent,
@@ -33,38 +36,22 @@ export async function generatePostBody(
     return { text, provider: "groq" };
   }
 
-  if (process.env.GEMINI_API_KEY?.trim()) {
-    const text = await generateWithGemini(
-      process.env.GEMINI_API_KEY.trim(),
-      SYSTEM_PROMPT,
-      userContent,
-    );
+  const geminiKey = process.env.GEMINI_API_KEY?.trim();
+  if (geminiKey) {
+    const text = await generateWithGemini(geminiKey, SYSTEM_PROMPT, userContent);
     return { text, provider: "gemini" };
   }
 
-  if (process.env.OPENAI_API_KEY?.trim()) {
-    const text = await chatCompletions({
-      url: "https://api.openai.com/v1/chat/completions",
-      apiKey: process.env.OPENAI_API_KEY.trim(),
-      model: process.env.OPENAI_MODEL?.trim() || "gpt-4o-mini",
-      system: SYSTEM_PROMPT,
-      user: userContent,
-    });
-    return { text, provider: "openai" };
-  }
-
+  // No free key configured — return template (do not call OpenAI).
   return { text: buildFallbackDraft(topic), provider: "fallback" };
 }
 
 export function hasLlmConfigured(): boolean {
-  return Boolean(
-    process.env.GROQ_API_KEY?.trim() ||
-      process.env.GEMINI_API_KEY?.trim() ||
-      process.env.OPENAI_API_KEY?.trim(),
-  );
+  return Boolean(process.env.GROQ_API_KEY?.trim() || process.env.GEMINI_API_KEY?.trim());
 }
 
 async function chatCompletions(input: {
+  provider: string;
   url: string;
   apiKey: string;
   model: string;
@@ -89,14 +76,16 @@ async function chatCompletions(input: {
 
   if (!res.ok) {
     const detail = await res.text().catch(() => "");
-    throw new Error(`LLM API error (${res.status}): ${detail.slice(0, 200)}`);
+    throw new Error(
+      `${input.provider} API error (${res.status}): ${detail.slice(0, 200)}`,
+    );
   }
 
   const json = (await res.json()) as {
     choices?: Array<{ message?: { content?: string } }>;
   };
   const text = json.choices?.[0]?.message?.content?.trim();
-  if (!text) throw new Error("LLM returned empty content");
+  if (!text) throw new Error(`${input.provider} returned empty content`);
   return text;
 }
 

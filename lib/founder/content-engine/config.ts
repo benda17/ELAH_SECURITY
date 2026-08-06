@@ -39,7 +39,7 @@ const ENV_SPECS: Omit<EnvVarSpec, "configured" | "displayValue">[] = [
   {
     key: "OPENAI_API_KEY",
     required: false,
-    description: "Optional paid fallback (not required)",
+    description: "Unused — remove from Vercel (OpenAI is disabled; use GROQ_API_KEY)",
   },
   { key: "LINKEDIN_CLIENT_ID", required: false, description: "LinkedIn OAuth app client ID" },
   { key: "LINKEDIN_CLIENT_SECRET", required: false, description: "LinkedIn OAuth secret" },
