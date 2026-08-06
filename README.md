@@ -1,6 +1,6 @@
 # ELAH Platform
 
-Unified Next.js workspace for the ELAH banking demo analytics and founder admin tools. Two clearly separated areas share one SQLite database (the banking simulation `dev.db`).
+Unified Next.js workspace for the ELAH banking demo analytics and founder admin tools. Two clearly separated areas share one **Postgres** database (same Neon DB as the banking simulation in production).
 
 ## Workspace areas
 
@@ -24,10 +24,10 @@ npm run dev            # http://localhost:3001
 
 ## Environment
 
-Copy `.env.example` to `.env` and set `DATABASE_URL` to the absolute path of the banking SQLite file:
+Copy `.env.example` to `.env` and set `DATABASE_URL` to the **same Neon Postgres URL** as the Banking System:
 
 ```
-DATABASE_URL="file:/Users/you/ELAH_SECURITY---Banking-System/prisma/dev.db"
+DATABASE_URL="postgresql://USER:PASSWORD@ep-XXXX.neon.tech/neondb?sslmode=require"
 ```
 
 Never commit `.env` with real secrets.
@@ -38,10 +38,11 @@ Never commit `.env` with real secrets.
 
 1. Import the repository as a Vercel project (production branch: `ELAH_FOUNDER_PLATFORM`).
 2. Add all variables from `.env.example` under **Settings → Environment Variables**.
-3. Set `DATABASE_URL` to your production database (SQLite on Vercel requires persistent storage — for production, migrate to Postgres or use a hosted SQLite volume).
-4. Set `CRON_SECRET` to a long random string. Vercel Cron sends `Authorization: Bearer <CRON_SECRET>` to cron routes.
-5. Set `CONTENT_ENGINE_ENABLED=true` when ready for daily draft generation.
-6. Keep `CONTENT_AUTO_PUBLISH=false` until LinkedIn OAuth is verified.
+3. Set `DATABASE_URL` to the **same Neon Postgres URL** as the Banking project (`postgresql://…`). Do not use `file:./…`.
+4. Set `BANKING_APP_URL` / `NEXT_PUBLIC_BANKING_APP_URL` to the live Banking deployment URL.
+5. Set `CRON_SECRET` to a long random string. Vercel Cron sends `Authorization: Bearer <CRON_SECRET>` to cron routes.
+6. Set `CONTENT_ENGINE_ENABLED=true` when ready for daily draft generation.
+7. Keep `CONTENT_AUTO_PUBLISH=false` until LinkedIn OAuth is verified.
 
 ### Cron schedule
 
@@ -74,7 +75,7 @@ Old paths redirect automatically:
 
 - Next.js 14 (App Router) + React 18 + TypeScript
 - Tailwind CSS 3 (dark theme)
-- Prisma 5 (shared SQLite with banking app)
+- Prisma 5 (shared Postgres / Neon with banking app)
 - Recharts + Three.js (intent matrix 3D)
 - lucide-react
 
