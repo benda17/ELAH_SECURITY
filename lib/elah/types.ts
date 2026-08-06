@@ -47,6 +47,7 @@ export interface ElahTrainingContext {
   toolArgs?: Record<string, unknown> | null;
   matrixIntentId?: string | null;
   matrixConfidence?: number | null;
+  matrixCoordinates?: { x: number; y: number; z: number } | null;
   matrixMatchedSignals?: string[];
   matrixSuspiciousPatterns?: string[];
   actionOutcome?: ElahActionOutcome;
