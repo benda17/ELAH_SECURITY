@@ -58,6 +58,103 @@ export function ConnectLinkedInButton({ oauthConfigured }: { oauthConfigured: bo
   );
 }
 
+function StatusBadge({ status }: { status: string }) {
+  const styles: Record<string, string> = {
+    published: "border-accent-emerald/40 bg-accent-emerald/10 text-accent-emerald",
+    approved: "border-accent-cyan/40 bg-accent-cyan/10 text-accent-cyan",
+    rejected: "border-accent-rose/40 bg-accent-rose/10 text-accent-rose",
+    draft: "border-surface-border bg-surface-subtle text-ink-muted",
+  };
+  return (
+    <span
+      className={`rounded-full border px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wider ${
+        styles[status] ?? styles.draft
+      }`}
+    >
+      {status}
+    </span>
+  );
+}
+
+function parseHashtags(raw: string): string[] {
+  try {
+    const parsed = JSON.parse(raw) as unknown;
+    return Array.isArray(parsed) ? parsed.map(String) : [];
+  } catch {
+    return [];
+  }
+}
+
+export function PostCard({
+  draftId,
+  title,
+  body,
+  status,
+  hashtags,
+  createdAt,
+  publishedAt,
+  externalPostId,
+  canPublish,
+}: {
+  draftId: string;
+  title: string | null;
+  body: string;
+  status: string;
+  hashtags: string;
+  createdAt: string;
+  publishedAt: string | null;
+  externalPostId: string | null;
+  canPublish: boolean;
+}) {
+  const tags = parseHashtags(hashtags);
+  const isPublished = status === "published";
+
+  return (
+    <article className="rounded-xl border border-surface-border bg-surface-subtle/40 p-4">
+      <div className="mb-3 flex flex-wrap items-start justify-between gap-2">
+        <div>
+          <h3 className="text-sm font-semibold text-ink">{title ?? "Untitled post"}</h3>
+          <p className="mt-0.5 text-[11px] text-ink-dim">
+            Created {new Date(createdAt).toLocaleString()}
+            {publishedAt ? ` · Published ${new Date(publishedAt).toLocaleString()}` : ""}
+          </p>
+        </div>
+        <StatusBadge status={status} />
+      </div>
+
+      <div className="whitespace-pre-wrap rounded-lg border border-surface-border/80 bg-surface-base/60 px-3 py-3 text-sm leading-relaxed text-ink">
+        {body}
+      </div>
+
+      {tags.length > 0 && (
+        <div className="mt-2 flex flex-wrap gap-1.5">
+          {tags.map((tag) => (
+            <span
+              key={tag}
+              className="rounded-full border border-surface-border px-2 py-0.5 text-[10px] text-ink-muted"
+            >
+              {tag.startsWith("#") ? tag : `#${tag}`}
+            </span>
+          ))}
+        </div>
+      )}
+
+      {isPublished ? (
+        <div className="mt-3 flex flex-wrap items-center gap-3 text-xs text-accent-emerald">
+          <span>Live on LinkedIn</span>
+          {externalPostId && (
+            <span className="text-ink-dim">Post id: {externalPostId}</span>
+          )}
+        </div>
+      ) : (
+        <div className="mt-3">
+          <DraftActions draftId={draftId} body={body} status={status} canPublish={canPublish} />
+        </div>
+      )}
+    </article>
+  );
+}
+
 export function DraftActions({
   draftId,
   body,
@@ -95,10 +192,6 @@ export function DraftActions({
     } finally {
       setBusy(false);
     }
-  }
-
-  if (status === "published") {
-    return <span className="text-xs text-accent-emerald">Published</span>;
   }
 
   return (

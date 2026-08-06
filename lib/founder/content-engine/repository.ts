@@ -8,11 +8,28 @@ export async function listContentEngineRuns(limit = 20) {
   });
 }
 
-export async function listLinkedInDrafts(limit = 30) {
+export async function listLinkedInDrafts(limit = 50) {
   return prisma.linkedInPostDraft.findMany({
     orderBy: { createdAt: "desc" },
     take: limit,
   });
+}
+
+export async function countLinkedInPostsByStatus() {
+  const rows = await prisma.linkedInPostDraft.groupBy({
+    by: ["status"],
+    _count: { _all: true },
+  });
+  const counts: Record<string, number> = {
+    draft: 0,
+    approved: 0,
+    rejected: 0,
+    published: 0,
+  };
+  for (const row of rows) {
+    counts[row.status] = row._count._all;
+  }
+  return counts;
 }
 
 export async function listSourceEvents(limit = 30) {

@@ -74,7 +74,11 @@ export async function generateLinkedInDraft(
       if (result.ok) {
         await prisma.linkedInPostDraft.update({
           where: { id: draft.id },
-          data: { status: "published", publishedAt: new Date() },
+          data: {
+            status: "published",
+            publishedAt: new Date(),
+            ...(result.postId ? { externalPostId: result.postId } : {}),
+          },
         });
         published = true;
         logLines.push(`Auto-published${result.postId ? ` (${result.postId})` : ""}`);
@@ -121,7 +125,11 @@ export async function publishDraftById(
 
   await prisma.linkedInPostDraft.update({
     where: { id: draftId },
-    data: { status: "published", publishedAt: new Date() },
+    data: {
+      status: "published",
+      publishedAt: new Date(),
+      ...(result.postId ? { externalPostId: result.postId } : {}),
+    },
   });
   return { ok: true };
 }

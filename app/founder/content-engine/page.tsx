@@ -1,6 +1,7 @@
 import { getContentEngineConfig } from "@/lib/founder/content-engine/config";
 import { getPublishCredentials, linkedInOAuthConfigured } from "@/lib/founder/content-engine/linkedin";
 import {
+  countLinkedInPostsByStatus,
   getLinkedInIntegration,
   listContentEngineRuns,
   listLinkedInDrafts,
@@ -8,8 +9,8 @@ import {
 } from "@/lib/founder/content-engine/repository";
 import {
   ConnectLinkedInButton,
-  DraftActions,
   GenerateDraftButton,
+  PostCard,
 } from "@/components/founder/content-engine-panel";
 
 export const dynamic = "force-dynamic";
@@ -17,11 +18,14 @@ export const dynamic = "force-dynamic";
 export default async function ContentEnginePage({
   searchParams,
 }: {
-  searchParams?: { linkedin?: string };
+  searchParams?: { linkedin?: string; status?: string };
 }) {
   const config = getContentEngineConfig();
-  const [drafts, runs, sources, integration, publishCreds] = await Promise.all([
-    listLinkedInDrafts(),
+  const statusFilter = searchParams?.status?.trim() || "all";
+
+  const [posts, counts, runs, sources, integration, publishCreds] = await Promise.all([
+    listLinkedInDrafts(80),
+    countLinkedInPostsByStatus(),
     listContentEngineRuns(),
     listSourceEvents(),
     getLinkedInIntegration(),
@@ -30,16 +34,32 @@ export default async function ContentEnginePage({
 
   const canPublish = Boolean(publishCreds);
   const linkedinFlash = searchParams?.linkedin;
+  const filtered =
+    statusFilter === "all" ? posts : posts.filter((p) => p.status === statusFilter);
+
+  const filters: Array<{ key: string; label: string; count: number }> = [
+    { key: "all", label: "All", count: posts.length },
+    { key: "published", label: "Published", count: counts.published ?? 0 },
+    { key: "draft", label: "Drafts", count: counts.draft ?? 0 },
+    { key: "approved", label: "Approved", count: counts.approved ?? 0 },
+    { key: "rejected", label: "Rejected", count: counts.rejected ?? 0 },
+  ];
 
   return (
     <div className="space-y-6">
-      <header>
-        <p className="panel-title">Content automation</p>
-        <h1 className="text-2xl font-semibold">Content Engine</h1>
-        <p className="mt-1 max-w-2xl text-sm text-ink-muted">
-          Free Groq (or Gemini) draft generation + LinkedIn publishing. Configure secrets in
-          Vercel — never paste production keys into this UI.
-        </p>
+      <header className="flex flex-wrap items-end justify-between gap-4">
+        <div>
+          <p className="panel-title">Content automation</p>
+          <h1 className="text-2xl font-semibold">Content Engine</h1>
+          <p className="mt-1 max-w-2xl text-sm text-ink-muted">
+            Generate, review, and publish LinkedIn posts. Free Groq/Gemini drafting + LinkedIn
+            publish.
+          </p>
+        </div>
+        <div className="flex flex-wrap items-center gap-3">
+          <GenerateDraftButton />
+          <ConnectLinkedInButton oauthConfigured={linkedInOAuthConfigured()} />
+        </div>
       </header>
 
       {linkedinFlash === "connected" && (
@@ -53,128 +73,142 @@ export default async function ContentEnginePage({
         </p>
       )}
 
-      <section className="panel">
-        <h2 className="mb-3 text-sm font-semibold">Setup checklist</h2>
-        <ul className="space-y-2 text-sm">
-          {config.envVars.map((v) => (
-            <li key={v.key} className="flex items-start justify-between gap-4">
-              <div>
-                <code className="text-accent-cyan">{v.key}</code>
-                <p className="text-xs text-ink-dim">{v.description}</p>
-              </div>
-              <span
-                className={
-                  v.configured
-                    ? "text-xs text-accent-emerald"
-                    : v.required
-                      ? "text-xs text-accent-rose"
-                      : "text-xs text-ink-dim"
-                }
-              >
-                {v.configured ? (v.displayValue ?? "Set") : v.required ? "Missing" : "Optional"}
-              </span>
-            </li>
+      <section className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+        {filters
+          .filter((f) => f.key !== "all")
+          .map((f) => (
+            <div key={f.key} className="panel py-4">
+              <p className="panel-title">{f.label}</p>
+              <p className="stat-value mt-1 text-2xl">{f.count}</p>
+            </div>
           ))}
-        </ul>
-        <p className="mt-3 text-xs text-ink-muted">
-          LLM ready: {config.llmReady ? "yes" : "no"} · LinkedIn publish ready:{" "}
-          {canPublish ? "yes" : "no"}
-        </p>
-      </section>
-
-      <section className="panel grid gap-4 md:grid-cols-2">
-        <div>
-          <h2 className="mb-2 text-sm font-semibold">Generate draft</h2>
-          <GenerateDraftButton />
-          <p className="mt-2 text-xs text-ink-dim">
-            Engine enabled: {config.enabled ? "yes" : "no (set CONTENT_ENGINE_ENABLED=true for cron)"}
-          </p>
-        </div>
-        <div>
-          <h2 className="mb-2 text-sm font-semibold">LinkedIn</h2>
-          <ConnectLinkedInButton oauthConfigured={linkedInOAuthConfigured()} />
-          <p className="mt-2 text-xs text-ink-dim">
-            Connected: {canPublish ? "yes" : "no"} · Auto-publish:{" "}
-            {config.autoPublish ? "on" : "off"}
-            {integration?.authorUrn ? ` · ${integration.authorUrn}` : ""}
-          </p>
-        </div>
       </section>
 
       <section className="panel">
-        <h2 className="mb-3 text-sm font-semibold">Vercel deployment</h2>
-        <ul className="list-inside list-disc space-y-1 text-xs text-ink-muted">
-          {config.vercelNotes.map((note) => (
-            <li key={note}>{note}</li>
-          ))}
-          <li>
-            Daily cron: <code>0 15 * * *</code> UTC (≈ 18:00 Israel Daylight Time)
-          </li>
-          <li>
-            Endpoint: <code>/api/cron/generate-linkedin-draft</code>
-          </li>
-          <li>
-            OAuth callback: <code>/api/linkedin/callback</code>
-          </li>
-        </ul>
-      </section>
+        <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
+          <div>
+            <h2 className="text-sm font-semibold">Posts</h2>
+            <p className="text-xs text-ink-dim">
+              LinkedIn ready: {canPublish ? "yes" : "no"} · Auto-publish:{" "}
+              {config.autoPublish ? "on" : "off"}
+              {integration?.authorUrn ? ` · ${integration.authorUrn}` : ""}
+            </p>
+          </div>
+          <div className="flex flex-wrap gap-1.5">
+            {filters.map((f) => {
+              const active = statusFilter === f.key;
+              const href =
+                f.key === "all"
+                  ? "/founder/content-engine"
+                  : `/founder/content-engine?status=${f.key}`;
+              return (
+                <a
+                  key={f.key}
+                  href={href}
+                  className={
+                    active
+                      ? "rounded-full border border-accent-cyan/40 bg-accent-cyan/15 px-3 py-1 text-xs text-accent-cyan"
+                      : "rounded-full border border-surface-border px-3 py-1 text-xs text-ink-muted hover:text-ink"
+                  }
+                >
+                  {f.label} ({f.count})
+                </a>
+              );
+            })}
+          </div>
+        </div>
 
-      <div className="grid gap-4 lg:grid-cols-2">
-        <section className="panel">
-          <h2 className="mb-3 panel-title">Source events</h2>
-          <ul className="max-h-64 space-y-2 overflow-y-auto text-xs">
-            {sources.map((s) => (
-              <li key={s.id} className="rounded border border-surface-border px-2 py-1.5">
-                <p className="font-medium text-ink">{s.title}</p>
-                <p className="text-ink-dim">
-                  {s.sourceType} · {s.processed ? "processed" : "new"}
-                </p>
-              </li>
-            ))}
-          </ul>
-        </section>
-
-        <section className="panel">
-          <h2 className="mb-3 panel-title">Run logs</h2>
-          <ul className="max-h-64 space-y-2 overflow-y-auto text-xs">
-            {runs.map((r) => (
-              <li key={r.id} className="rounded border border-surface-border px-2 py-1.5">
-                <p className="text-ink">
-                  {r.trigger} · <span className="capitalize">{r.status}</span>
-                </p>
-                <p className="text-ink-dim">
-                  {r.startedAt.toISOString()} · {r.draftCount} draft(s)
-                </p>
-                {r.errorMessage && <p className="text-accent-rose">{r.errorMessage}</p>}
-              </li>
-            ))}
-          </ul>
-        </section>
-      </div>
-
-      <section className="panel">
-        <h2 className="mb-3 panel-title">LinkedIn post drafts</h2>
         <div className="space-y-4">
-          {drafts.length === 0 ? (
-            <p className="text-sm text-ink-muted">No drafts yet. Click Generate Now.</p>
+          {filtered.length === 0 ? (
+            <p className="text-sm text-ink-muted">
+              No posts in this view yet. Click <strong>Generate Now</strong> to create one.
+            </p>
           ) : (
-            drafts.map((d) => (
-              <div key={d.id} className="rounded-xl border border-surface-border p-4">
-                <div className="mb-2 flex items-center justify-between gap-2">
-                  <p className="text-sm font-medium">{d.title ?? "Untitled draft"}</p>
-                  <span className="text-xs capitalize text-ink-dim">{d.status}</span>
-                </div>
-                <DraftActions
-                  draftId={d.id}
-                  body={d.body}
-                  status={d.status}
-                  canPublish={canPublish}
-                />
-              </div>
+            filtered.map((d) => (
+              <PostCard
+                key={d.id}
+                draftId={d.id}
+                title={d.title}
+                body={d.body}
+                status={d.status}
+                hashtags={d.hashtags}
+                createdAt={d.createdAt.toISOString()}
+                publishedAt={d.publishedAt?.toISOString() ?? null}
+                externalPostId={d.externalPostId}
+                canPublish={canPublish}
+              />
             ))
           )}
         </div>
       </section>
+
+      <details className="panel">
+        <summary className="cursor-pointer text-sm font-semibold">Setup &amp; operations</summary>
+        <div className="mt-4 space-y-6">
+          <div>
+            <h3 className="mb-2 text-xs font-semibold uppercase tracking-wider text-ink-dim">
+              Environment
+            </h3>
+            <ul className="space-y-2 text-sm">
+              {config.envVars.map((v) => (
+                <li key={v.key} className="flex items-start justify-between gap-4">
+                  <div>
+                    <code className="text-accent-cyan">{v.key}</code>
+                    <p className="text-xs text-ink-dim">{v.description}</p>
+                  </div>
+                  <span
+                    className={
+                      v.configured
+                        ? "text-xs text-accent-emerald"
+                        : v.required
+                          ? "text-xs text-accent-rose"
+                          : "text-xs text-ink-dim"
+                    }
+                  >
+                    {v.configured ? (v.displayValue ?? "Set") : v.required ? "Missing" : "Optional"}
+                  </span>
+                </li>
+              ))}
+            </ul>
+            <p className="mt-3 text-xs text-ink-muted">
+              LLM ready: {config.llmReady ? "yes" : "no"} · Engine enabled:{" "}
+              {config.enabled ? "yes" : "no"}
+            </p>
+          </div>
+
+          <div className="grid gap-4 lg:grid-cols-2">
+            <div>
+              <h3 className="mb-2 panel-title">Source events</h3>
+              <ul className="max-h-48 space-y-2 overflow-y-auto text-xs">
+                {sources.map((s) => (
+                  <li key={s.id} className="rounded border border-surface-border px-2 py-1.5">
+                    <p className="font-medium text-ink">{s.title}</p>
+                    <p className="text-ink-dim">
+                      {s.sourceType} · {s.processed ? "processed" : "new"}
+                    </p>
+                  </li>
+                ))}
+              </ul>
+            </div>
+            <div>
+              <h3 className="mb-2 panel-title">Run logs</h3>
+              <ul className="max-h-48 space-y-2 overflow-y-auto text-xs">
+                {runs.map((r) => (
+                  <li key={r.id} className="rounded border border-surface-border px-2 py-1.5">
+                    <p className="text-ink">
+                      {r.trigger} · <span className="capitalize">{r.status}</span>
+                    </p>
+                    <p className="text-ink-dim">
+                      {r.startedAt.toISOString()} · {r.draftCount} draft(s)
+                    </p>
+                    {r.errorMessage && <p className="text-accent-rose">{r.errorMessage}</p>}
+                  </li>
+                ))}
+              </ul>
+            </div>
+          </div>
+        </div>
+      </details>
     </div>
   );
 }
