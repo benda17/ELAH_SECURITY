@@ -1,18 +1,18 @@
 # ELAH — Two-project Vercel deployment
 
-ELAH runs as **two separate Git projects** and **two Vercel deployments**:
+ELAH runs as **two Vercel deployments** from **[benda17/ELAH_SECURITY](https://github.com/benda17/ELAH_SECURITY)** on separate branches:
 
-| Project | Local path | Default port | Git branch | Vercel role |
-|---------|------------|--------------|------------|-------------|
-| **ELAH Banking Demo** | `ELAH_SECURITY---Banking-System` | 3000 / 3002 | `feature/elah-banking-system` | Interactive banking app + AI assistant |
-| **ELAH Platform** | `elah-analytics-dashboard` | 3001 | `analytics-dashboard` | Banking analytics + Founder admin + Content Engine |
+| Project | Git branch | Default port | Vercel role |
+|---------|------------|--------------|-------------|
+| **ELAH Banking Demo** | `banking-system` | 3000 / 3002 | Interactive banking app + AI assistant |
+| **ELAH Platform** | `platform` | 3001 | Banking analytics + Founder admin + Content Engine |
 
 Both can share one SQLite file in development via `DATABASE_URL`. For production, use a hosted database (Postgres recommended).
 
 ## Project 1 — Banking Demo
 
-**Repository:** `elah-security/ELAH_SECURITY-Banking-System`  
-**Branch:** `feature/elah-banking-system`
+**Repository:** [github.com/benda17/ELAH_SECURITY](https://github.com/benda17/ELAH_SECURITY)  
+**Branch:** `banking-system`
 
 ### Vercel setup
 
@@ -35,10 +35,8 @@ npm run build
 
 ## Project 2 — ELAH Platform (Analytics + Founder)
 
-**Repository:** `elah-security/ELAH_SECURITY-Banking-System` (branch `analytics-dashboard`)  
-*Or a dedicated repo if you split it — point Vercel at that repo instead.*
-
-**Branch:** `analytics-dashboard`
+**Repository:** [github.com/benda17/ELAH_SECURITY](https://github.com/benda17/ELAH_SECURITY)  
+**Branch:** `platform`
 
 ### Vercel setup
 
