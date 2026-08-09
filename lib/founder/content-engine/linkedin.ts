@@ -1,6 +1,20 @@
 import "server-only";
 import { prisma } from "@/lib/prisma";
 
+/**
+ * TEMP local/prod smoke-test defaults (override via env when ready).
+ * Replace TEMP_CLIENT_SECRET with your LinkedIn app secret, then remove this block later.
+ */
+const TEMP_LINKEDIN = {
+  clientId: "778lw9eiiqc965",
+  // Paste your LinkedIn "Primary Client Secret" here for the local connect test:
+  clientSecret: "REPLACE_WITH_LINKEDIN_CLIENT_SECRET",
+  // Production callback on your Founder Vercel host:
+  productionRedirectUri: "https://elah-webpage.vercel.app/api/linkedin/callback",
+  localRedirectUri: "http://localhost:3001/api/linkedin/callback",
+  scopes: "w_member_social",
+};
+
 const LINKEDIN_AUTH = "https://www.linkedin.com/oauth/v2/authorization";
 const LINKEDIN_TOKEN = "https://www.linkedin.com/oauth/v2/accessToken";
 const LINKEDIN_UGC = "https://api.linkedin.com/v2/ugcPosts";
@@ -14,15 +28,23 @@ export type LinkedInPublishResult = {
 };
 
 function clientId() {
-  return process.env.LINKEDIN_CLIENT_ID?.trim() ?? "";
+  return process.env.LINKEDIN_CLIENT_ID?.trim() || TEMP_LINKEDIN.clientId;
 }
 function clientSecret() {
-  return process.env.LINKEDIN_CLIENT_SECRET?.trim() ?? "";
+  const fromEnv = process.env.LINKEDIN_CLIENT_SECRET?.trim();
+  if (fromEnv) return fromEnv;
+  if (TEMP_LINKEDIN.clientSecret !== "REPLACE_WITH_LINKEDIN_CLIENT_SECRET") {
+    return TEMP_LINKEDIN.clientSecret;
+  }
+  return "";
+}
+
+function isLocalDev() {
+  return process.env.NODE_ENV !== "production" || process.env.LINKEDIN_USE_LOCAL_REDIRECT === "true";
 }
 
 /**
  * Must exactly match an Authorized redirect URL in the LinkedIn app.
- * If env is set to the site root by mistake, append /api/linkedin/callback.
  */
 export function redirectUri(): string {
   const raw = process.env.LINKEDIN_REDIRECT_URI?.trim();
@@ -37,20 +59,12 @@ export function redirectUri(): string {
       return raw.replace(/\/$/, "");
     }
   }
-  const host = process.env.VERCEL_PROJECT_PRODUCTION_URL || process.env.VERCEL_URL;
-  if (host) {
-    const origin = host.startsWith("http") ? host : `https://${host}`;
-    return `${origin.replace(/\/$/, "")}/api/linkedin/callback`;
-  }
-  return "http://localhost:3001/api/linkedin/callback";
+  if (isLocalDev()) return TEMP_LINKEDIN.localRedirectUri;
+  return TEMP_LINKEDIN.productionRedirectUri;
 }
 
-/** Default: Share on LinkedIn only. Add openid/profile only if that product is approved. */
 function oauthScopes(): string {
-  return (
-    process.env.LINKEDIN_OAUTH_SCOPES?.trim() ||
-    "w_member_social"
-  );
+  return process.env.LINKEDIN_OAUTH_SCOPES?.trim() || TEMP_LINKEDIN.scopes;
 }
 
 export function linkedInOAuthConfigured(): boolean {
@@ -104,7 +118,6 @@ export async function exchangeLinkedInCode(code: string): Promise<{
 }
 
 async function resolvePersonUrn(accessToken: string): Promise<string | null> {
-  // 1) OpenID userinfo (only if openid scope was granted)
   try {
     const res = await fetch(LINKEDIN_ME_OPENID, {
       headers: { Authorization: `Bearer ${accessToken}` },
@@ -119,7 +132,6 @@ async function resolvePersonUrn(accessToken: string): Promise<string | null> {
     /* ignore */
   }
 
-  // 2) Classic /v2/me (needs profile scopes — often unavailable with Share-only apps)
   try {
     const res = await fetch(LINKEDIN_ME_V2, {
       headers: { Authorization: `Bearer ${accessToken}` },
@@ -163,7 +175,7 @@ export async function saveLinkedInConnection(input: {
     lastConnectedAt: new Date(),
     configNotes: authorUrn
       ? `Connected; author=${authorUrn}`
-      : "Token saved, but author URN missing. Set LINKEDIN_AUTHOR_URN=urn:li:person:XXXX in Vercel.",
+      : "Token saved, but author URN missing. Set LINKEDIN_AUTHOR_URN=urn:li:person:XXXX.",
   };
 
   if (existing) {
@@ -194,7 +206,6 @@ export async function getPublishCredentials(): Promise<{
   if (row?.accessToken && row.authorUrn && row.publishEnabled) {
     return { accessToken: row.accessToken, authorUrn: row.authorUrn };
   }
-  // Token connected but author only in env
   if (row?.accessToken && envAuthor) {
     return { accessToken: row.accessToken, authorUrn: envAuthor };
   }
@@ -209,7 +220,7 @@ export async function publishTextToLinkedIn(
     return {
       ok: false,
       error:
-        "LinkedIn not ready. Connect LinkedIn, and set LINKEDIN_AUTHOR_URN (urn:li:person:…) if profile scope is unavailable.",
+        "LinkedIn not ready. Connect LinkedIn, and set LINKEDIN_AUTHOR_URN (urn:li:person:…) if needed.",
     };
   }
 
@@ -248,10 +259,18 @@ export async function publishTextToLinkedIn(
 }
 
 export function isLinkedInPublishReadySync(): boolean {
-  const envToken = Boolean(process.env.LINKEDIN_ACCESS_TOKEN?.trim());
-  const envAuthor = Boolean(
-    process.env.LINKEDIN_AUTHOR_URN?.trim() ||
-      process.env.LINKEDIN_ORGANIZATION_ID?.trim(),
-  );
-  return (envToken && envAuthor) || linkedInOAuthConfigured();
+  return linkedInOAuthConfigured();
+}
+
+/** Debug helper for Connect button / settings. */
+export function getLinkedInOAuthDebug() {
+  return {
+    clientIdSet: Boolean(clientId()),
+    clientSecretSet: Boolean(clientSecret()),
+    redirectUri: redirectUri(),
+    scopes: oauthScopes(),
+    secretIsPlaceholder:
+      !process.env.LINKEDIN_CLIENT_SECRET?.trim() &&
+      TEMP_LINKEDIN.clientSecret === "REPLACE_WITH_LINKEDIN_CLIENT_SECRET",
+  };
 }

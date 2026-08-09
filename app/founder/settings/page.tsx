@@ -1,5 +1,9 @@
 import { getContentEngineConfig } from "@/lib/founder/content-engine/config";
-import { getPublishCredentials, linkedInOAuthConfigured } from "@/lib/founder/content-engine/linkedin";
+import {
+  getLinkedInOAuthDebug,
+  getPublishCredentials,
+  linkedInOAuthConfigured,
+} from "@/lib/founder/content-engine/linkedin";
 import { getLinkedInIntegration } from "@/lib/founder/content-engine/repository";
 import { ConnectLinkedInButton } from "@/components/founder/content-engine-panel";
 
@@ -8,6 +12,7 @@ export const dynamic = "force-dynamic";
 
 export default async function FounderSettingsPage() {
   const config = getContentEngineConfig();
+  const oauthDebug = getLinkedInOAuthDebug();
   const [integration, publishCreds] = await Promise.all([
     getLinkedInIntegration(),
     getPublishCredentials(),
@@ -51,6 +56,35 @@ export default async function FounderSettingsPage() {
       <section className="panel">
         <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
           <div>
+            <h2 className="text-sm font-semibold">LinkedIn Connect (temp hardcoded OAuth)</h2>
+            <p className="mt-1 text-xs text-ink-dim">
+              redirect: <code>{oauthDebug.redirectUri}</code>
+              <br />
+              scopes: <code>{oauthDebug.scopes}</code> · client id:{" "}
+              {oauthDebug.clientIdSet ? "set" : "missing"} · secret:{" "}
+              {oauthDebug.secretIsPlaceholder
+                ? "PASTE into TEMP_LINKEDIN.clientSecret in linkedin.ts"
+                : oauthDebug.clientSecretSet
+                  ? "set"
+                  : "missing"}
+            </p>
+          </div>
+          <ConnectLinkedInButton oauthConfigured={linkedInOAuthConfigured()} />
+        </div>
+        {oauthDebug.secretIsPlaceholder && (
+          <p className="mb-4 rounded-lg border border-accent-amber/40 bg-accent-amber/10 px-3 py-2 text-xs text-accent-amber">
+            Open <code>lib/founder/content-engine/linkedin.ts</code> and replace{" "}
+            <code>REPLACE_WITH_LINKEDIN_CLIENT_SECRET</code> with your LinkedIn Primary Client
+            Secret. Also add{" "}
+            <code>http://localhost:3001/api/linkedin/callback</code> under LinkedIn App → Auth →
+            Authorized redirect URLs for local testing.
+          </p>
+        )}
+      </section>
+
+      <section className="panel">
+        <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
+          <div>
             <h2 className="text-sm font-semibold">Setup checklist</h2>
             <p className="text-xs text-ink-dim">
               Required missing:{" "}
@@ -59,7 +93,6 @@ export default async function FounderSettingsPage() {
                 : "none"}
             </p>
           </div>
-          <ConnectLinkedInButton oauthConfigured={linkedInOAuthConfigured()} />
         </div>
         <ul className="space-y-2 text-sm">
           {config.envVars.map((v) => (
