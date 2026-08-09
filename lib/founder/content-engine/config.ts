@@ -46,7 +46,13 @@ const ENV_SPECS: Omit<EnvVarSpec, "configured" | "displayValue">[] = [
   {
     key: "LINKEDIN_REDIRECT_URI",
     required: false,
-    description: "Must match app callback, e.g. https://elah-security.vercel.app/api/linkedin/callback",
+    description:
+      "Exact callback URL — must be https://YOUR-DOMAIN/api/linkedin/callback (not the site root)",
+  },
+  {
+    key: "LINKEDIN_OAUTH_SCOPES",
+    required: false,
+    description: "Default w_member_social (do not add openid unless Sign In product is approved)",
   },
   {
     key: "LINKEDIN_ORGANIZATION_ID",
@@ -56,7 +62,8 @@ const ENV_SPECS: Omit<EnvVarSpec, "configured" | "displayValue">[] = [
   {
     key: "LINKEDIN_AUTHOR_URN",
     required: false,
-    description: "Optional override: urn:li:person:… or urn:li:organization:…",
+    description:
+      "Required for Share-only apps: urn:li:person:XXXX (profile id) or urn:li:organization:XXXX",
   },
   {
     key: "LINKEDIN_ACCESS_TOKEN",

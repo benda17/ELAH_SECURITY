@@ -4,7 +4,8 @@ import { prisma } from "@/lib/prisma";
 const LINKEDIN_AUTH = "https://www.linkedin.com/oauth/v2/authorization";
 const LINKEDIN_TOKEN = "https://www.linkedin.com/oauth/v2/accessToken";
 const LINKEDIN_UGC = "https://api.linkedin.com/v2/ugcPosts";
-const LINKEDIN_ME = "https://api.linkedin.com/v2/userinfo";
+const LINKEDIN_ME_OPENID = "https://api.linkedin.com/v2/userinfo";
+const LINKEDIN_ME_V2 = "https://api.linkedin.com/v2/me";
 
 export type LinkedInPublishResult = {
   ok: boolean;
@@ -18,10 +19,37 @@ function clientId() {
 function clientSecret() {
   return process.env.LINKEDIN_CLIENT_SECRET?.trim() ?? "";
 }
-function redirectUri() {
+
+/**
+ * Must exactly match an Authorized redirect URL in the LinkedIn app.
+ * If env is set to the site root by mistake, append /api/linkedin/callback.
+ */
+export function redirectUri(): string {
+  const raw = process.env.LINKEDIN_REDIRECT_URI?.trim();
+  if (raw) {
+    try {
+      const u = new URL(raw);
+      if (u.pathname === "/" || u.pathname === "") {
+        return `${u.origin}/api/linkedin/callback`;
+      }
+      return `${u.origin}${u.pathname}`.replace(/\/$/, "");
+    } catch {
+      return raw.replace(/\/$/, "");
+    }
+  }
+  const host = process.env.VERCEL_PROJECT_PRODUCTION_URL || process.env.VERCEL_URL;
+  if (host) {
+    const origin = host.startsWith("http") ? host : `https://${host}`;
+    return `${origin.replace(/\/$/, "")}/api/linkedin/callback`;
+  }
+  return "http://localhost:3001/api/linkedin/callback";
+}
+
+/** Default: Share on LinkedIn only. Add openid/profile only if that product is approved. */
+function oauthScopes(): string {
   return (
-    process.env.LINKEDIN_REDIRECT_URI?.trim() ||
-    `${process.env.VERCEL_URL ? `https://${process.env.VERCEL_URL}` : "http://localhost:3001"}/api/linkedin/callback`
+    process.env.LINKEDIN_OAUTH_SCOPES?.trim() ||
+    "w_member_social"
   );
 }
 
@@ -35,8 +63,7 @@ export function buildLinkedInAuthorizeUrl(state: string): string {
     client_id: clientId(),
     redirect_uri: redirectUri(),
     state,
-    // Member posting + OpenID profile for person URN discovery.
-    scope: "openid profile w_member_social",
+    scope: oauthScopes(),
   });
   return `${LINKEDIN_AUTH}?${params.toString()}`;
 }
@@ -77,14 +104,35 @@ export async function exchangeLinkedInCode(code: string): Promise<{
 }
 
 async function resolvePersonUrn(accessToken: string): Promise<string | null> {
-  // OpenID userinfo often returns `sub` as person id.
-  const res = await fetch(LINKEDIN_ME, {
-    headers: { Authorization: `Bearer ${accessToken}` },
-  });
-  if (!res.ok) return null;
-  const json = (await res.json()) as { sub?: string };
-  if (!json.sub) return null;
-  return json.sub.startsWith("urn:") ? json.sub : `urn:li:person:${json.sub}`;
+  // 1) OpenID userinfo (only if openid scope was granted)
+  try {
+    const res = await fetch(LINKEDIN_ME_OPENID, {
+      headers: { Authorization: `Bearer ${accessToken}` },
+    });
+    if (res.ok) {
+      const json = (await res.json()) as { sub?: string };
+      if (json.sub) {
+        return json.sub.startsWith("urn:") ? json.sub : `urn:li:person:${json.sub}`;
+      }
+    }
+  } catch {
+    /* ignore */
+  }
+
+  // 2) Classic /v2/me (needs profile scopes — often unavailable with Share-only apps)
+  try {
+    const res = await fetch(LINKEDIN_ME_V2, {
+      headers: { Authorization: `Bearer ${accessToken}` },
+    });
+    if (res.ok) {
+      const json = (await res.json()) as { id?: string };
+      if (json.id) return `urn:li:person:${json.id}`;
+    }
+  } catch {
+    /* ignore */
+  }
+
+  return null;
 }
 
 export async function saveLinkedInConnection(input: {
@@ -94,8 +142,7 @@ export async function saveLinkedInConnection(input: {
 }): Promise<void> {
   const orgId = process.env.LINKEDIN_ORGANIZATION_ID?.trim() || null;
   const envAuthor = process.env.LINKEDIN_AUTHOR_URN?.trim() || null;
-  const personUrn = envAuthor ?? (await resolvePersonUrn(input.accessToken));
-  // Prefer explicit author URN, then person from OAuth, then org page.
+  const personUrn = await resolvePersonUrn(input.accessToken);
   const authorUrn =
     envAuthor ||
     personUrn ||
@@ -112,11 +159,11 @@ export async function saveLinkedInConnection(input: {
     refreshToken: input.refreshToken ?? null,
     tokenExpiresAt: new Date(Date.now() + input.expiresIn * 1000),
     accessTokenSet: true,
-    publishEnabled: true,
+    publishEnabled: Boolean(authorUrn),
     lastConnectedAt: new Date(),
     configNotes: authorUrn
       ? `Connected; author=${authorUrn}`
-      : "Connected; set LINKEDIN_AUTHOR_URN or LINKEDIN_ORGANIZATION_ID",
+      : "Token saved, but author URN missing. Set LINKEDIN_AUTHOR_URN=urn:li:person:XXXX in Vercel.",
   };
 
   if (existing) {
@@ -147,6 +194,10 @@ export async function getPublishCredentials(): Promise<{
   if (row?.accessToken && row.authorUrn && row.publishEnabled) {
     return { accessToken: row.accessToken, authorUrn: row.authorUrn };
   }
+  // Token connected but author only in env
+  if (row?.accessToken && envAuthor) {
+    return { accessToken: row.accessToken, authorUrn: envAuthor };
+  }
   return null;
 }
 
@@ -158,7 +209,7 @@ export async function publishTextToLinkedIn(
     return {
       ok: false,
       error:
-        "LinkedIn not connected. Connect via Content Engine or set LINKEDIN_ACCESS_TOKEN + LINKEDIN_AUTHOR_URN.",
+        "LinkedIn not ready. Connect LinkedIn, and set LINKEDIN_AUTHOR_URN (urn:li:person:…) if profile scope is unavailable.",
     };
   }
 
