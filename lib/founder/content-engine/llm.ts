@@ -1,26 +1,44 @@
 import "server-only";
 
-const SYSTEM_PROMPT = `You write LinkedIn company-page posts for ELAH Security (banking AI intention scoring / AI security).
+const LANDING_PAGE_URL = "https://elah-webpage.vercel.app";
 
-Voice: professional founder/company page, no hype, no emojis.
-Length: 140–200 words.
-Format: short paragraphs separated by a blank line. No hashtags in the body.
+const SYSTEM_PROMPT = `Based on AI security companies' LinkedIn posts, write a LinkedIn company-page post for ELAH Security (banking AI intention scoring / AI security).
 
-Evidence requirement (mandatory):
-- Ground the post in at least one concrete real-world case, incident, study, regulator action, or industry research finding relevant to the topic (e.g. banking AI misuse, fraud, agentic systems, explainability, policy bypass).
-- Name the source plainly (organization, report, regulator, or well-known incident) and state what happened / what was measured.
-- Prefer established public cases and research over vague claims. If you are not confident a specific citation is real, use a clearly general industry pattern and do NOT invent paper titles, authors, dates, or statistics.
-- Connect the case to why intention scoring / explainable controls matter for bank AI assistants.
-- End with a short, concrete takeaway for security or risk leaders.`;
+Style (match strong AI-security company posts):
+- Lead with a concrete real event, incident, regulator action, breach pattern, research finding, or industry case — not soft openers.
+- Ban filler openers and transitions such as: "As we continue", "In today's landscape", "It's no secret", "At the end of the day", "In this post", "We're excited to".
+- Keep it specific and scannable. Short paragraphs separated by a blank line.
+- Length: 140–200 words before the closing link.
+- Use at most 1–3 relevant emojis if they help emphasis or scanning (optional; never spam).
+- No hashtag blocks in the body (hashtags are added separately).
+- Professional company-page voice; no hype.
+
+Evidence (mandatory):
+- Name a real organization, regulator, report, or well-known incident when possible.
+- If you are not confident a citation is real, describe a clearly general industry pattern — do NOT invent papers, authors, dates, or statistics.
+- Tie the case to why intention scoring / explainable controls matter for banking AI assistants.
+
+Close every post with:
+1) one short takeaway for security or risk leaders
+2) then a blank line
+3) then exactly this link on its own line: ${LANDING_PAGE_URL}`;
 
 export function buildFallbackDraft(topic: string): string {
-  return `In 2023–2024, multiple banks and regulators flagged risks when customer-facing AI assistants were socially engineered into policy-bypassing actions — including social-engineering and prompt-injection patterns documented in industry AI security research and FINRA/FTC guidance on AI in financial services.
+  return `FINRA and other financial regulators have repeatedly warned that AI tools in customer-facing workflows can be steered into policy-bypassing behavior — including social-engineering and prompt-injection patterns that never look like classic malware.
 
-That is the problem ELAH focuses on: scoring human intention behind banking-assistant actions, with explainable coordinates, so security teams see a calibrated signal rather than a black-box yes/no.
+That is the risk ELAH targets: scoring human intention behind banking-assistant actions, with explainable coordinates, so security teams get a calibrated signal before tools move money or change entitlements.
 
-Today's focus: ${topic}.
+Focus today: ${topic}.
 
-If AI agents can move money or change entitlements, intention visibility is not optional — it is control design.`;
+If an agent can act, intention visibility is a control — not a nice-to-have.
+
+${LANDING_PAGE_URL}`;
+}
+
+function ensureLandingPageLink(text: string): string {
+  const trimmed = text.replace(/\s+$/g, "");
+  if (trimmed.includes(LANDING_PAGE_URL)) return trimmed;
+  return `${trimmed}\n\n${LANDING_PAGE_URL}`;
 }
 
 type ChatResult = { text: string; provider: string };
@@ -33,12 +51,17 @@ export async function generatePostBody(
   topic: string,
   context?: string | null,
 ): Promise<ChatResult> {
-  const userContent = `Topic: ${topic}
+  const userContent = `Based on AI security companies' LinkedIn posts, write one company-page post.
+
+Topic: ${topic}
 Context: ${context ?? "ELAH banking MVP — intention scoring for banking AI assistants"}
 
-Write one LinkedIn company-page post with blank lines between paragraphs.
-Include a real research finding, regulator case, or documented industry incident, then tie it to ELAH's intention-scoring approach.
-Do not invent citations.`;
+Requirements:
+- Open with a real event / regulator case / documented industry incident (not "As we continue…").
+- Blank lines between short paragraphs.
+- Light emoji use only if useful (0–3).
+- End with a takeaway, then a blank line, then ${LANDING_PAGE_URL}
+- Do not invent citations.`;
 
   const groqKey = process.env.GROQ_API_KEY?.trim();
   if (groqKey) {
@@ -50,13 +73,13 @@ Do not invent citations.`;
       system: SYSTEM_PROMPT,
       user: userContent,
     });
-    return { text, provider: "groq" };
+    return { text: ensureLandingPageLink(text), provider: "groq" };
   }
 
   const geminiKey = process.env.GEMINI_API_KEY?.trim();
   if (geminiKey) {
     const text = await generateWithGemini(geminiKey, SYSTEM_PROMPT, userContent);
-    return { text, provider: "gemini" };
+    return { text: ensureLandingPageLink(text), provider: "gemini" };
   }
 
   // No free key configured — return template (do not call OpenAI).

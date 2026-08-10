@@ -30,7 +30,7 @@ export default async function ContentEnginePage({
 }: {
   searchParams?: { linkedin?: string; facebook?: string; status?: string };
 }) {
-  const statusFilter = searchParams?.status?.trim() || "all";
+  const statusFilter = searchParams?.status?.trim() || "queue";
 
   const [config, facebook, posts, counts, runs, sources, connection, dailySeries] =
     await Promise.all([
@@ -48,15 +48,21 @@ export default async function ContentEnginePage({
   const companyAdminUrl = getElahCompanyAdminPostsUrl();
   const linkedinFlash = searchParams?.linkedin;
   const facebookFlash = searchParams?.facebook;
+  const queuePosts = posts.filter((p) => p.status !== "published");
   const filtered =
-    statusFilter === "all" ? posts : posts.filter((p) => p.status === statusFilter);
+    statusFilter === "all"
+      ? posts
+      : statusFilter === "queue"
+        ? queuePosts
+        : posts.filter((p) => p.status === statusFilter);
 
   const filters: Array<{ key: string; label: string; count: number }> = [
-    { key: "all", label: "All", count: posts.length },
-    { key: "published", label: "Published", count: counts.published ?? 0 },
+    { key: "queue", label: "To post", count: queuePosts.length },
     { key: "draft", label: "Drafts", count: counts.draft ?? 0 },
     { key: "approved", label: "Approved", count: counts.approved ?? 0 },
+    { key: "published", label: "Published", count: counts.published ?? 0 },
     { key: "rejected", label: "Rejected", count: counts.rejected ?? 0 },
+    { key: "all", label: "All", count: posts.length },
   ];
 
   const createdTotal = dailySeries.reduce((n, d) => n + d.created, 0);
@@ -122,7 +128,7 @@ export default async function ContentEnginePage({
 
       <section className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
         {filters
-          .filter((f) => f.key !== "all")
+          .filter((f) => f.key !== "all" && f.key !== "queue")
           .map((f) => (
             <div key={f.key} className="panel py-4">
               <p className="panel-title">{f.label}</p>
@@ -154,18 +160,16 @@ export default async function ContentEnginePage({
           <div>
             <h2 className="text-sm font-semibold">Posts</h2>
             <p className="text-xs text-ink-dim">
-              LinkedIn ready: {canPublish ? "yes" : "no"} · Token:{" "}
-              {connection.tokenSaved ? "saved" : "missing"} · LI auto-publish:{" "}
-              {config.autoPublish ? "on" : "off"} · FB auto-publish:{" "}
+              Default view hides published posts · LinkedIn ready:{" "}
+              {canPublish ? "yes" : "no"} · FB auto-publish:{" "}
               {facebook.autoPublish ? "on" : "off"}
-              {connection.authorUrn ? ` · ${connection.authorUrn}` : ""}
             </p>
           </div>
           <div className="flex flex-wrap gap-1.5">
             {filters.map((f) => {
               const active = statusFilter === f.key;
               const href =
-                f.key === "all"
+                f.key === "queue"
                   ? "/founder/content-engine"
                   : `/founder/content-engine?status=${f.key}`;
               return (
@@ -188,7 +192,9 @@ export default async function ContentEnginePage({
         <div className="space-y-4">
           {filtered.length === 0 ? (
             <p className="text-sm text-ink-muted">
-              No posts in this view yet. Click <strong>Generate Now</strong> to create one.
+              {statusFilter === "queue"
+                ? "Nothing left to post. Switch to Published / All, or click Generate Now."
+                : "No posts in this view yet. Click Generate Now to create one."}
             </p>
           ) : (
             filtered.map((d) => (
