@@ -1,4 +1,5 @@
 import "server-only";
+import { facebookAutoPublishEnabled, facebookPublishConfigured } from "./facebook";
 import { hasLlmConfigured } from "./llm";
 import { linkedInOAuthConfigured } from "./linkedin";
 
@@ -13,6 +14,8 @@ export type EnvVarSpec = {
 export type ContentEngineConfig = {
   enabled: boolean;
   autoPublish: boolean;
+  facebookAutoPublish: boolean;
+  facebookReady: boolean;
   linkedInReady: boolean;
   llmReady: boolean;
   missingRequired: string[];
@@ -52,18 +55,18 @@ const ENV_SPECS: Omit<EnvVarSpec, "configured" | "displayValue">[] = [
   {
     key: "LINKEDIN_OAUTH_SCOPES",
     required: false,
-    description: "Default w_member_social (do not add openid unless Sign In product is approved)",
+    description:
+      "Prefer: openid profile w_member_social w_organization_social r_organization_social",
   },
   {
     key: "LINKEDIN_ORGANIZATION_ID",
     required: false,
-    description: "Company page org ID (optional if posting as person)",
+    description: "Elah Security company numeric id — posts as urn:li:organization:ID",
   },
   {
     key: "LINKEDIN_AUTHOR_URN",
     required: false,
-    description:
-      "Required for Share-only apps: urn:li:person:XXXX (profile id) or urn:li:organization:XXXX",
+    description: "Prefer urn:li:organization:XXXX for the Elah Security company page",
   },
   {
     key: "LINKEDIN_ACCESS_TOKEN",
@@ -77,6 +80,37 @@ const ENV_SPECS: Omit<EnvVarSpec, "configured" | "displayValue">[] = [
     required: false,
     description: "Set true only after LinkedIn connect works",
   },
+  {
+    key: "FACEBOOK_APP_ID",
+    required: false,
+    description: "Meta App ID — Developers → App → Settings → Basic",
+  },
+  {
+    key: "FACEBOOK_APP_SECRET",
+    required: false,
+    description: "Meta App Secret — used for OAuth + long-lived Page tokens",
+  },
+  {
+    key: "FACEBOOK_REDIRECT_URI",
+    required: false,
+    description:
+      "Must be https://YOUR-DOMAIN/api/facebook/callback (add same URL in Meta → Facebook Login → Valid OAuth Redirect URIs)",
+  },
+  {
+    key: "FACEBOOK_PAGE_ID",
+    required: false,
+    description: "Optional override Page ID (otherwise chosen after Connect Facebook)",
+  },
+  {
+    key: "FACEBOOK_PAGE_ACCESS_TOKEN",
+    required: false,
+    description: "Optional manual Page token (or use Connect Facebook in UI)",
+  },
+  {
+    key: "FACEBOOK_AUTO_PUBLISH",
+    required: false,
+    description: "Force on/off; if unset, auto-publish follows the connected Page setting",
+  },
 ];
 
 function maskValue(key: string, value: string): string {
@@ -86,7 +120,7 @@ function maskValue(key: string, value: string): string {
   return value;
 }
 
-export function getContentEngineConfig(): ContentEngineConfig {
+export async function getContentEngineConfig(): Promise<ContentEngineConfig> {
   const envVars: EnvVarSpec[] = ENV_SPECS.map((spec) => {
     const raw = process.env[spec.key];
     const configured = Boolean(raw && raw.trim().length > 0);
@@ -111,10 +145,16 @@ export function getContentEngineConfig(): ContentEngineConfig {
         process.env.LINKEDIN_ORGANIZATION_ID?.trim()),
   );
   const linkedInReady = linkedInOAuthConfigured() || manualPublishReady;
+  const [facebookReady, facebookAutoPublish] = await Promise.all([
+    facebookPublishConfigured(),
+    facebookAutoPublishEnabled(),
+  ]);
 
   return {
     enabled: process.env.CONTENT_ENGINE_ENABLED === "true",
     autoPublish: process.env.CONTENT_AUTO_PUBLISH === "true",
+    facebookAutoPublish,
+    facebookReady,
     linkedInReady,
     llmReady,
     missingRequired,
@@ -122,9 +162,10 @@ export function getContentEngineConfig(): ContentEngineConfig {
     vercelNotes: [
       "Use GROQ_API_KEY for free draft generation (no OpenAI credits).",
       "Connect LinkedIn from Content Engine, or set LINKEDIN_ACCESS_TOKEN + LINKEDIN_AUTHOR_URN.",
+      "Facebook: Connect once; posts always auto-publish to ELAH Security.",
+      "Content cron runs 3× daily (06:00, 12:00, 18:00 UTC).",
       "Add secrets in Vercel → Project → Settings → Environment Variables.",
-      "Set CONTENT_AUTO_PUBLISH=true only after a manual Publish succeeds.",
-      "Cron schedule in vercel.json uses UTC. 18:00 Israel (IDT) ≈ 15:00 UTC.",
+      "Cron schedule in vercel.json uses UTC.",
     ],
   };
 }

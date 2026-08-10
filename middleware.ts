@@ -14,6 +14,7 @@ export async function middleware(request: NextRequest) {
     pathname.startsWith("/elah-logo") ||
     pathname.startsWith("/api/cron") ||
     pathname.startsWith("/api/linkedin") ||
+    pathname.startsWith("/api/facebook") ||
     pathname.includes(".")
   ) {
     return NextResponse.next();

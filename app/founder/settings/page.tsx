@@ -1,19 +1,29 @@
+import {
+  ConnectFacebookButton,
+  ConnectLinkedInButton,
+} from "@/components/founder/content-engine-panel";
 import { getContentEngineConfig } from "@/lib/founder/content-engine/config";
+import {
+  facebookOAuthConfigured,
+  getFacebookOAuthDebug,
+  getFacebookPublishStatus,
+} from "@/lib/founder/content-engine/facebook";
 import {
   getLinkedInOAuthDebug,
   getPublishCredentials,
   linkedInOAuthConfigured,
 } from "@/lib/founder/content-engine/linkedin";
 import { getLinkedInIntegration } from "@/lib/founder/content-engine/repository";
-import { ConnectLinkedInButton } from "@/components/founder/content-engine-panel";
 
 export const metadata = { title: "ELAH · Founder Settings" };
 export const dynamic = "force-dynamic";
 
 export default async function FounderSettingsPage() {
-  const config = getContentEngineConfig();
   const oauthDebug = getLinkedInOAuthDebug();
-  const [integration, publishCreds] = await Promise.all([
+  const fbOauth = getFacebookOAuthDebug();
+  const [config, facebook, integration, publishCreds] = await Promise.all([
+    getContentEngineConfig(),
+    getFacebookPublishStatus(),
     getLinkedInIntegration(),
     getPublishCredentials(),
   ]);
@@ -29,7 +39,7 @@ export default async function FounderSettingsPage() {
         </p>
       </header>
 
-      <section className="panel grid gap-4 sm:grid-cols-3">
+      <section className="panel grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
         <div>
           <p className="panel-title">LLM</p>
           <p className="mt-1 text-sm font-medium text-ink">
@@ -51,33 +61,71 @@ export default async function FounderSettingsPage() {
             <p className="mt-1 truncate text-[11px] text-ink-dim">{integration.authorUrn}</p>
           )}
         </div>
+        <div>
+          <p className="panel-title">Facebook publish</p>
+          <p className="mt-1 text-sm font-medium text-ink">
+            {facebook.configured ? "Ready" : "Not configured"}
+          </p>
+          <p className="mt-1 text-[11px] text-ink-dim">
+            Auto-publish: {facebook.autoPublish ? "on" : "off"}
+            {facebook.pageName ? ` · ${facebook.pageName}` : ""}
+          </p>
+        </div>
       </section>
 
       <section className="panel">
         <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
           <div>
-            <h2 className="text-sm font-semibold">LinkedIn Connect (temp hardcoded OAuth)</h2>
+            <h2 className="text-sm font-semibold">LinkedIn Connect</h2>
             <p className="mt-1 text-xs text-ink-dim">
               redirect: <code>{oauthDebug.redirectUri}</code>
               <br />
               scopes: <code>{oauthDebug.scopes}</code> · client id:{" "}
               {oauthDebug.clientIdSet ? "set" : "missing"} · secret:{" "}
-              {oauthDebug.secretIsPlaceholder
-                ? "PASTE into TEMP_LINKEDIN.clientSecret in linkedin.ts"
-                : oauthDebug.clientSecretSet
-                  ? "set"
-                  : "missing"}
+              {oauthDebug.clientSecretSet ? "set" : "missing"}
             </p>
           </div>
           <ConnectLinkedInButton oauthConfigured={linkedInOAuthConfigured()} />
         </div>
-        {oauthDebug.secretIsPlaceholder && (
-          <p className="mb-4 rounded-lg border border-accent-amber/40 bg-accent-amber/10 px-3 py-2 text-xs text-accent-amber">
-            Open <code>lib/founder/content-engine/linkedin.ts</code> and replace{" "}
-            <code>REPLACE_WITH_LINKEDIN_CLIENT_SECRET</code> with your LinkedIn Primary Client
-            Secret. Also add{" "}
-            <code>http://localhost:3001/api/linkedin/callback</code> under LinkedIn App → Auth →
-            Authorized redirect URLs for local testing.
+      </section>
+
+      <section className="panel">
+        <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
+          <div>
+            <h2 className="text-sm font-semibold">Facebook Connect</h2>
+            <p className="mt-1 text-xs text-ink-dim">
+              redirect: <code>{fbOauth.redirectUri}</code>
+              <br />
+              scopes: <code>{fbOauth.scopes}</code> · app id:{" "}
+              {fbOauth.appIdSet ? "set" : "missing"} · secret:{" "}
+              {fbOauth.appSecretSet ? "set" : "missing"}
+            </p>
+          </div>
+          <ConnectFacebookButton oauthConfigured={facebookOAuthConfigured()} />
+        </div>
+        {!facebook.oauthConfigured ? (
+          <ol className="list-decimal space-y-1 pl-5 text-xs text-ink-muted">
+            <li>
+              Create/open an app at{" "}
+              <a
+                className="text-accent-cyan underline"
+                href="https://developers.facebook.com/apps/"
+                target="_blank"
+                rel="noreferrer"
+              >
+                Meta for Developers
+              </a>
+              .
+            </li>
+            <li>
+              Set <code>FACEBOOK_APP_ID</code> and <code>FACEBOOK_APP_SECRET</code> in{" "}
+              <code>.env.local</code>, restart, then Connect.
+            </li>
+          </ol>
+        ) : (
+          <p className="text-xs text-ink-muted">
+            Connect once as a Page admin. Posts always auto-publish to{" "}
+            <strong>ELAH Security</strong>. Redirect URI: <code>{fbOauth.redirectUri}</code>
           </p>
         )}
       </section>
@@ -131,10 +179,12 @@ export default async function FounderSettingsPage() {
             <li key={note}>{note}</li>
           ))}
           <li>
-            Daily cron: <code>0 15 * * *</code> UTC → <code>/api/cron/generate-linkedin-draft</code>
+            Content cron (3× daily UTC): <code>0 6,12,18 * * *</code> →{" "}
+            <code>/api/cron/generate-linkedin-draft</code>
           </li>
           <li>
-            OAuth callback: <code>/api/linkedin/callback</code>
+            OAuth callbacks: <code>/api/linkedin/callback</code>,{" "}
+            <code>/api/facebook/callback</code>
           </li>
         </ul>
       </section>

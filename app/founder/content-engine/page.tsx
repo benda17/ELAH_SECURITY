@@ -1,39 +1,53 @@
-import { getContentEngineConfig } from "@/lib/founder/content-engine/config";
-import { getPublishCredentials, linkedInOAuthConfigured } from "@/lib/founder/content-engine/linkedin";
+import { ContentDailyChart } from "@/components/founder/content-daily-chart";
 import {
-  countLinkedInPostsByStatus,
-  getLinkedInIntegration,
-  listContentEngineRuns,
-  listLinkedInDrafts,
-  listSourceEvents,
-} from "@/lib/founder/content-engine/repository";
-import {
+  ConnectFacebookButton,
   ConnectLinkedInButton,
   GenerateDraftButton,
   PostCard,
 } from "@/components/founder/content-engine-panel";
+import { getContentEngineConfig } from "@/lib/founder/content-engine/config";
+import {
+  facebookOAuthConfigured,
+  getFacebookPublishStatus,
+} from "@/lib/founder/content-engine/facebook";
+import {
+  getElahCompanyAdminPostsUrl,
+  getLinkedInConnectionStatus,
+  linkedInOAuthConfigured,
+} from "@/lib/founder/content-engine/linkedin";
+import {
+  countLinkedInPostsByStatus,
+  getDailyPostSeries,
+  listContentEngineRuns,
+  listLinkedInDrafts,
+  listSourceEvents,
+} from "@/lib/founder/content-engine/repository";
 
 export const dynamic = "force-dynamic";
 
 export default async function ContentEnginePage({
   searchParams,
 }: {
-  searchParams?: { linkedin?: string; status?: string };
+  searchParams?: { linkedin?: string; facebook?: string; status?: string };
 }) {
-  const config = getContentEngineConfig();
   const statusFilter = searchParams?.status?.trim() || "all";
 
-  const [posts, counts, runs, sources, integration, publishCreds] = await Promise.all([
-    listLinkedInDrafts(80),
-    countLinkedInPostsByStatus(),
-    listContentEngineRuns(),
-    listSourceEvents(),
-    getLinkedInIntegration(),
-    getPublishCredentials(),
-  ]);
+  const [config, facebook, posts, counts, runs, sources, connection, dailySeries] =
+    await Promise.all([
+      getContentEngineConfig(),
+      getFacebookPublishStatus(),
+      listLinkedInDrafts(80),
+      countLinkedInPostsByStatus(),
+      listContentEngineRuns(),
+      listSourceEvents(),
+      getLinkedInConnectionStatus(),
+      getDailyPostSeries(30),
+    ]);
 
-  const canPublish = Boolean(publishCreds);
+  const canPublish = connection.canPublish;
+  const companyAdminUrl = getElahCompanyAdminPostsUrl();
   const linkedinFlash = searchParams?.linkedin;
+  const facebookFlash = searchParams?.facebook;
   const filtered =
     statusFilter === "all" ? posts : posts.filter((p) => p.status === statusFilter);
 
@@ -45,6 +59,10 @@ export default async function ContentEnginePage({
     { key: "rejected", label: "Rejected", count: counts.rejected ?? 0 },
   ];
 
+  const createdTotal = dailySeries.reduce((n, d) => n + d.created, 0);
+  const publishedTotal = dailySeries.reduce((n, d) => n + d.published, 0);
+  const facebookTotal = dailySeries.reduce((n, d) => n + d.facebook, 0);
+
   return (
     <div className="space-y-6">
       <header className="flex flex-wrap items-end justify-between gap-4">
@@ -52,7 +70,7 @@ export default async function ContentEnginePage({
           <p className="panel-title">Content automation</p>
           <h1 className="text-2xl font-semibold">Content Engine</h1>
           <p className="mt-1 max-w-2xl text-sm text-ink-muted">
-            Generate, review, and publish LinkedIn posts. Configure secrets under{" "}
+            Generate, review, and publish LinkedIn + Facebook posts. Configure secrets under{" "}
             <a href="/founder/settings" className="text-accent-cyan hover:underline">
               Settings
             </a>
@@ -61,7 +79,11 @@ export default async function ContentEnginePage({
         </div>
         <div className="flex flex-wrap items-center gap-3">
           <GenerateDraftButton />
-          <ConnectLinkedInButton oauthConfigured={linkedInOAuthConfigured()} />
+          <ConnectLinkedInButton
+            oauthConfigured={linkedInOAuthConfigured()}
+            reconnectForCompany={connection.missingOrgPermission || connection.tokenSaved}
+          />
+          <ConnectFacebookButton oauthConfigured={facebookOAuthConfigured()} />
         </div>
       </header>
 
@@ -73,6 +95,28 @@ export default async function ContentEnginePage({
       {linkedinFlash?.startsWith("error:") && (
         <p className="rounded-lg border border-accent-rose/40 bg-accent-rose/10 px-3 py-2 text-sm text-accent-rose">
           LinkedIn connect failed: {decodeURIComponent(linkedinFlash.slice(6))}
+        </p>
+      )}
+      {facebookFlash === "connected" && (
+        <p className="rounded-lg border border-accent-emerald/40 bg-accent-emerald/10 px-3 py-2 text-sm text-accent-emerald">
+          Facebook connected — auto-publishing to ELAH Security.
+        </p>
+      )}
+      {facebookFlash === "connected_no_page" && (
+        <p className="rounded-lg border border-accent-amber/40 bg-accent-amber/10 px-3 py-2 text-sm text-accent-amber">
+          Facebook connected, but the ELAH Security page was not found for this account.
+        </p>
+      )}
+      {facebookFlash?.startsWith("error:") && (
+        <p className="rounded-lg border border-accent-rose/40 bg-accent-rose/10 px-3 py-2 text-sm text-accent-rose">
+          Facebook connect failed: {decodeURIComponent(facebookFlash.slice(6))}
+        </p>
+      )}
+
+      {facebook.configured && (
+        <p className="rounded-lg border border-[#1877F2]/40 bg-[#1877F2]/10 px-3 py-2 text-sm text-[#60a5fa]">
+          Facebook auto-publish: ELAH Security
+          {facebook.autoPublish ? " · on" : " · off"}
         </p>
       )}
 
@@ -88,13 +132,33 @@ export default async function ContentEnginePage({
       </section>
 
       <section className="panel">
+        <div className="mb-4 flex flex-wrap items-end justify-between gap-3">
+          <div>
+            <h2 className="text-sm font-semibold">Content graph</h2>
+            <p className="text-xs text-ink-dim">
+              Daily activity · last 30 days · created {createdTotal} · published{" "}
+              {publishedTotal} · Facebook {facebookTotal}
+            </p>
+          </div>
+          <p className="text-[11px] text-ink-dim">
+            Facebook: {facebook.configured ? "ELAH Security ready" : "not configured"}
+            {facebook.autoPublish ? " · auto-publish on" : " · auto-publish off"}
+            {" · cron 3×/day"}
+          </p>
+        </div>
+        <ContentDailyChart data={dailySeries} />
+      </section>
+
+      <section className="panel">
         <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
           <div>
             <h2 className="text-sm font-semibold">Posts</h2>
             <p className="text-xs text-ink-dim">
-              LinkedIn ready: {canPublish ? "yes" : "no"} · Auto-publish:{" "}
-              {config.autoPublish ? "on" : "off"}
-              {integration?.authorUrn ? ` · ${integration.authorUrn}` : ""}
+              LinkedIn ready: {canPublish ? "yes" : "no"} · Token:{" "}
+              {connection.tokenSaved ? "saved" : "missing"} · LI auto-publish:{" "}
+              {config.autoPublish ? "on" : "off"} · FB auto-publish:{" "}
+              {facebook.autoPublish ? "on" : "off"}
+              {connection.authorUrn ? ` · ${connection.authorUrn}` : ""}
             </p>
           </div>
           <div className="flex flex-wrap gap-1.5">
@@ -138,7 +202,11 @@ export default async function ContentEnginePage({
                 createdAt={d.createdAt.toISOString()}
                 publishedAt={d.publishedAt?.toISOString() ?? null}
                 externalPostId={d.externalPostId}
+                facebookPostId={d.facebookPostId}
+                facebookPublishedAt={d.facebookPublishedAt?.toISOString() ?? null}
                 canPublish={canPublish}
+                canPublishFacebook={facebook.configured}
+                companyAdminUrl={companyAdminUrl}
               />
             ))
           )}

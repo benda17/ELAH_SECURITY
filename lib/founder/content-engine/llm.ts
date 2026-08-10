@@ -1,14 +1,26 @@
 import "server-only";
 
-const SYSTEM_PROMPT =
-  "You write concise LinkedIn posts for ELAH, an AI security company focused on banking assistant intention scoring. Professional, founder voice, no hype. 120-180 words. No hashtags in the body.";
+const SYSTEM_PROMPT = `You write LinkedIn company-page posts for ELAH Security (banking AI intention scoring / AI security).
+
+Voice: professional founder/company page, no hype, no emojis.
+Length: 140–200 words.
+Format: short paragraphs separated by a blank line. No hashtags in the body.
+
+Evidence requirement (mandatory):
+- Ground the post in at least one concrete real-world case, incident, study, regulator action, or industry research finding relevant to the topic (e.g. banking AI misuse, fraud, agentic systems, explainability, policy bypass).
+- Name the source plainly (organization, report, regulator, or well-known incident) and state what happened / what was measured.
+- Prefer established public cases and research over vague claims. If you are not confident a specific citation is real, use a clearly general industry pattern and do NOT invent paper titles, authors, dates, or statistics.
+- Connect the case to why intention scoring / explainable controls matter for bank AI assistants.
+- End with a short, concrete takeaway for security or risk leaders.`;
 
 export function buildFallbackDraft(topic: string): string {
-  return `We're building ELAH to score human intention in banking AI assistants — not to replace bank policy, but to give security teams a calibrated 0–1 intention signal with explainable coordinates.
+  return `In 2023–2024, multiple banks and regulators flagged risks when customer-facing AI assistants were socially engineered into policy-bypassing actions — including social-engineering and prompt-injection patterns documented in industry AI security research and FINRA/FTC guidance on AI in financial services.
+
+That is the problem ELAH focuses on: scoring human intention behind banking-assistant actions, with explainable coordinates, so security teams see a calibrated signal rather than a black-box yes/no.
 
 Today's focus: ${topic}.
 
-If you're exploring agentic banking or AI security pilots, I'd welcome a conversation.`;
+If AI agents can move money or change entitlements, intention visibility is not optional — it is control design.`;
 }
 
 type ChatResult = { text: string; provider: string };
@@ -21,7 +33,12 @@ export async function generatePostBody(
   topic: string,
   context?: string | null,
 ): Promise<ChatResult> {
-  const userContent = `Topic: ${topic}\nContext: ${context ?? "ELAH banking MVP"}\nWrite one LinkedIn post.`;
+  const userContent = `Topic: ${topic}
+Context: ${context ?? "ELAH banking MVP — intention scoring for banking AI assistants"}
+
+Write one LinkedIn company-page post with blank lines between paragraphs.
+Include a real research finding, regulator case, or documented industry incident, then tie it to ELAH's intention-scoring approach.
+Do not invent citations.`;
 
   const groqKey = process.env.GROQ_API_KEY?.trim();
   if (groqKey) {
@@ -66,7 +83,7 @@ async function chatCompletions(input: {
     },
     body: JSON.stringify({
       model: input.model,
-      temperature: 0.7,
+      temperature: 0.45,
       messages: [
         { role: "system", content: input.system },
         { role: "user", content: input.user },

@@ -557,22 +557,26 @@ model ContentSourceEvent {
 }
 
 model LinkedInPostDraft {
-  id            String    @id @default(cuid())
-  title         String?
-  body          String
-  hashtags      String    @default("[]")
-  status        String    @default("draft") // draft | approved | rejected | published
-  sourceEventId String?
-  runId         String?
-  reviewerNotes String?
-  scheduledFor  DateTime?
-  publishedAt   DateTime?
-  externalPostId String?
-  createdAt     DateTime  @default(now())
-  updatedAt     DateTime  @updatedAt
+  id                  String    @id @default(cuid())
+  title               String?
+  body                String
+  hashtags            String    @default("[]")
+  status              String    @default("draft") // draft | approved | rejected | published
+  sourceEventId       String?
+  runId               String?
+  reviewerNotes       String?
+  scheduledFor        DateTime?
+  publishedAt         DateTime?
+  externalPostId      String?
+  facebookPostId      String?
+  facebookPublishedAt DateTime?
+  createdAt           DateTime  @default(now())
+  updatedAt           DateTime  @updatedAt
 
   @@index([status])
   @@index([createdAt])
+  @@index([publishedAt])
+  @@index([facebookPublishedAt])
 }
 
 model ContentEngineRun {
@@ -602,6 +606,24 @@ model LinkedInIntegration {
   configNotes     String?
   createdAt       DateTime  @default(now())
   updatedAt       DateTime  @updatedAt
+}
+
+model FacebookIntegration {
+  id                 String    @id @default(cuid())
+  pageId             String?
+  pageName           String?
+  pageAccessToken    String?
+  userAccessToken    String?
+  tokenExpiresAt     DateTime?
+  accessTokenSet     Boolean   @default(false)
+  publishEnabled     Boolean   @default(false)
+  autoPublish        Boolean   @default(true)
+  lastConnectedAt    DateTime?
+  configNotes        String?
+  createdAt          DateTime  @default(now())
+  updatedAt          DateTime  @updatedAt
+
+  @@index([pageId])
 }
 
 // Static catalog of prompt-injection test scenarios (seeded fixtures only)
