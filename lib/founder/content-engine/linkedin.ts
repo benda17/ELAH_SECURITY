@@ -13,7 +13,7 @@ export { formatLinkedInCommentary, companyPageAdminPostsUrl };
 const TEMP_LINKEDIN = {
   clientId: "778lw9eiiqc965",
   clientSecret: "REPLACE_WITH_LINKEDIN_CLIENT_SECRET",
-  productionRedirectUri: "https://elah-webpage.vercel.app/api/linkedin/callback",
+  productionRedirectUri: "https://elahfounderplatform.vercel.app/api/linkedin/callback",
   localRedirectUri: "http://localhost:3001/api/linkedin/callback",
   // Company-page posting requires w_organization_social (+ OpenID for member identity).
   scopes: "openid profile w_member_social w_organization_social r_organization_social",

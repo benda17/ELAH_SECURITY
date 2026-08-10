@@ -63,7 +63,7 @@ export function redirectUri(): string {
     }
   }
   if (isLocalDev()) return "http://localhost:3001/api/facebook/callback";
-  return "https://elah-webpage.vercel.app/api/facebook/callback";
+  return "https://elahfounderplatform.vercel.app/api/facebook/callback";
 }
 
 function oauthScopes(): string {
