@@ -78,7 +78,7 @@ const ENV_SPECS: Omit<EnvVarSpec, "configured" | "displayValue">[] = [
   {
     key: "CONTENT_AUTO_PUBLISH",
     required: false,
-    description: "Set true only after LinkedIn connect works",
+    description: "Ignored on generate — drafts stay for review; publish from the panel",
   },
   {
     key: "FACEBOOK_APP_ID",
@@ -109,7 +109,7 @@ const ENV_SPECS: Omit<EnvVarSpec, "configured" | "displayValue">[] = [
   {
     key: "FACEBOOK_AUTO_PUBLISH",
     required: false,
-    description: "Force on/off; if unset, auto-publish follows the connected Page setting",
+    description: "Legacy flag; generate no longer auto-posts — use Publish on each draft",
   },
 ];
 
@@ -162,7 +162,7 @@ export async function getContentEngineConfig(): Promise<ContentEngineConfig> {
     vercelNotes: [
       "Use GROQ_API_KEY for free draft generation (no OpenAI credits).",
       "Connect LinkedIn from Content Engine, or set LINKEDIN_ACCESS_TOKEN + LINKEDIN_AUTHOR_URN.",
-      "Facebook: Connect once; posts always auto-publish to ELAH Security.",
+      "Facebook: Connect once; publish drafts to ELAH Security from the panel.",
       "Content cron runs 3× daily (06:00, 12:00, 18:00 UTC).",
       "Add secrets in Vercel → Project → Settings → Environment Variables.",
       "Cron schedule in vercel.json uses UTC.",

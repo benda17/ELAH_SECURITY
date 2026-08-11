@@ -1,7 +1,7 @@
 import "server-only";
 import { prisma } from "@/lib/prisma";
 import { getContentEngineConfig } from "./config";
-import { facebookAutoPublishEnabled, publishTextToFacebook } from "./facebook";
+import { publishTextToFacebook } from "./facebook";
 import { generatePostBody } from "./llm";
 import { publishTextToLinkedIn } from "./linkedin";
 
@@ -129,47 +129,15 @@ export async function generateLinkedInDraft(
       });
     }
 
-    const logLines = [`Draft generated via ${provider}`, draft.id];
-    let published = false;
-    const tags = parseHashtags(draft.hashtags);
-
+    // Generation always creates reviewable drafts. Publishing is explicit (panel actions),
+    // so new items land in Drafts / To post — never auto-marked published.
+    const logLines = [
+      `Draft generated via ${provider}`,
+      draft.id,
+      "Left as draft for review (no auto-publish)",
+    ];
     if (config.autoPublish) {
-      const result = await publishTextToLinkedIn(body);
-      if (result.ok) {
-        await prisma.linkedInPostDraft.update({
-          where: { id: draft.id },
-          data: {
-            status: "published",
-            publishedAt: new Date(),
-            ...(result.postId ? { externalPostId: result.postId } : {}),
-          },
-        });
-        published = true;
-        logLines.push(`LinkedIn auto-published${result.postId ? ` (${result.postId})` : ""}`);
-      } else {
-        logLines.push(`LinkedIn auto-publish skipped/failed: ${result.error}`);
-      }
-    }
-
-    if (await facebookAutoPublishEnabled()) {
-      const fb = await publishTextToFacebook(body, tags);
-      if (fb.ok) {
-        await prisma.linkedInPostDraft.update({
-          where: { id: draft.id },
-          data: {
-            facebookPostId: fb.postId ?? null,
-            facebookPublishedAt: new Date(),
-            // If LinkedIn wasn't auto-published, still mark draft published once FB succeeds.
-            ...(!published
-              ? { status: "published", publishedAt: new Date() }
-              : {}),
-          },
-        });
-        published = true;
-        logLines.push(`Facebook auto-published${fb.postId ? ` (${fb.postId})` : ""}`);
-      } else {
-        logLines.push(`Facebook auto-publish failed: ${fb.error}`);
-      }
+      logLines.push("CONTENT_AUTO_PUBLISH is set but ignored on generate — publish from the panel");
     }
 
     await prisma.contentEngineRun.update({
@@ -182,7 +150,7 @@ export async function generateLinkedInDraft(
       },
     });
 
-    return { runId: run.id, draftId: draft.id, published };
+    return { runId: run.id, draftId: draft.id, published: false };
   } catch (err) {
     const message = err instanceof Error ? err.message : "Unknown error";
     await prisma.contentEngineRun.update({

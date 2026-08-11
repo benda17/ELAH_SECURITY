@@ -105,7 +105,7 @@ export default async function ContentEnginePage({
       )}
       {facebookFlash === "connected" && (
         <p className="rounded-lg border border-accent-emerald/40 bg-accent-emerald/10 px-3 py-2 text-sm text-accent-emerald">
-          Facebook connected — auto-publishing to ELAH Security.
+          Facebook connected — ready to publish drafts to ELAH Security.
         </p>
       )}
       {facebookFlash === "connected_no_page" && (
@@ -121,8 +121,7 @@ export default async function ContentEnginePage({
 
       {facebook.configured && (
         <p className="rounded-lg border border-[#1877F2]/40 bg-[#1877F2]/10 px-3 py-2 text-sm text-[#60a5fa]">
-          Facebook auto-publish: ELAH Security
-          {facebook.autoPublish ? " · on" : " · off"}
+          Facebook ready: ELAH Security · publish from each draft
         </p>
       )}
 
@@ -148,8 +147,7 @@ export default async function ContentEnginePage({
           </div>
           <p className="text-[11px] text-ink-dim">
             Facebook: {facebook.configured ? "ELAH Security ready" : "not configured"}
-            {facebook.autoPublish ? " · auto-publish on" : " · auto-publish off"}
-            {" · cron 3×/day"}
+            {" · cron 3×/day · generate creates drafts only"}
           </p>
         </div>
         <ContentDailyChart data={dailySeries} />
@@ -160,9 +158,9 @@ export default async function ContentEnginePage({
           <div>
             <h2 className="text-sm font-semibold">Posts</h2>
             <p className="text-xs text-ink-dim">
-              Default view hides published posts · LinkedIn ready:{" "}
-              {canPublish ? "yes" : "no"} · FB auto-publish:{" "}
-              {facebook.autoPublish ? "on" : "off"}
+              Generate leaves drafts for review · LinkedIn ready:{" "}
+              {canPublish ? "yes" : "no"} · Facebook:{" "}
+              {facebook.configured ? "ready" : "off"}
             </p>
           </div>
           <div className="flex flex-wrap gap-1.5">
