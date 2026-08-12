@@ -11,7 +11,7 @@ export default async function TasksPage() {
         <p className="panel-title">Task table</p>
         <h1 className="text-2xl font-semibold">All tasks</h1>
         <p className="text-sm text-ink-muted">
-          {tasks.length} tasks · inline edit status, owner, and open details
+          {tasks.length} tasks · click a title for full details · inline edit status & owner
         </p>
       </header>
       <TaskTable tasks={tasks} />

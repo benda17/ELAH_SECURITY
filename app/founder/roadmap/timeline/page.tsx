@@ -3,6 +3,7 @@ import { milestoneCompletionFromTasks } from "@/lib/roadmap/metrics";
 import { loadRoadmapPageData } from "@/lib/roadmap/server";
 import { ProgressBar } from "@/components/roadmap-dashboard/progress-bar";
 import { StatusBadge } from "@/components/roadmap-dashboard/badges";
+import { TaskOpenButton } from "@/components/roadmap-dashboard/task-open-button";
 
 export const metadata = { title: "ELAH Roadmap · Timeline" };
 
@@ -47,7 +48,11 @@ export default async function TimelinePage() {
                       className="flex items-center gap-2 rounded border border-surface-border/50 px-2 py-1 text-xs"
                     >
                       <StatusBadge status={t.status} />
-                      <span className="truncate">{t.title}</span>
+                      <TaskOpenButton
+                        task={t}
+                        allTasks={tasks}
+                        className="truncate text-xs font-medium"
+                      />
                     </div>
                   ))}
               </div>

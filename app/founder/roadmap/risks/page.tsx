@@ -1,3 +1,4 @@
+import { TaskOpenButton } from "@/components/roadmap-dashboard/task-open-button";
 import { loadRoadmapPageData } from "@/lib/roadmap/server";
 
 export const metadata = { title: "ELAH Roadmap · Risks" };
@@ -68,9 +69,11 @@ export default async function RisksPage() {
           <p className="panel-title text-accent-rose">Task blockers</p>
           <ul className="mt-2 space-y-1 text-sm">
             {blockers.map((t) => (
-              <li key={t.id}>
-                {t.title}
-                {t.blockingReason && ` — ${t.blockingReason}`}
+              <li key={t.id} className="flex flex-wrap items-baseline gap-1">
+                <TaskOpenButton task={t} allTasks={tasks} className="text-sm" />
+                {t.blockingReason && (
+                  <span className="text-ink-dim"> — {t.blockingReason}</span>
+                )}
               </li>
             ))}
           </ul>

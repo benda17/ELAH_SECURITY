@@ -3,6 +3,7 @@ import { StatCard } from "@/components/stat-card";
 import { PriorityBadge, StatusBadge } from "@/components/roadmap-dashboard/badges";
 import { PhaseCompletionChart } from "@/components/roadmap-dashboard/phase-completion-chart";
 import { ProgressBar } from "@/components/roadmap-dashboard/progress-bar";
+import { TaskOpenButton } from "@/components/roadmap-dashboard/task-open-button";
 import { loadRoadmapPageData } from "@/lib/roadmap/server";
 
 export const metadata = {
@@ -99,7 +100,11 @@ export default async function ElahRoadmapOverviewPage() {
                 key={t.id}
                 className="flex items-start justify-between gap-2 rounded-lg border border-surface-border/60 px-3 py-2"
               >
-                <span className="text-sm">{t.title}</span>
+                <TaskOpenButton
+                  task={t}
+                  allTasks={tasks}
+                  className="text-sm"
+                />
                 <PriorityBadge priority={t.priority} />
               </li>
             ))}
@@ -128,8 +133,9 @@ export default async function ElahRoadmapOverviewPage() {
           <p className="panel-title text-accent-rose">Blocked tasks</p>
           <ul className="mt-2 space-y-1 text-sm">
             {blocked.map((t) => (
-              <li key={t.id}>
-                <StatusBadge status={t.status} /> {t.title}
+              <li key={t.id} className="flex flex-wrap items-center gap-2">
+                <StatusBadge status={t.status} />
+                <TaskOpenButton task={t} allTasks={tasks} className="text-sm" />
                 {t.blockingReason && (
                   <span className="text-ink-dim"> — {t.blockingReason}</span>
                 )}

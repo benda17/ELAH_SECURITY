@@ -1,6 +1,7 @@
 import { loadRoadmapPageData } from "@/lib/roadmap/server";
 import { isTaskOverdue } from "@/lib/roadmap/metrics";
 import { StatusBadge } from "@/components/roadmap-dashboard/badges";
+import { TaskOpenButton } from "@/components/roadmap-dashboard/task-open-button";
 
 export const metadata = { title: "ELAH Roadmap · Weekly View" };
 
@@ -31,8 +32,8 @@ export default async function WeeklyPage() {
           <p className="panel-title mb-2">Top priorities</p>
           <ul className="space-y-2">
             {metrics.topPriorities.map((t) => (
-              <li key={t.id} className="text-sm">
-                {t.title}
+              <li key={t.id}>
+                <TaskOpenButton task={t} allTasks={tasks} className="text-sm" />
               </li>
             ))}
           </ul>
@@ -41,8 +42,8 @@ export default async function WeeklyPage() {
           <p className="panel-title mb-2">Due this week</p>
           <ul className="space-y-2">
             {metrics.weeklyDue.map((t) => (
-              <li key={t.id} className="text-sm">
-                {t.title}
+              <li key={t.id}>
+                <TaskOpenButton task={t} allTasks={tasks} className="text-sm" />
               </li>
             ))}
             {metrics.weeklyDue.length === 0 && (
@@ -62,7 +63,7 @@ export default async function WeeklyPage() {
               .map((t) => (
                 <li key={t.id} className="flex items-center gap-2 text-sm">
                   <StatusBadge status={t.status} />
-                  {t.title}
+                  <TaskOpenButton task={t} allTasks={tasks} className="text-sm font-normal" />
                 </li>
               ))}
           </ul>

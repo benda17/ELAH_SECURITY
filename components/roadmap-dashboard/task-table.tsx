@@ -4,14 +4,20 @@ import { useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import type { RoadmapTaskRecord, TaskStatus } from "@/lib/roadmap/types";
 import { TASK_STATUSES } from "@/lib/roadmap/types";
-import { PriorityBadge, StatusBadge } from "./badges";
+import { PriorityBadge } from "./badges";
 import { ProgressBar } from "./progress-bar";
+import { TaskDetailModal } from "./task-detail-modal";
 
 export function TaskTable({ tasks }: { tasks: RoadmapTaskRecord[] }) {
   const router = useRouter();
   const [search, setSearch] = useState("");
   const [statusFilter, setStatusFilter] = useState("");
   const [selected, setSelected] = useState<RoadmapTaskRecord | null>(null);
+
+  const relatedTitles = useMemo(
+    () => Object.fromEntries(tasks.map((t) => [t.id, t.title])),
+    [tasks],
+  );
 
   const filtered = useMemo(() => {
     return tasks.filter((t) => {
@@ -21,7 +27,8 @@ export function TaskTable({ tasks }: { tasks: RoadmapTaskRecord[] }) {
       return (
         t.title.toLowerCase().includes(q) ||
         t.phase.toLowerCase().includes(q) ||
-        (t.owner?.toLowerCase().includes(q) ?? false)
+        (t.owner?.toLowerCase().includes(q) ?? false) ||
+        (t.description?.toLowerCase().includes(q) ?? false)
       );
     });
   }, [tasks, search, statusFilter]);
@@ -34,6 +41,10 @@ export function TaskTable({ tasks }: { tasks: RoadmapTaskRecord[] }) {
     });
     router.refresh();
   }
+
+  // Keep modal in sync after refresh if the same task is still selected
+  const selectedFresh =
+    selected == null ? null : (tasks.find((t) => t.id === selected.id) ?? selected);
 
   return (
     <div className="space-y-4">
@@ -132,41 +143,12 @@ export function TaskTable({ tasks }: { tasks: RoadmapTaskRecord[] }) {
         </table>
       </div>
 
-      {selected && (
-        <div className="panel space-y-3">
-          <div className="flex items-start justify-between gap-4">
-            <h3 className="text-lg font-semibold">{selected.title}</h3>
-            <button
-              type="button"
-              className="text-xs text-ink-muted hover:text-ink"
-              onClick={() => setSelected(null)}
-            >
-              Close
-            </button>
-          </div>
-          <div className="flex flex-wrap gap-2">
-            <StatusBadge status={selected.status} />
-            <PriorityBadge priority={selected.priority} />
-          </div>
-          <p className="text-sm text-ink-muted">{selected.phase}</p>
-          {selected.notes && (
-            <p className="rounded-lg border border-surface-border bg-surface-base/50 p-3 text-sm text-ink-muted">
-              {selected.notes}
-            </p>
-          )}
-          {selected.successCriteria && (
-            <div>
-              <p className="panel-title">Success criteria</p>
-              <p className="text-sm text-ink-muted">{selected.successCriteria}</p>
-            </div>
-          )}
-          {selected.dependencyIds.length > 0 && (
-            <div>
-              <p className="panel-title">Dependencies</p>
-              <p className="text-xs text-ink-dim">{selected.dependencyIds.join(", ")}</p>
-            </div>
-          )}
-        </div>
+      {selectedFresh && (
+        <TaskDetailModal
+          task={selectedFresh}
+          relatedTitles={relatedTitles}
+          onClose={() => setSelected(null)}
+        />
       )}
     </div>
   );
