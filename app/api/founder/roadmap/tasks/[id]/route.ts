@@ -3,6 +3,8 @@ import { deleteTask, getTask, updateTask } from "@/lib/roadmap/repository";
 import { recomputeMilestoneProgress } from "@/lib/roadmap/seed";
 import type { TaskUpdateInput } from "@/lib/roadmap/types";
 
+export const dynamic = "force-dynamic";
+
 export async function GET(
   _req: NextRequest,
   { params }: { params: { id: string } },

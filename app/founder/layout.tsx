@@ -1,5 +1,7 @@
 import { FounderSidebar } from "@/components/founder/founder-sidebar";
 
+export const dynamic = "force-dynamic";
+
 export default function FounderLayout({ children }: { children: React.ReactNode }) {
   return (
     <div className="flex min-h-screen bg-surface-base text-ink">
