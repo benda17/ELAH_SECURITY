@@ -11,8 +11,8 @@ export default async function KanbanPage() {
         <p className="panel-title">Kanban board</p>
         <h1 className="text-2xl font-semibold">Execution board</h1>
         <p className="text-sm text-ink-muted">
-          Click a card for full details. Drag between columns or use the status
-          dropdown — changes persist to the database.
+          Flow: Backlog → In Progress → In Review → Ready. Click a card for
+          details; drag or use the status dropdown to persist changes.
         </p>
       </header>
       <KanbanBoard tasks={tasks} />

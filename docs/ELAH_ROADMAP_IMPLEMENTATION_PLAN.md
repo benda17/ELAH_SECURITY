@@ -10,7 +10,7 @@
 
 1. **Shared SQLite database** — Analytics uses `DATABASE_URL` pointing at the banking `dev.db`. Roadmap tables are additive; no banking models are modified.
 2. **Internal-only** — No auth on analytics dashboard (existing pattern). Suitable for founder operating use on trusted network.
-3. **Evidence-based seed status** — Tasks marked `done` only where repository inspection found implementation. Others default to `backlog`, `planned`, or `in_progress`.
+3. **Evidence-based seed status** — Tasks marked `done` only where repository inspection found implementation. Others default to `backlog` or `in_progress`.
 4. **No fabricated progress** — No fake customers, investors, pilots, or model accuracy.
 5. **Existing `/elah-model-roadmap`** — Preserved; `/elah-roadmap` is the new operational dashboard. Link added from overview nav.
 

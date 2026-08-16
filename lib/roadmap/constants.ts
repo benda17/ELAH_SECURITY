@@ -2,10 +2,9 @@ import type { TaskStatus } from "./types";
 
 export const KANBAN_COLUMNS: { key: TaskStatus; label: string }[] = [
   { key: "backlog", label: "Backlog" },
-  { key: "planned", label: "Planned" },
-  { key: "ready", label: "Ready" },
   { key: "in_progress", label: "In Progress" },
   { key: "in_review", label: "In Review" },
+  { key: "ready", label: "Ready" },
   { key: "blocked", label: "Blocked" },
   { key: "done", label: "Done" },
 ];
@@ -31,10 +30,9 @@ export const PHASE_ORDER = [
 
 export const STATUS_LABELS: Record<TaskStatus, string> = {
   backlog: "Backlog",
-  planned: "Planned",
-  ready: "Ready",
   in_progress: "In Progress",
   in_review: "In Review",
+  ready: "Ready",
   blocked: "Blocked",
   done: "Done",
 };
@@ -48,10 +46,9 @@ export const PRIORITY_COLORS: Record<string, string> = {
 
 export const STATUS_COLORS: Record<TaskStatus, string> = {
   backlog: "border-surface-border bg-surface-raised text-ink-muted",
-  planned: "border-accent-violet/30 bg-accent-violet/10 text-accent-violet",
-  ready: "border-accent-cyan/30 bg-accent-cyan/10 text-accent-cyan",
   in_progress: "border-accent-cyan/50 bg-accent-cyan/15 text-accent-cyan",
   in_review: "border-accent-amber/40 bg-accent-amber/10 text-accent-amber",
+  ready: "border-accent-cyan/30 bg-accent-cyan/10 text-accent-cyan",
   blocked: "border-accent-rose/50 bg-accent-rose/15 text-accent-rose",
   done: "border-accent-emerald/40 bg-accent-emerald/10 text-accent-emerald",
 };

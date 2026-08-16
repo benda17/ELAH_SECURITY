@@ -2,10 +2,9 @@
 
 export const TASK_STATUSES = [
   "backlog",
-  "planned",
-  "ready",
   "in_progress",
   "in_review",
+  "ready",
   "blocked",
   "done",
 ] as const;

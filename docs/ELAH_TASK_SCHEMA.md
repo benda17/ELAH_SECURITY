@@ -11,7 +11,7 @@ Roadmap tasks are stored in `RoadmapTask` (Prisma) and typed as `RoadmapTaskReco
 | `category` | string | e.g. Simulator, Dataset, Security |
 | `workstream` | string | Product, Engineering, Data, Model, … |
 | `phase` | string | Phase 0–15 label |
-| `status` | enum | backlog, planned, ready, in_progress, in_review, blocked, done |
+| `status` | enum | backlog, in_progress, in_review, ready, blocked, done |
 | `priority` | enum | critical, high, medium, low |
 
 ## Optional fields

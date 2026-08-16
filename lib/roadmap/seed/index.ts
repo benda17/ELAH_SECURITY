@@ -130,7 +130,7 @@ function inferStatus(phase: string, title: string): {
   // Phase-level defaults for early engineering work
   if (phase.startsWith("Phase 1") || phase.startsWith("Phase 2")) {
     return {
-      status: "planned",
+      status: "backlog",
       progress: 5,
       notes: "Needs verification against live simulator.",
     };
@@ -180,6 +180,7 @@ function milestoneIdForPhase(phaseIndex: number, milestoneIds: string[]): string
 }
 
 export async function seedRoadmapIfEmpty(): Promise<{ seeded: boolean; counts: Record<string, number> }> {
+  await migratePlannedTasksToBacklog();
   const existing = await prisma.roadmapTask.count();
   if (existing > 0) {
     return {
@@ -414,6 +415,15 @@ export async function seedRoadmapIfEmpty(): Promise<{ seeded: boolean; counts: R
       experiments: await prisma.roadmapExperiment.count(),
     },
   };
+}
+
+/** Drop the unused Planned column: existing Planned tasks become Backlog. */
+export async function migratePlannedTasksToBacklog(): Promise<number> {
+  const result = await prisma.roadmapTask.updateMany({
+    where: { status: "planned" },
+    data: { status: "backlog" },
+  });
+  return result.count;
 }
 
 export async function recomputeMilestoneProgress(): Promise<void> {
