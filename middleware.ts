@@ -5,6 +5,13 @@ import {
   isFounderSessionToken,
 } from "@/lib/founder-session";
 
+function bearerToken(request: NextRequest): string | undefined {
+  const header = request.headers.get("authorization");
+  if (!header) return undefined;
+  const match = /^Bearer\s+(.+)$/i.exec(header);
+  return match?.[1]?.trim();
+}
+
 export async function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl;
 
@@ -15,12 +22,14 @@ export async function middleware(request: NextRequest) {
     pathname.startsWith("/api/cron") ||
     pathname.startsWith("/api/linkedin") ||
     pathname.startsWith("/api/facebook") ||
+    pathname.startsWith("/api/auth/login") ||
+    pathname.startsWith("/api/auth/logout") ||
     pathname.includes(".")
   ) {
     return NextResponse.next();
   }
 
-  const token = request.cookies.get(FOUNDER_COOKIE)?.value;
+  const token = bearerToken(request) ?? request.cookies.get(FOUNDER_COOKIE)?.value;
   const authed = await isFounderSessionToken(token);
 
   if (pathname === "/login") {
@@ -31,6 +40,9 @@ export async function middleware(request: NextRequest) {
   }
 
   if (!authed) {
+    if (pathname.startsWith("/api/")) {
+      return NextResponse.json({ error: "unauthorized" }, { status: 401 });
+    }
     const login = new URL("/login", request.url);
     login.searchParams.set("next", pathname);
     return NextResponse.redirect(login);
