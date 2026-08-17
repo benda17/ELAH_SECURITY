@@ -5,7 +5,7 @@ import {
   isTaskOverdue,
   weightedCompletion,
 } from "../lib/roadmap/metrics";
-import { compareTasksByImportance } from "../lib/roadmap/constants";
+import { compareTasksByImportance, phaseShortLabel } from "../lib/roadmap/constants";
 import type { RoadmapMilestoneRecord, RoadmapTaskRecord } from "../lib/roadmap/types";
 
 const baseTask = (overrides: Partial<RoadmapTaskRecord>): RoadmapTaskRecord => ({
@@ -98,6 +98,11 @@ const sorted = [
 assert.deepEqual(
   sorted.map((t) => t.id),
   ["crit-a", "crit-b", "high-cp", "high", "low"],
+);
+
+assert.equal(
+  phaseShortLabel("Phase 0 — Product definition and architecture"),
+  "P0 — Product definition and architecture",
 );
 
 console.log("roadmap-metrics.test.ts: all assertions passed");

@@ -12,8 +12,9 @@ export default async function KanbanPage() {
         <h1 className="text-2xl font-semibold">Execution board</h1>
         <p className="text-sm text-ink-muted">
           Flow: Backlog → In Progress → Blocked → In Review → Done. Filter by
-          importance; critical cards stay at the top. Click a card for details;
-          drag or use the status dropdown to persist changes.
+          phase, workstream, importance, or critical path; critical cards stay
+          at the top. Click a card for details; drag or use the status dropdown
+          to persist changes.
         </p>
       </header>
       <KanbanBoard tasks={tasks} />

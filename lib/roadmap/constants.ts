@@ -8,6 +8,12 @@ export const KANBAN_COLUMNS: { key: TaskStatus; label: string }[] = [
   { key: "done", label: "Done" },
 ];
 
+export function phaseShortLabel(phase: string): string {
+  const match = phase.match(/^Phase (\d+)\s+—\s+(.+)$/);
+  if (!match) return phase;
+  return `P${match[1]} — ${match[2]}`;
+}
+
 export const PHASE_ORDER = [
   "Phase 0 — Product definition and architecture",
   "Phase 1 — Banking simulator stabilization",
