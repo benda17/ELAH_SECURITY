@@ -46,7 +46,9 @@ function mapTask(row: {
 }): RoadmapTaskRecord {
   return {
     ...row,
-    status: (row.status === "planned" ? "backlog" : row.status) as TaskStatus,
+    status: (row.status === "planned" || row.status === "ready"
+      ? "backlog"
+      : row.status) as TaskStatus,
     priority: row.priority as RoadmapTaskRecord["priority"],
     dependencyIds: parseJsonArray(row.dependencyIds),
     links: parseJsonArray(row.links),

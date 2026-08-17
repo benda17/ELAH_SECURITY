@@ -180,7 +180,7 @@ function milestoneIdForPhase(phaseIndex: number, milestoneIds: string[]): string
 }
 
 export async function seedRoadmapIfEmpty(): Promise<{ seeded: boolean; counts: Record<string, number> }> {
-  await migratePlannedTasksToBacklog();
+  await migrateRetiredTaskStatusesToBacklog();
   const existing = await prisma.roadmapTask.count();
   if (existing > 0) {
     return {
@@ -417,10 +417,10 @@ export async function seedRoadmapIfEmpty(): Promise<{ seeded: boolean; counts: R
   };
 }
 
-/** Drop the unused Planned column: existing Planned tasks become Backlog. */
-export async function migratePlannedTasksToBacklog(): Promise<number> {
+/** Retired columns: Planned and Ready both collapse into Backlog. */
+export async function migrateRetiredTaskStatusesToBacklog(): Promise<number> {
   const result = await prisma.roadmapTask.updateMany({
-    where: { status: "planned" },
+    where: { status: { in: ["planned", "ready"] } },
     data: { status: "backlog" },
   });
   return result.count;

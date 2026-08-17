@@ -3,9 +3,8 @@
 export const TASK_STATUSES = [
   "backlog",
   "in_progress",
-  "in_review",
-  "ready",
   "blocked",
+  "in_review",
   "done",
 ] as const;
 
