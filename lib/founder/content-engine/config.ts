@@ -32,7 +32,7 @@ const ENV_SPECS: Omit<EnvVarSpec, "configured" | "displayValue">[] = [
   {
     key: "GROQ_MODEL",
     required: false,
-    description: "Default llama-3.3-70b-versatile",
+    description: "Optional; retired Llama 3.3 IDs remap to openai/gpt-oss-120b",
   },
   {
     key: "GEMINI_API_KEY",

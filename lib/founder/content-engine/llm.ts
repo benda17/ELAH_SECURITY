@@ -43,6 +43,19 @@ function ensureLandingPageLink(text: string): string {
 
 type ChatResult = { text: string; provider: string };
 
+/** Groq retired llama-3.3-70b-versatile (and llama-3.1-8b-instant) on 16 Aug 2026. */
+export const DEFAULT_GROQ_MODEL = "openai/gpt-oss-120b";
+
+const DEPRECATED_GROQ_MODELS: Record<string, string> = {
+  "llama-3.3-70b-versatile": DEFAULT_GROQ_MODEL,
+  "llama-3.1-8b-instant": "openai/gpt-oss-20b",
+};
+
+export function resolveGroqModel(configured?: string | null): string {
+  const raw = configured?.trim() || DEFAULT_GROQ_MODEL;
+  return DEPRECATED_GROQ_MODELS[raw] ?? raw;
+}
+
 /**
  * Free providers only: Groq → Gemini → template fallback.
  * OpenAI is intentionally not used (avoids paid credit / 429 quota errors).
@@ -69,7 +82,8 @@ Requirements:
       provider: "Groq",
       url: "https://api.groq.com/openai/v1/chat/completions",
       apiKey: groqKey,
-      model: process.env.GROQ_MODEL?.trim() || "llama-3.3-70b-versatile",
+      model: resolveGroqModel(process.env.GROQ_MODEL),
+      fallbackModel: DEFAULT_GROQ_MODEL,
       system: SYSTEM_PROMPT,
       user: userContent,
     });
@@ -95,38 +109,48 @@ async function chatCompletions(input: {
   url: string;
   apiKey: string;
   model: string;
+  fallbackModel?: string;
   system: string;
   user: string;
 }): Promise<string> {
-  const res = await fetch(input.url, {
-    method: "POST",
-    headers: {
-      Authorization: `Bearer ${input.apiKey}`,
-      "Content-Type": "application/json",
-    },
-    body: JSON.stringify({
-      model: input.model,
-      temperature: 0.45,
-      messages: [
-        { role: "system", content: input.system },
-        { role: "user", content: input.user },
-      ],
-    }),
-  });
-
-  if (!res.ok) {
-    const detail = await res.text().catch(() => "");
-    throw new Error(
-      `${input.provider} API error (${res.status}): ${detail.slice(0, 200)}`,
-    );
+  const models = [input.model];
+  if (input.fallbackModel && input.fallbackModel !== input.model) {
+    models.push(input.fallbackModel);
   }
 
-  const json = (await res.json()) as {
-    choices?: Array<{ message?: { content?: string } }>;
-  };
-  const text = json.choices?.[0]?.message?.content?.trim();
-  if (!text) throw new Error(`${input.provider} returned empty content`);
-  return text;
+  let lastError = "";
+  for (const model of models) {
+    const res = await fetch(input.url, {
+      method: "POST",
+      headers: {
+        Authorization: `Bearer ${input.apiKey}`,
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        model,
+        temperature: 0.45,
+        messages: [
+          { role: "system", content: input.system },
+          { role: "user", content: input.user },
+        ],
+      }),
+    });
+
+    if (res.ok) {
+      const json = (await res.json()) as {
+        choices?: Array<{ message?: { content?: string } }>;
+      };
+      const text = json.choices?.[0]?.message?.content?.trim();
+      if (!text) throw new Error(`${input.provider} returned empty content`);
+      return text;
+    }
+
+    const detail = await res.text().catch(() => "");
+    lastError = `${input.provider} API error (${res.status}): ${detail.slice(0, 200)}`;
+    if (res.status !== 404) break;
+  }
+
+  throw new Error(lastError || `${input.provider} API error`);
 }
 
 async function generateWithGemini(
