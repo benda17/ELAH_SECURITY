@@ -10,7 +10,7 @@
  * overdue = dueDate < today AND status not in (done)
  * pilotReadiness = average completion of phases 10,12 milestones weighted
  */
-import { PHASE_ORDER, READINESS_WORKSTREAM_MAP } from "./constants";
+import { PHASE_ORDER, PRIORITY_RANK, READINESS_WORKSTREAM_MAP } from "./constants";
 import type {
   RoadmapContactRecord,
   RoadmapMetrics,
@@ -116,18 +116,11 @@ export function computeMetrics(
       ? daysBetween(now, nextMilestone.targetDate)
       : null;
 
-  const priorityRank: Record<string, number> = {
-    critical: 0,
-    high: 1,
-    medium: 2,
-    low: 3,
-  };
-
   const topPriorities = [...tasks]
     .filter((t) => t.status !== "done")
     .sort((a, b) => {
       const pr =
-        (priorityRank[a.priority] ?? 9) - (priorityRank[b.priority] ?? 9);
+        (PRIORITY_RANK[a.priority] ?? 9) - (PRIORITY_RANK[b.priority] ?? 9);
       if (pr !== 0) return pr;
       if (a.isCriticalPath !== b.isCriticalPath)
         return a.isCriticalPath ? -1 : 1;

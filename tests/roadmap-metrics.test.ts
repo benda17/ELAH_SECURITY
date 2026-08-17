@@ -5,6 +5,7 @@ import {
   isTaskOverdue,
   weightedCompletion,
 } from "../lib/roadmap/metrics";
+import { compareTasksByImportance } from "../lib/roadmap/constants";
 import type { RoadmapMilestoneRecord, RoadmapTaskRecord } from "../lib/roadmap/types";
 
 const baseTask = (overrides: Partial<RoadmapTaskRecord>): RoadmapTaskRecord => ({
@@ -79,5 +80,24 @@ const metrics = computeMetrics(
 assert.equal(metrics.tasksTotal, 2);
 assert.equal(metrics.tasksCompleted, 1);
 assert.equal(metrics.overallCompletion, 50);
+
+const sorted = [
+  baseTask({ id: "low", title: "Later", priority: "low", order: 0 }),
+  baseTask({ id: "crit-b", title: "B critical", priority: "critical", order: 2 }),
+  baseTask({ id: "high", title: "High", priority: "high", order: 0 }),
+  baseTask({ id: "crit-a", title: "A critical", priority: "critical", order: 1 }),
+  baseTask({
+    id: "high-cp",
+    title: "High CP",
+    priority: "high",
+    isCriticalPath: true,
+    order: 0,
+  }),
+].sort(compareTasksByImportance);
+
+assert.deepEqual(
+  sorted.map((t) => t.id),
+  ["crit-a", "crit-b", "high-cp", "high", "low"],
+);
 
 console.log("roadmap-metrics.test.ts: all assertions passed");

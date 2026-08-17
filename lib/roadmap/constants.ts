@@ -1,4 +1,4 @@
-import type { TaskStatus } from "./types";
+import { TASK_PRIORITIES, type TaskStatus } from "./types";
 
 export const KANBAN_COLUMNS: { key: TaskStatus; label: string }[] = [
   { key: "backlog", label: "Backlog" },
@@ -41,6 +41,41 @@ export const PRIORITY_COLORS: Record<string, string> = {
   medium: "border-accent-cyan/30 bg-accent-cyan/10 text-accent-cyan",
   low: "border-surface-border bg-surface-raised text-ink-muted",
 };
+
+/** Lower rank = higher importance. Used so critical cards stay at the top. */
+export const PRIORITY_RANK: Record<string, number> = {
+  critical: 0,
+  high: 1,
+  medium: 2,
+  low: 3,
+};
+
+export const PRIORITY_FILTERS = ["all", ...TASK_PRIORITIES] as const;
+export type PriorityFilter = (typeof PRIORITY_FILTERS)[number];
+
+export const PRIORITY_LABELS: Record<PriorityFilter, string> = {
+  all: "All",
+  critical: "Critical",
+  high: "High",
+  medium: "Medium",
+  low: "Low",
+};
+
+export function compareTasksByImportance<
+  T extends {
+    priority: string;
+    isCriticalPath: boolean;
+    order: number;
+    title: string;
+  },
+>(a: T, b: T): number {
+  const byPriority =
+    (PRIORITY_RANK[a.priority] ?? 9) - (PRIORITY_RANK[b.priority] ?? 9);
+  if (byPriority !== 0) return byPriority;
+  if (a.isCriticalPath !== b.isCriticalPath) return a.isCriticalPath ? -1 : 1;
+  if (a.order !== b.order) return a.order - b.order;
+  return a.title.localeCompare(b.title);
+}
 
 export const STATUS_COLORS: Record<TaskStatus, string> = {
   backlog: "border-surface-border bg-surface-raised text-ink-muted",

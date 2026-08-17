@@ -2,7 +2,13 @@
 
 import { useMemo, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
-import { KANBAN_COLUMNS } from "@/lib/roadmap/constants";
+import {
+  KANBAN_COLUMNS,
+  PRIORITY_FILTERS,
+  PRIORITY_LABELS,
+  compareTasksByImportance,
+  type PriorityFilter,
+} from "@/lib/roadmap/constants";
 import type { RoadmapTaskRecord, TaskStatus } from "@/lib/roadmap/types";
 import { PriorityBadge } from "./badges";
 import { ProgressBar } from "./progress-bar";
@@ -13,12 +19,37 @@ export function KanbanBoard({ tasks }: { tasks: RoadmapTaskRecord[] }) {
   const router = useRouter();
   const [dragging, setDragging] = useState<string | null>(null);
   const [selected, setSelected] = useState<RoadmapTaskRecord | null>(null);
+  const [priorityFilter, setPriorityFilter] = useState<PriorityFilter>("all");
   const didDrag = useRef(false);
 
   const relatedTitles = useMemo(
     () => Object.fromEntries(tasks.map((t) => [t.id, t.title])),
     [tasks],
   );
+
+  const priorityCounts = useMemo(() => {
+    const counts: Record<PriorityFilter, number> = {
+      all: tasks.length,
+      critical: 0,
+      high: 0,
+      medium: 0,
+      low: 0,
+    };
+    for (const t of tasks) {
+      if (t.priority in counts) {
+        counts[t.priority as Exclude<PriorityFilter, "all">] += 1;
+      }
+    }
+    return counts;
+  }, [tasks]);
+
+  const visibleTasks = useMemo(() => {
+    const filtered =
+      priorityFilter === "all"
+        ? tasks
+        : tasks.filter((t) => t.priority === priorityFilter);
+    return [...filtered].sort(compareTasksByImportance);
+  }, [tasks, priorityFilter]);
 
   async function moveTask(id: string, status: TaskStatus) {
     await fetch(`/api/founder/roadmap/tasks/${id}`, {
@@ -34,9 +65,41 @@ export function KanbanBoard({ tasks }: { tasks: RoadmapTaskRecord[] }) {
 
   return (
     <>
+      <div className="flex flex-wrap items-center justify-between gap-3 rounded-xl border border-surface-border bg-surface-raised/40 px-3 py-2">
+        <div>
+          <p className="text-[10px] font-semibold uppercase tracking-wider text-ink-muted">
+            Importance
+          </p>
+          <p className="text-[11px] text-ink-dim">
+            Critical cards stay at the top of every column.
+          </p>
+        </div>
+        <div className="flex flex-wrap gap-1.5" role="group" aria-label="Filter by importance">
+          {PRIORITY_FILTERS.map((key) => {
+            const active = priorityFilter === key;
+            return (
+              <button
+                key={key}
+                type="button"
+                aria-pressed={active}
+                onClick={() => setPriorityFilter(key)}
+                className={cn(
+                  "rounded-full border px-3 py-1 text-xs capitalize",
+                  active
+                    ? "border-accent-cyan/40 bg-accent-cyan/15 text-accent-cyan"
+                    : "border-surface-border text-ink-muted hover:text-ink",
+                )}
+              >
+                {PRIORITY_LABELS[key]} ({priorityCounts[key]})
+              </button>
+            );
+          })}
+        </div>
+      </div>
+
       <div className="flex gap-3 overflow-x-auto pb-4">
         {KANBAN_COLUMNS.map((col) => {
-          const colTasks = tasks.filter((t) => t.status === col.key);
+          const colTasks = visibleTasks.filter((t) => t.status === col.key);
           return (
             <div
               key={col.key}
@@ -70,7 +133,10 @@ export function KanbanBoard({ tasks }: { tasks: RoadmapTaskRecord[] }) {
                     }}
                     className={cn(
                       "cursor-grab rounded-lg border border-surface-border bg-surface-base/80 p-3 active:cursor-grabbing",
-                      task.isCriticalPath && "border-accent-amber/30",
+                      task.priority === "critical" && "border-accent-rose/40",
+                      task.isCriticalPath &&
+                        task.priority !== "critical" &&
+                        "border-accent-amber/30",
                       "hover:border-accent-cyan/40",
                     )}
                   >
@@ -109,7 +175,11 @@ export function KanbanBoard({ tasks }: { tasks: RoadmapTaskRecord[] }) {
                   </div>
                 ))}
                 {colTasks.length === 0 && (
-                  <p className="px-2 py-6 text-center text-xs text-ink-dim">No tasks</p>
+                  <p className="px-2 py-6 text-center text-xs text-ink-dim">
+                    {priorityFilter === "all"
+                      ? "No tasks"
+                      : `No ${PRIORITY_LABELS[priorityFilter].toLowerCase()} tasks`}
+                  </p>
                 )}
               </div>
             </div>
