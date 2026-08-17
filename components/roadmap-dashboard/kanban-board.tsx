@@ -70,19 +70,20 @@ export function KanbanBoard({ tasks }: { tasks: RoadmapTaskRecord[] }) {
     criticalOnly ||
     Boolean(filters.search);
 
-  const phasesPresent = useMemo(() => {
+  const phasesPresent = useMemo((): string[] => {
     const seen = new Set(tasks.map((t) => t.phase));
     const ordered = PHASE_ORDER.filter((p) => seen.has(p));
-    const extras = [...seen].filter((p) => !PHASE_ORDER.includes(p as (typeof PHASE_ORDER)[number]));
-    extras.sort();
+    const extras = [...seen]
+      .filter((p) => !ordered.includes(p as (typeof PHASE_ORDER)[number]))
+      .sort();
     return [...ordered, ...extras];
   }, [tasks]);
 
-  const workstreamsPresent = useMemo(() => {
+  const workstreamsPresent = useMemo((): string[] => {
     const seen = new Set(tasks.map((t) => t.workstream));
-    return WORKSTREAMS.filter((w) => seen.has(w)).concat(
-      [...seen].filter((w) => !WORKSTREAMS.includes(w as (typeof WORKSTREAMS)[number])).sort(),
-    );
+    const known = WORKSTREAMS.filter((w) => seen.has(w));
+    const extras = [...seen].filter((w) => !known.includes(w as (typeof WORKSTREAMS)[number])).sort();
+    return [...known, ...extras];
   }, [tasks]);
 
   const priorityCounts = useMemo(() => {
