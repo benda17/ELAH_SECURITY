@@ -1,25 +1,50 @@
 {
   "expo": {
-    "name": "elah-founder-mobile",
-    "slug": "elah-founder-mobile",
+    "name": "ELAH Founder",
+    "slug": "elah-founder",
     "version": "1.0.0",
     "orientation": "portrait",
     "icon": "./assets/icon.png",
-    "userInterfaceStyle": "light",
+    "userInterfaceStyle": "dark",
+    "scheme": "elahfounder",
+    "splash": {
+      "image": "./assets/icon.png",
+      "resizeMode": "contain",
+      "backgroundColor": "#000000"
+    },
     "ios": {
-      "supportsTablet": true
+      "supportsTablet": false,
+      "bundleIdentifier": "com.elahsecurity.founder",
+      "infoPlist": {
+        "UIBackgroundModes": ["fetch"],
+        "NSUserNotificationsUsageDescription": "ELAH reminds you about overdue tasks, due dates, and outreach follow-ups.",
+        "LSApplicationQueriesSchemes": ["whatsapp", "whatsapp-business"],
+        "ITSAppUsesNonExemptEncryption": false
+      }
     },
     "android": {
+      "package": "com.elahsecurity.founder",
       "adaptiveIcon": {
-        "backgroundColor": "#E6F4FE",
-        "foregroundImage": "./assets/android-icon-foreground.png",
-        "backgroundImage": "./assets/android-icon-background.png",
-        "monochromeImage": "./assets/android-icon-monochrome.png"
-      },
-      "predictiveBackGestureEnabled": false
+        "backgroundColor": "#000000",
+        "foregroundImage": "./assets/icon.png"
+      }
     },
-    "web": {
-      "favicon": "./assets/favicon.png"
-    }
+    "plugins": [
+      "expo-secure-store",
+      [
+        "expo-notifications",
+        {
+          "icon": "./assets/icon.png",
+          "color": "#00A8FF",
+          "defaultChannel": "elah-reminders"
+        }
+      ]
+    ],
+    "extra": {
+      "eas": {
+        "projectId": "8a146640-5b3a-41ae-a454-fc07d6def984"
+      }
+    },
+    "owner": "benda"
   }
 }
