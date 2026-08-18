@@ -21,6 +21,7 @@ import {
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { founderLogoutAction } from "@/app/actions/founder-auth";
+import { AppDrawerShell } from "@/components/app-drawer-shell";
 
 const PRIMARY_NAV = [
   { href: "/founder/overview", label: "Overview", icon: LayoutDashboard },
@@ -48,8 +49,8 @@ export function FounderSidebar() {
   const inRoadmap = pathname.startsWith("/founder/roadmap");
 
   return (
-    <aside className="flex w-60 shrink-0 flex-col border-r border-surface-border bg-surface-raised/50">
-      <div className="border-b border-surface-border p-4">
+    <AppDrawerShell eyebrow="Founder & Manager" title="ELAH Admin">
+      <div className="hidden border-b border-surface-border p-4 lg:block">
         <div className="flex items-center gap-2">
           <Image src="/elah-logo.png" alt="ELAH" width={28} height={28} />
           <div>
@@ -72,7 +73,7 @@ export function FounderSidebar() {
               key={href}
               href={href}
               className={cn(
-                "flex items-center gap-2 rounded-lg px-3 py-2 text-sm transition-colors",
+                "flex min-h-11 items-center gap-2 rounded-lg px-3 py-2.5 text-sm transition-colors lg:min-h-0 lg:py-2",
                 active
                   ? "bg-accent-gold/15 text-accent-gold"
                   : "text-ink-muted hover:bg-surface-border/40 hover:text-ink",
@@ -93,7 +94,7 @@ export function FounderSidebar() {
                 key={href}
                 href={href}
                 className={cn(
-                  "flex items-center gap-2 rounded-lg px-3 py-1.5 text-xs transition-colors",
+                  "flex min-h-11 items-center gap-2 rounded-lg px-3 py-2 text-sm transition-colors lg:min-h-0 lg:py-1.5 lg:text-xs",
                   pathname === href
                     ? "bg-accent-cyan/15 text-accent-cyan"
                     : "text-ink-muted hover:text-ink",
@@ -106,19 +107,19 @@ export function FounderSidebar() {
           </div>
         )}
       </nav>
-      <div className="space-y-1 border-t border-surface-border p-3 text-xs">
-        <Link href="/banking/dashboard" className="block text-ink-muted hover:text-ink">
+      <div className="space-y-1 border-t border-surface-border p-3 pb-[max(0.75rem,env(safe-area-inset-bottom))] text-xs">
+        <Link href="/banking/dashboard" className="block min-h-11 py-2 text-ink-muted hover:text-ink lg:min-h-0 lg:py-0">
           → Banking analytics
         </Link>
         <form action={founderLogoutAction}>
           <button
             type="submit"
-            className="flex w-full items-center gap-1 text-left text-ink-muted hover:text-ink"
+            className="flex min-h-11 w-full items-center gap-1 text-left text-ink-muted hover:text-ink lg:min-h-0"
           >
             <LogOut className="size-3" /> Sign out
           </button>
         </form>
       </div>
-    </aside>
+    </AppDrawerShell>
   );
 }

@@ -422,7 +422,7 @@ export function DraftActions({
               type="button"
               disabled={busy}
               onClick={postToElahPage}
-              className="rounded bg-accent-gold px-3 py-1.5 text-xs font-semibold text-surface-base disabled:opacity-50"
+              className="min-h-11 rounded bg-accent-gold px-3 py-2 text-xs font-semibold text-surface-base disabled:opacity-50"
               title="Copy formatted post and open Elah Security admin (post as Page)"
             >
               Post to Elah page
@@ -441,7 +441,7 @@ export function DraftActions({
           type="button"
           disabled={busy || !canPublishFacebook}
           onClick={() => patch("publish_facebook")}
-          className="rounded border border-[#1877F2]/50 bg-[#1877F2]/15 px-3 py-1.5 text-xs font-semibold text-[#60a5fa] disabled:cursor-not-allowed disabled:opacity-40"
+          className="min-h-11 rounded border border-[#1877F2]/50 bg-[#1877F2]/15 px-3 py-2 text-xs font-semibold text-[#60a5fa] disabled:cursor-not-allowed disabled:opacity-40"
           title={
             canPublishFacebook
               ? "Publish this draft to the Facebook Page"

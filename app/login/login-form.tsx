@@ -19,7 +19,7 @@ export function FounderLoginForm() {
           autoComplete="username"
           required
           defaultValue="bnd"
-          className="w-full rounded-xl border border-surface-border bg-surface-base px-3 py-2.5 text-sm text-ink outline-none ring-accent-gold/40 focus:ring-2"
+          className="w-full rounded-xl border border-surface-border bg-surface-base px-3 py-3 text-base text-ink outline-none ring-accent-gold/40 focus:ring-2 lg:py-2.5 lg:text-sm"
         />
       </label>
       <label className="block space-y-1.5">
@@ -31,7 +31,7 @@ export function FounderLoginForm() {
           type="password"
           autoComplete="current-password"
           required
-          className="w-full rounded-xl border border-surface-border bg-surface-base px-3 py-2.5 text-sm text-ink outline-none ring-accent-gold/40 focus:ring-2"
+          className="w-full rounded-xl border border-surface-border bg-surface-base px-3 py-3 text-base text-ink outline-none ring-accent-gold/40 focus:ring-2 lg:py-2.5 lg:text-sm"
         />
       </label>
 
@@ -52,7 +52,7 @@ function SubmitButton() {
     <button
       type="submit"
       disabled={pending}
-      className="w-full rounded-xl bg-accent-gold px-4 py-2.5 text-sm font-semibold text-surface-base transition hover:brightness-110 disabled:opacity-60"
+      className="w-full min-h-12 rounded-xl bg-accent-gold px-4 py-3 text-base font-semibold text-surface-base transition hover:brightness-110 disabled:opacity-60 lg:min-h-0 lg:py-2.5 lg:text-sm"
     >
       {pending ? "Signing in…" : "Sign in"}
     </button>

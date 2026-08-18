@@ -4,9 +4,11 @@ export const dynamic = "force-dynamic";
 
 export default function FounderLayout({ children }: { children: React.ReactNode }) {
   return (
-    <div className="flex min-h-screen bg-surface-base text-ink">
+    <div className="flex min-h-dvh bg-surface-base text-ink">
       <FounderSidebar />
-      <main className="min-w-0 flex-1 overflow-y-auto p-4 sm:p-6">{children}</main>
+      <main className="min-w-0 flex-1 overflow-x-hidden overflow-y-auto p-4 pt-[calc(3.75rem+env(safe-area-inset-top))] sm:p-6 lg:pt-6">
+        {children}
+      </main>
     </div>
   );
 }

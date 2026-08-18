@@ -48,6 +48,7 @@ export function KanbanBoard({ tasks }: { tasks: RoadmapTaskRecord[] }) {
   const [workstreamFilter, setWorkstreamFilter] = useState("");
   const [criticalOnly, setCriticalOnly] = useState(false);
   const [search, setSearch] = useState("");
+  const [mobileCol, setMobileCol] = useState<TaskStatus>("in_progress");
   const didDrag = useRef(false);
 
   const relatedTitles = useMemo(
@@ -152,7 +153,7 @@ export function KanbanBoard({ tasks }: { tasks: RoadmapTaskRecord[] }) {
     <>
       <div className="space-y-3 rounded-xl border border-surface-border bg-surface-raised/40 px-3 py-3">
         <div className="flex flex-wrap items-end gap-2">
-          <label className="min-w-[160px] flex-1">
+          <label className="min-w-[160px] flex-1 basis-full sm:basis-auto">
             <span className="mb-1 block text-[10px] font-semibold uppercase tracking-wider text-ink-muted">
               Search
             </span>
@@ -160,17 +161,17 @@ export function KanbanBoard({ tasks }: { tasks: RoadmapTaskRecord[] }) {
               value={search}
               onChange={(e) => setSearch(e.target.value)}
               placeholder="Title, phase, owner…"
-              className={cn(selectClass, "w-full")}
+              className={cn(selectClass, "w-full min-h-11 lg:min-h-0")}
             />
           </label>
-          <label>
+          <label className="min-w-[140px] flex-1">
             <span className="mb-1 block text-[10px] font-semibold uppercase tracking-wider text-ink-muted">
               Phase
             </span>
             <select
               value={phaseFilter}
               onChange={(e) => setPhaseFilter(e.target.value)}
-              className={selectClass}
+              className={cn(selectClass, "w-full min-h-11 lg:min-h-0")}
               aria-label="Filter by phase"
             >
               <option value="">All phases</option>
@@ -188,14 +189,14 @@ export function KanbanBoard({ tasks }: { tasks: RoadmapTaskRecord[] }) {
               })}
             </select>
           </label>
-          <label>
+          <label className="min-w-[140px] flex-1">
             <span className="mb-1 block text-[10px] font-semibold uppercase tracking-wider text-ink-muted">
               Workstream
             </span>
             <select
               value={workstreamFilter}
               onChange={(e) => setWorkstreamFilter(e.target.value)}
-              className={selectClass}
+              className={cn(selectClass, "w-full min-h-11 lg:min-h-0")}
               aria-label="Filter by workstream"
             >
               <option value="">All workstreams</option>
@@ -276,13 +277,40 @@ export function KanbanBoard({ tasks }: { tasks: RoadmapTaskRecord[] }) {
         </p>
       </div>
 
-      <div className="flex gap-3 overflow-x-auto pb-4">
+      <div className="flex gap-1 overflow-x-auto pb-1 md:hidden" role="tablist" aria-label="Kanban column">
+        {KANBAN_COLUMNS.map((col) => {
+          const n = visibleTasks.filter((t) => t.status === col.key).length;
+          const active = mobileCol === col.key;
+          return (
+            <button
+              key={col.key}
+              type="button"
+              role="tab"
+              aria-selected={active}
+              onClick={() => setMobileCol(col.key)}
+              className={cn(
+                "shrink-0 rounded-full border px-3 py-2 text-xs",
+                active
+                  ? "border-accent-cyan/40 bg-accent-cyan/15 text-accent-cyan"
+                  : "border-surface-border text-ink-muted",
+              )}
+            >
+              {col.label} ({n})
+            </button>
+          );
+        })}
+      </div>
+
+      <div className="flex flex-col gap-3 md:flex-row md:overflow-x-auto md:pb-4">
         {KANBAN_COLUMNS.map((col) => {
           const colTasks = visibleTasks.filter((t) => t.status === col.key);
           return (
             <div
               key={col.key}
-              className="min-w-[260px] flex-1 rounded-xl border border-surface-border bg-surface-raised/40"
+              className={cn(
+                "rounded-xl border border-surface-border bg-surface-raised/40 md:min-w-[260px] md:flex-1",
+                mobileCol !== col.key && "hidden md:block",
+              )}
               onDragOver={(e) => e.preventDefault()}
               onDrop={() => {
                 if (dragging) void moveTask(dragging, col.key);

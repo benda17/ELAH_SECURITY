@@ -13,6 +13,7 @@ import {
   Wrench,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { AppDrawerShell } from "@/components/app-drawer-shell";
 
 const NAV = [
   { href: "/banking/app", label: "Banking App", icon: ExternalLink },
@@ -27,8 +28,8 @@ const NAV = [
 export function BankingSidebar() {
   const pathname = usePathname();
   return (
-    <aside className="flex w-60 shrink-0 flex-col border-r border-surface-border bg-surface-raised/50">
-      <div className="border-b border-surface-border p-4">
+    <AppDrawerShell eyebrow="Banking System" title="ELAH Demo">
+      <div className="hidden border-b border-surface-border p-4 lg:block">
         <div className="flex items-center gap-2">
           <Image src="/elah-logo.png" alt="ELAH" width={28} height={28} />
           <div>
@@ -39,7 +40,7 @@ export function BankingSidebar() {
           </div>
         </div>
       </div>
-      <nav className="flex-1 space-y-0.5 p-2">
+      <nav className="flex-1 space-y-0.5 overflow-y-auto p-2">
         {NAV.map(({ href, label, icon: Icon }) => {
           const active = pathname === href || pathname.startsWith(`${href}/`);
           return (
@@ -47,7 +48,7 @@ export function BankingSidebar() {
               key={href}
               href={href}
               className={cn(
-                "flex items-center gap-2 rounded-lg px-3 py-2 text-sm transition-colors",
+                "flex min-h-11 items-center gap-2 rounded-lg px-3 py-2.5 text-sm transition-colors lg:min-h-0 lg:py-2",
                 active
                   ? "bg-accent-cyan/15 text-accent-cyan"
                   : "text-ink-muted hover:bg-surface-border/40 hover:text-ink",
@@ -59,11 +60,11 @@ export function BankingSidebar() {
           );
         })}
       </nav>
-      <div className="space-y-1 border-t border-surface-border p-3 text-xs">
-        <Link href="/founder/overview" className="block text-ink-muted hover:text-ink">
+      <div className="space-y-1 border-t border-surface-border p-3 pb-[max(0.75rem,env(safe-area-inset-bottom))] text-xs">
+        <Link href="/founder/overview" className="block min-h-11 py-2 text-ink-muted hover:text-ink lg:min-h-0 lg:py-0">
           → Founder Admin
         </Link>
       </div>
-    </aside>
+    </AppDrawerShell>
   );
 }

@@ -222,9 +222,6 @@ export async function publishDraftToFacebookById(
     data: {
       facebookPostId: result.postId ?? null,
       facebookPublishedAt: new Date(),
-      ...(draft.status !== "published"
-        ? { status: "published", publishedAt: new Date() }
-        : {}),
     },
   });
   return { ok: true, postId: result.postId };

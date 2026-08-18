@@ -6,6 +6,10 @@
   color-scheme: dark;
 }
 
+html {
+  -webkit-text-size-adjust: 100%;
+}
+
 html,
 body {
   background:
@@ -15,6 +19,15 @@ body {
   color: theme(colors.ink.DEFAULT);
   font-family: theme(fontFamily.sans);
   min-height: 100vh;
+  min-height: 100dvh;
+}
+
+@media (max-width: 1023px) {
+  input,
+  select,
+  textarea {
+    font-size: 16px !important;
+  }
 }
 
 @layer components {

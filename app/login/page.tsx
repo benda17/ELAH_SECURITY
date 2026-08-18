@@ -7,7 +7,7 @@ export const metadata = {
 
 export default function LoginPage() {
   return (
-    <div className="flex min-h-screen items-center justify-center bg-surface-base px-4 text-ink">
+    <div className="flex min-h-dvh items-center justify-center bg-surface-base px-4 text-ink">
       <div className="w-full max-w-md rounded-2xl border border-surface-border bg-surface-raised/80 p-8 shadow-[0_1px_0_rgba(255,255,255,0.03)_inset]">
         <div className="flex items-center gap-3">
           <Image src="/elah-logo.png" alt="ELAH" width={40} height={40} />
