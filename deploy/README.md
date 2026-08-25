@@ -29,9 +29,9 @@ Use **`deploy/vercel-banking.env`** as a template:
 | Production branch | `ELAH_BANKING_SYSTEM` |
 | Framework | Next.js |
 | Root directory | *(blank)* |
-| Build command | `npx prisma db push && npx prisma db seed && npm run build` |
+| Build command | `npx prisma generate && npm run build` |
 
-Build will create tables and seed demo users (`DemoPass123!`).
+Do **not** run `prisma db push` on Vercel. Banking and the founder dashboard share the same Neon `public` schema; a push from either Prisma file can drop the other app’s columns.
 
 ## Notes
 

@@ -23,10 +23,10 @@ See `deploy/README.md` and `deploy/vercel-banking.env`.
 Vercel runs:
 
 ```bash
-npx prisma db push && npx prisma db seed && npm run build
+npx prisma generate && npm run build
 ```
 
-(configured in `vercel.json`)
+Do **not** run `prisma db push` on Vercel. The founder dashboard and banking simulator share Neon `public`; a push from the founder schema tried to drop banking `AuditLog.eventId` / `source`.
 
 ## After deploy
 
