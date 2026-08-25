@@ -18,6 +18,7 @@ export interface TestFixtures {
 const DEMO_PASSWORD = "DemoPass123!";
 
 async function clearDatabase() {
+  await prisma.elahTrainingEvent.deleteMany();
   await prisma.agentIntentEvent.deleteMany();
   await prisma.agentIntentAggregate.deleteMany();
   await prisma.intentMatrixSeed.deleteMany();

@@ -59,6 +59,7 @@ export async function updateProfileAction(
     targetResource: `customer_${profile.id.slice(-6)}`,
     riskLevel: risk,
     actionOutcome: "submitted",
+    createdByAgent: false,
     inputDataSummary: { changedFields: changed }, // intentionally no values
   });
 

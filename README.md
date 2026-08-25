@@ -28,7 +28,7 @@ npm install
 docker compose up -d
 npm run db:push
 npm run db:seed
-# or, to nuke and re-seed in one command:
+# Destructive schema reset (drops tables) then seed — prefer simulator:reset for Phase 1:
 npm run db:reset
 
 # 3) Start the local dev server
@@ -52,6 +52,22 @@ All demo accounts use password **`DemoPass123!`**. Passwords are hashed with bcr
 | `agent@elah.demo` | AI Agent placeholder | — |
 
 After login, each role is auto-routed to its portal: customers → `/dashboard`, manager → `/manager/dashboard`, security reviewer → `/admin/security-dashboard`, AI agent → `/admin/agent-simulation-logs`. Cross-portal access is blocked and logged as a high-risk audit event.
+
+### Seeding and reset (Phase 1)
+
+The Phase 1 fixture is the six canonical demo users in `prisma/seed.ts`. Restore it with:
+
+```bash
+npm run seed:phase1          # same as npm run db:seed
+npm run simulator:reset      # recommended: canonical seed + ensure demo emails
+```
+
+Password for all six accounts is **`DemoPass123!`**.
+
+- `npm run seed:dataset` loads analytics volume (many customers / audit rows). Always follow it with `npm run seed:demo-logins` so login emails match `lib/auth/demo-accounts.ts`.
+- Masked account suffixes (`**** **** **** 1234`) are random each seed; do not use them as stable IDs.
+- `npm run simulator:reset` refuses Neon hosts (`*.neon.tech`) and `NODE_ENV=production` unless `ALLOW_DB_RESET=1` is set. It does **not** drop the schema.
+- `npm run db:reset` is a **destructive schema reset** (`prisma db push --force-reset`) plus seed. Prefer `simulator:reset` for Phase 1.
 
 ### Environment
 

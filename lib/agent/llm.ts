@@ -307,7 +307,10 @@ export async function callLLM(
     };
   } catch (err) {
     console.error("[agent-llm] provider error, using fallback", err);
-    return fallbackPlan(lastUser, firstName);
+    return {
+      ...fallbackPlan(lastUser, firstName),
+      degradedFromProvider: true,
+    };
   }
 }
 

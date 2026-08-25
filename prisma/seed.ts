@@ -33,7 +33,19 @@ function pad4(n: number) {
 }
 
 async function clearAll() {
-  // Order matters because of FKs.
+  // Order matters because of FKs. Wipe operational / demo rows only.
+  // IntentMatrixSeed is a catalog populated by `npm run seed:intent-matrix`,
+  // not by this script — leave it in place.
+
+  // Agent / ELAH operational tables (conversation children before parent).
+  await prisma.elahTrainingEvent.deleteMany();
+  await prisma.agentIntentEvent.deleteMany();
+  await prisma.agentIntentAggregate.deleteMany();
+  await prisma.agentEventLog.deleteMany();
+  await prisma.agentMessage.deleteMany();
+  await prisma.agentPendingAction.deleteMany();
+  await prisma.agentConversation.deleteMany();
+
   await prisma.agentActionLog.deleteMany();
   await prisma.riskEvent.deleteMany();
   await prisma.auditLog.deleteMany();

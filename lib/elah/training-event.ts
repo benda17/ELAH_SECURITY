@@ -17,11 +17,12 @@ import type {
   ElahActionOutcome,
   ElahLabelSource,
 } from "./types";
+import { currentEventId } from "./event-context";
 
 const DEFAULT_APP_ID = process.env.ELAH_APP_ID ?? "elah-banking-demo";
 
 export async function createElahTrainingEventFromAssistantInteraction(
-  interaction: AssistantInteractionInput,
+  interaction: AssistantInteractionInput & { eventId?: string | null },
 ): Promise<{ created: boolean; id: string }> {
   const existing = await prisma.elahTrainingEvent.findUnique({
     where: { messageId: interaction.messageId },
@@ -91,6 +92,7 @@ export async function createElahTrainingEventFromAssistantInteraction(
       weakSignals: JSON.stringify(explanation.weakSignals),
       negativeSignals: JSON.stringify(explanation.negativeSignals),
       notes: interaction.notes ?? null,
+      eventId: interaction.eventId ?? currentEventId() ?? null,
       ...(interaction.createdAt ? { createdAt: interaction.createdAt, updatedAt: interaction.createdAt } : {}),
     },
   });
@@ -112,6 +114,7 @@ export interface RecordElahTurnInput {
   actionOutcome: ElahActionOutcome;
   matrixClassification?: ClassifyAgentIntentResult | null;
   labelSource?: ElahLabelSource;
+  eventId?: string | null;
 }
 
 export async function recordElahTrainingEventForTurn(
@@ -161,6 +164,7 @@ export async function recordElahTrainingEventForTurn(
     matrixMatchedSignals: input.matrixClassification?.matchedSignals ?? [],
     matrixSuspiciousPatterns: input.matrixClassification?.suspiciousPatterns ?? [],
     labelSource: input.labelSource ?? "rules_v0",
+    eventId: input.eventId ?? currentEventId() ?? null,
   });
 }
 

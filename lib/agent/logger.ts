@@ -1,6 +1,19 @@
 import "server-only";
 import { prisma } from "@/lib/db";
+import { currentEventId, mintEventId } from "@/lib/elah/event-context";
 import { FORBIDDEN_TOOL_ARG_KEYS } from "./sanitize";
+
+export const MODEL_SNIPPET_CAP = 500;
+
+/** Short, redacted text from the model or tool — never a token dump. */
+export function capModelSnippet(text: string | null | undefined): string | null {
+  if (!text) return null;
+  const trimmed = text.trim();
+  if (!trimmed) return null;
+  const redacted = trimmed.replace(/\d{8,}/g, "[redacted_account_number]");
+  if (redacted.length <= MODEL_SNIPPET_CAP) return redacted;
+  return `${redacted.slice(0, MODEL_SNIPPET_CAP)}…`;
+}
 
 export type AgentEventType =
   | "user_message_received"
@@ -37,6 +50,7 @@ export interface WriteAgentEventInput {
   ipAddress?: string | null;
   userAgent?: string | null;
   metadata?: Record<string, unknown> | null;
+  eventId?: string | null;
 }
 
 /**
@@ -62,9 +76,53 @@ export function sanitizeToolArgs(
   return out;
 }
 
+/**
+ * Next monotonic hop index for a conversation's AgentEventLog chain.
+ * Stored in metadata.sequence (no Prisma column). Returns 1 when none exist
+ * or conversationId is missing.
+ */
+export async function nextAgentSequence(
+  conversationId: string | null | undefined,
+): Promise<number> {
+  if (!conversationId) return 1;
+  const count = await prisma.agentEventLog.count({
+    where: { conversationId },
+  });
+  return count + 1;
+}
+
+function resolveTurnId(input: WriteAgentEventInput): string | undefined {
+  const fromMeta = input.metadata?.turnId;
+  if (typeof fromMeta === "string" && fromMeta.length > 0) return fromMeta;
+  if (typeof input.messageId === "string" && input.messageId.length > 0) {
+    return input.messageId;
+  }
+  return undefined;
+}
+
+/**
+ * Ops-only AgentEventLog metadata. schemaVersion here is the capture hop
+ * contract, not ElahEvent 1.0 (that mapper lives elsewhere).
+ */
+export function mergeAgentEventMetadata(
+  input: WriteAgentEventInput,
+  sequence: number,
+): Record<string, unknown> {
+  const turnId = resolveTurnId(input);
+  return {
+    ...(input.metadata ?? {}),
+    schemaVersion: "1.0",
+    sequence,
+    ...(turnId ? { turnId } : {}),
+  };
+}
+
 export async function writeAgentEvent(input: WriteAgentEventInput) {
   try {
-    await prisma.agentEventLog.create({
+    const eventId = input.eventId ?? currentEventId() ?? mintEventId();
+    const sequence = await nextAgentSequence(input.conversationId);
+    const metadata = mergeAgentEventMetadata(input, sequence);
+    return await prisma.agentEventLog.create({
       data: {
         eventType: input.eventType,
         userId: input.userId ?? null,
@@ -87,11 +145,13 @@ export async function writeAgentEvent(input: WriteAgentEventInput) {
         latencyMs: input.latencyMs ?? null,
         ipAddress: input.ipAddress ?? null,
         userAgent: input.userAgent ?? null,
-        metadata: input.metadata ? JSON.stringify(input.metadata) : null,
+        metadata: JSON.stringify(metadata),
+        eventId,
       },
     });
   } catch (err) {
     // Never let logging fail the request.
     console.error("[agent-event-log] write failed", err);
+    return undefined;
   }
 }

@@ -33,10 +33,12 @@ export async function downloadDocumentAction(
     targetResource: `doc_${doc.id.slice(-6)}`,
     riskLevel: sensitive ? "high" : "medium",
     actionOutcome: "submitted",
+    createdByAgent: false,
     inputDataSummary: {
       documentType: doc.documentType,
       sensitivity: doc.sensitivityLevel,
       title: doc.title,
+      documentIdSuffix: doc.id.slice(-6),
     },
     reasonForFlagging: doc.containsInjectionTest
       ? "Document metadata contains controlled injection test text."
@@ -71,6 +73,7 @@ export async function bulkDownloadAction(): Promise<DocResult> {
     toolOrFeatureUsed: "bulk_download_button",
     riskLevel: "high",
     actionOutcome: "blocked",
+    createdByAgent: false,
     reasonForFlagging:
       "Customer attempted to bulk-download all documents. Bulk download requires confirmation and may be blocked depending on tier.",
   });

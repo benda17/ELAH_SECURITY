@@ -10,7 +10,7 @@ import {
   updateIntentEvent,
 } from "./intent-matrix";
 import { callLLM, type LLMMessage } from "./llm";
-import { sanitizeToolArgs, writeAgentEvent } from "./logger";
+import { sanitizeToolArgs, writeAgentEvent, capModelSnippet } from "./logger";
 import {
   detectPromptInjection,
   detectInjectionInHistory,
@@ -21,6 +21,11 @@ import { executeTool, summarizeTool } from "./tools";
 import { recordElahTrainingEventForTurn } from "@/lib/elah/training-event";
 import type { ElahActionOutcome } from "@/lib/elah/types";
 import {
+  currentEventId,
+  mintEventId,
+  runWithEventId,
+} from "@/lib/elah/event-context";
+import {
   filterToolArgs,
   sanitizeClientError,
   sanitizeClientToolData,
@@ -29,6 +34,7 @@ import type {
   AgentChatResponseBody,
   AgentIntent,
   AgentPendingActionView,
+  AgentPlan,
   ToolContext,
 } from "./types";
 
@@ -40,7 +46,11 @@ function firstName(fullName: string) {
 
 function toolAuditDefaults(
   user: SessionUser,
-  audit: { ipAddress: string; sessionCookieId: string | null },
+  audit: {
+    ipAddress: string;
+    sessionCookieId: string | null;
+    userAgent?: string;
+  },
 ) {
   return {
     actorType: actorTypeFromRole(user.role),
@@ -50,7 +60,14 @@ function toolAuditDefaults(
     customerTier: user.customerProfile?.tier ?? tierFromRole(user.role),
     sessionId: audit.sessionCookieId,
     ipAddress: audit.ipAddress,
+    userAgent: audit.userAgent,
+    createdByAgent: true as const,
+    eventId: currentEventId(),
   };
+}
+
+function withScoringEventId<T>(fn: () => Promise<T>): Promise<T> {
+  return runWithEventId(mintEventId(), fn);
 }
 
 function riskScoreFor(decision: PolicyDecision, injection: boolean): number {
@@ -58,6 +75,18 @@ function riskScoreFor(decision: PolicyDecision, injection: boolean): number {
   if (decision.decision === "deny") return 75;
   if (decision.decision === "needs_confirmation") return 35;
   return 10;
+}
+
+/** Planner snapshot for ops. Explanation + result only — not raw LLM JSON. */
+function planModelOutput(plan: AgentPlan, result?: string | null) {
+  return {
+    usedFallback: plan.usedFallback,
+    plannedTool: plan.toolCall?.name ?? null,
+    intent: plan.intent,
+    refuse: !!plan.refuse,
+    explanation: capModelSnippet(plan.reply),
+    result: capModelSnippet(result),
+  };
 }
 
 async function getOrCreateConversation(
@@ -261,66 +290,70 @@ export async function handleAgentChat(
       userQuestion: input.message,
       matrixClassification: matrixIntent,
       ...args,
+      eventId: currentEventId() ?? undefined,
     }).catch((err) => console.error("[elah-training]", err));
   }
 
   const injection = detectPromptInjection(input.message);
   const unsafeMatrixIntent = matrixIntent.intentId === "unsafe_prompt_injection";
   if (injection.matched || unsafeMatrixIntent) {
-    const reply =
-      "I can't help with that request. I'm only able to assist with your own banking tasks using approved channels.";
-    const assistantMsg = await prisma.agentMessage.create({
-      data: {
+    return withScoringEventId(async () => {
+      const reply =
+        "I can't help with that request. I'm only able to assist with your own banking tasks using approved channels.";
+      const assistantMsg = await prisma.agentMessage.create({
+        data: {
+          conversationId: conversation.id,
+          role: "assistant",
+          content: reply,
+          latencyMs: Date.now() - started,
+        },
+      });
+      await patchIntent(intentEventId, {
+        actionStatus: "blocked",
+        policyDecision: "deny",
+        suspiciousPatterns: [
+          ...matrixIntent.suspiciousPatterns,
+          ...injection.labels,
+        ],
+      });
+      await writeAgentEvent({
+        eventType: "suspicious_prompt_detected",
+        userId: input.user.id,
+        sessionId: input.sessionCookieId,
         conversationId: conversation.id,
-        role: "assistant",
-        content: reply,
+        messageId: assistantMsg.id,
+        userMessage: input.message,
+        assistantMessage: reply,
+        detectedIntent: "prompt_injection_attempt",
+        policyDecision: "deny",
+        policyReasons: injection.matched ? injection.labels : matrixIntent.matchedSignals,
+        riskScore: 90,
         latencyMs: Date.now() - started,
-      },
+        metadata: {
+          patterns: injection.patterns,
+          matrixIntent: matrixIntent.intentId,
+          turnId: userMsg.id,
+        },
+      });
+      await prisma.agentConversation.update({
+        where: { id: conversation.id },
+        data: { status: "flagged", updatedAt: new Date() },
+      });
+      await commitElahTurn({
+        assistantAnswer: reply,
+        actionOutcome: "blocked",
+      });
+      return {
+        ok: true,
+        conversationId: conversation.id,
+        messageId: assistantMsg.id,
+        reply,
+        intent: "prompt_injection_attempt",
+        toolCalls: [],
+        pendingAction: null,
+        refused: true,
+      };
     });
-    await patchIntent(intentEventId, {
-      actionStatus: "blocked",
-      policyDecision: "deny",
-      suspiciousPatterns: [
-        ...matrixIntent.suspiciousPatterns,
-        ...injection.labels,
-      ],
-    });
-    await writeAgentEvent({
-      eventType: "suspicious_prompt_detected",
-      userId: input.user.id,
-      sessionId: input.sessionCookieId,
-      conversationId: conversation.id,
-      messageId: assistantMsg.id,
-      userMessage: input.message,
-      assistantMessage: reply,
-      detectedIntent: "prompt_injection_attempt",
-      policyDecision: "deny",
-      policyReasons: injection.matched ? injection.labels : matrixIntent.matchedSignals,
-      riskScore: 90,
-      latencyMs: Date.now() - started,
-      metadata: {
-        patterns: injection.patterns,
-        matrixIntent: matrixIntent.intentId,
-      },
-    });
-    await prisma.agentConversation.update({
-      where: { id: conversation.id },
-      data: { status: "flagged", updatedAt: new Date() },
-    });
-    await commitElahTurn({
-      assistantAnswer: reply,
-      actionOutcome: "blocked",
-    });
-    return {
-      ok: true,
-      conversationId: conversation.id,
-      messageId: assistantMsg.id,
-      reply,
-      intent: "prompt_injection_attempt",
-      toolCalls: [],
-      pendingAction: null,
-      refused: true,
-    };
   }
 
   const ctx: ToolContext = {
@@ -368,6 +401,7 @@ export async function handleAgentChat(
       toolArgsSanitized: JSON.parse(pending.toolArgs),
       resultSummary: reply,
       latencyMs: Date.now() - started,
+      metadata: { turnId: userMsg.id },
     });
     await patchIntent(intentEventId, {
       toolName: pending.toolName,
@@ -394,7 +428,8 @@ export async function handleAgentChat(
   }
 
   if (pending && isConfirmMessage(input.message)) {
-    const toolArgsRaw = parsePendingArgs(pending.toolArgs);
+    return withScoringEventId(async () => {
+      const toolArgsRaw = parsePendingArgs(pending.toolArgs);
     if (!toolArgsRaw) {
       const reply = "That action can no longer be completed. Please start again.";
       await writeAgentEvent({
@@ -402,8 +437,10 @@ export async function handleAgentChat(
         userId: input.user.id,
         sessionId: input.sessionCookieId,
         conversationId: conversation.id,
+        messageId: userMsg.id,
         toolName: pending.toolName,
         resultSummary: "pending action args corrupt",
+        metadata: { reason: "action_failed", turnId: userMsg.id },
       });
       await commitElahTurn({
         assistantAnswer: reply,
@@ -452,6 +489,7 @@ export async function handleAgentChat(
         policyDecision: policyDecision.decision,
         policyReasons: policyDecision.reasons,
         latencyMs: Date.now() - started,
+        metadata: { turnId: userMsg.id },
       });
       await patchIntent(intentEventId, {
         toolName: pending.toolName,
@@ -511,8 +549,10 @@ export async function handleAgentChat(
       userId: input.user.id,
       sessionId: input.sessionCookieId,
       conversationId: conversation.id,
+      messageId: userMsg.id,
       toolName: pending.toolName,
       toolArgsSanitized: sanitizeToolArgs(toolArgs),
+      metadata: { turnId: userMsg.id },
     });
 
     const toolStarted = Date.now();
@@ -557,6 +597,18 @@ export async function handleAgentChat(
       policyDecision: "allow",
       resultSummary: result.summary,
       latencyMs: Date.now() - toolStarted,
+      metadata: {
+        turnId: userMsg.id,
+        ...(result.ok ? {} : { reason: "action_failed" }),
+        modelOutput: {
+          usedFallback: null,
+          plannedTool: pending.toolName,
+          intent: pending.actionType,
+          refuse: false,
+          explanation: capModelSnippet(pending.summary),
+          result: capModelSnippet(result.summary),
+        },
+      },
     });
     await patchIntent(intentEventId, {
       toolName: pending.toolName,
@@ -591,108 +643,138 @@ export async function handleAgentChat(
       pendingAction: null,
       refused: false,
     };
+    });
   }
 
   // Plan next step via LLM (or rules fallback)
   const history = await loadHistory(conversation.id);
   const historyInjection = detectInjectionInHistory(history);
   if (historyInjection.matched) {
-    const reply =
-      "I can't help with that request. I'm only able to assist with your own banking tasks using approved channels.";
-    const assistantMsg = await prisma.agentMessage.create({
-      data: {
+    return withScoringEventId(async () => {
+      const reply =
+        "I can't help with that request. I'm only able to assist with your own banking tasks using approved channels.";
+      const assistantMsg = await prisma.agentMessage.create({
+        data: {
+          conversationId: conversation.id,
+          role: "assistant",
+          content: reply,
+          latencyMs: Date.now() - started,
+        },
+      });
+      await writeAgentEvent({
+        eventType: "suspicious_prompt_detected",
+        userId: input.user.id,
+        sessionId: input.sessionCookieId,
         conversationId: conversation.id,
-        role: "assistant",
-        content: reply,
+        messageId: assistantMsg.id,
+        userMessage: input.message,
+        assistantMessage: reply,
+        detectedIntent: "prompt_injection_attempt",
+        policyDecision: "deny",
+        policyReasons: historyInjection.labels,
+        riskScore: 90,
         latencyMs: Date.now() - started,
-      },
+        metadata: {
+          source: "conversation_history",
+          patterns: historyInjection.patterns,
+          turnId: userMsg.id,
+        },
+      });
+      await patchIntent(intentEventId, {
+        actionStatus: "blocked",
+        policyDecision: "deny",
+        suspiciousPatterns: historyInjection.labels,
+      });
+      await commitElahTurn({
+        assistantAnswer: reply,
+        actionOutcome: "blocked",
+      });
+      return {
+        ok: true,
+        conversationId: conversation.id,
+        messageId: assistantMsg.id,
+        reply,
+        intent: "prompt_injection_attempt",
+        toolCalls: [],
+        pendingAction: null,
+        refused: true,
+      };
     });
-    await writeAgentEvent({
-      eventType: "suspicious_prompt_detected",
-      userId: input.user.id,
-      sessionId: input.sessionCookieId,
-      conversationId: conversation.id,
-      messageId: assistantMsg.id,
-      userMessage: input.message,
-      assistantMessage: reply,
-      detectedIntent: "prompt_injection_attempt",
-      policyDecision: "deny",
-      policyReasons: historyInjection.labels,
-      riskScore: 90,
-      latencyMs: Date.now() - started,
-      metadata: { source: "conversation_history", patterns: historyInjection.patterns },
-    });
-    await patchIntent(intentEventId, {
-      actionStatus: "blocked",
-      policyDecision: "deny",
-      suspiciousPatterns: historyInjection.labels,
-    });
-    await commitElahTurn({
-      assistantAnswer: reply,
-      actionOutcome: "blocked",
-    });
-    return {
-      ok: true,
-      conversationId: conversation.id,
-      messageId: assistantMsg.id,
-      reply,
-      intent: "prompt_injection_attempt",
-      toolCalls: [],
-      pendingAction: null,
-      refused: true,
-    };
   }
 
   const plan = await callLLM(history, firstName(profile.fullName));
+
+  if (plan.degradedFromProvider) {
+    await writeAgentEvent({
+      eventType: "agent_error",
+      userId: input.user.id,
+      sessionId: input.sessionCookieId,
+      conversationId: conversation.id,
+      messageId: userMsg.id,
+      detectedIntent: plan.intent,
+      resultSummary: "LLM provider error; using rules fallback",
+      metadata: {
+        reason: "provider_error_fallback",
+        turnId: userMsg.id,
+      },
+    });
+  }
 
   await writeAgentEvent({
     eventType: "agent_intent_classified",
     userId: input.user.id,
     sessionId: input.sessionCookieId,
     conversationId: conversation.id,
+    messageId: userMsg.id,
     detectedIntent: plan.intent,
-    metadata: { usedFallback: plan.usedFallback },
+    metadata: { usedFallback: plan.usedFallback, turnId: userMsg.id },
   });
 
   if (plan.refuse) {
-    const assistantMsg = await prisma.agentMessage.create({
-      data: {
+    return withScoringEventId(async () => {
+      const assistantMsg = await prisma.agentMessage.create({
+        data: {
+          conversationId: conversation.id,
+          role: "assistant",
+          content: plan.reply,
+          latencyMs: Date.now() - started,
+        },
+      });
+      await writeAgentEvent({
+        eventType: "policy_check_failed",
+        userId: input.user.id,
+        sessionId: input.sessionCookieId,
         conversationId: conversation.id,
-        role: "assistant",
-        content: plan.reply,
+        messageId: assistantMsg.id,
+        assistantMessage: plan.reply,
+        detectedIntent: plan.intent,
+        policyDecision: "deny",
+        riskScore: 70,
         latencyMs: Date.now() - started,
-      },
+        metadata: {
+          turnId: userMsg.id,
+          modelOutput: planModelOutput(plan),
+        },
+      });
+      await patchIntent(intentEventId, {
+        actionStatus: "blocked",
+        policyDecision: "deny",
+      });
+      await commitElahTurn({
+        assistantAnswer: plan.reply,
+        actionOutcome: "refused",
+      });
+      return {
+        ok: true,
+        conversationId: conversation.id,
+        messageId: assistantMsg.id,
+        reply: plan.reply,
+        intent: plan.intent,
+        toolCalls: [],
+        pendingAction: null,
+        refused: true,
+      };
     });
-    await writeAgentEvent({
-      eventType: "policy_check_failed",
-      userId: input.user.id,
-      sessionId: input.sessionCookieId,
-      conversationId: conversation.id,
-      messageId: assistantMsg.id,
-      assistantMessage: plan.reply,
-      detectedIntent: plan.intent,
-      policyDecision: "deny",
-      riskScore: 70,
-      latencyMs: Date.now() - started,
-    });
-    await patchIntent(intentEventId, {
-      actionStatus: "blocked",
-      policyDecision: "deny",
-    });
-    await commitElahTurn({
-      assistantAnswer: plan.reply,
-      actionOutcome: "refused",
-    });
-    return {
-      ok: true,
-      conversationId: conversation.id,
-      messageId: assistantMsg.id,
-      reply: plan.reply,
-      intent: plan.intent,
-      toolCalls: [],
-      pendingAction: null,
-      refused: true,
-    };
   }
 
   if (!plan.toolCall) {
@@ -713,6 +795,10 @@ export async function handleAgentChat(
       assistantMessage: plan.reply,
       detectedIntent: plan.intent,
       latencyMs: Date.now() - started,
+      metadata: {
+        turnId: userMsg.id,
+        modelOutput: planModelOutput(plan),
+      },
     });
     await commitElahTurn({
       assistantAnswer: plan.reply,
@@ -733,15 +819,22 @@ export async function handleAgentChat(
   const { name: toolName, args: rawToolArgs } = plan.toolCall;
   const toolArgs = filterToolArgs(toolName, rawToolArgs);
   const sanitized = sanitizeToolArgs(toolArgs);
+  const scoringEventId = mintEventId();
 
   await writeAgentEvent({
     eventType: "tool_call_requested",
     userId: input.user.id,
     sessionId: input.sessionCookieId,
     conversationId: conversation.id,
+    messageId: userMsg.id,
     detectedIntent: plan.intent,
     toolName,
     toolArgsSanitized: sanitized,
+    eventId: scoringEventId,
+    metadata: {
+      turnId: userMsg.id,
+      modelOutput: planModelOutput(plan),
+    },
   });
 
   const policyDecision = validateToolCall({
@@ -751,14 +844,15 @@ export async function handleAgentChat(
     tierApprovalAbove: policy.approvalRequiredAbove,
   });
 
-  await writeAgentEvent({
+  const policyEventInput = {
     eventType:
       policyDecision.decision === "allow"
-        ? "policy_check_passed"
-        : "policy_check_failed",
+        ? ("policy_check_passed" as const)
+        : ("policy_check_failed" as const),
     userId: input.user.id,
     sessionId: input.sessionCookieId,
     conversationId: conversation.id,
+    messageId: userMsg.id,
     detectedIntent: plan.intent,
     toolName,
     toolArgsSanitized: sanitized,
@@ -766,44 +860,51 @@ export async function handleAgentChat(
     policyReasons:
       policyDecision.decision === "allow" ? [] : policyDecision.reasons,
     riskScore: riskScoreFor(policyDecision, false),
-  });
+    eventId: scoringEventId,
+    metadata: { turnId: userMsg.id },
+  };
 
   if (policyDecision.decision === "deny") {
-    const reply =
-      policyDecision.reasons.some((r) => r.includes("injection"))
-        ? "I can't help with that request."
-        : "I'm not able to perform that action. If you believe this is an error, please contact Support.";
-    const assistantMsg = await prisma.agentMessage.create({
-      data: {
+    return runWithEventId(scoringEventId, async () => {
+      await writeAgentEvent(policyEventInput);
+      const reply =
+        policyDecision.reasons.some((r) => r.includes("injection"))
+          ? "I can't help with that request."
+          : "I'm not able to perform that action. If you believe this is an error, please contact Support.";
+      const assistantMsg = await prisma.agentMessage.create({
+        data: {
+          conversationId: conversation.id,
+          role: "assistant",
+          content: reply,
+          latencyMs: Date.now() - started,
+        },
+      });
+      await patchIntent(intentEventId, {
+        toolName,
+        toolArgs,
+        policyDecision: policyDecision.decision,
+        actionStatus: "blocked",
+      });
+      await commitElahTurn({
+        assistantAnswer: reply,
+        plannedTool: toolName,
+        toolArgs,
+        actionOutcome: "blocked",
+      });
+      return {
+        ok: true,
         conversationId: conversation.id,
-        role: "assistant",
-        content: reply,
-        latencyMs: Date.now() - started,
-      },
+        messageId: assistantMsg.id,
+        reply,
+        intent: plan.intent,
+        toolCalls: [],
+        pendingAction: null,
+        refused: true,
+      };
     });
-    await patchIntent(intentEventId, {
-      toolName,
-      toolArgs,
-      policyDecision: policyDecision.decision,
-      actionStatus: "blocked",
-    });
-    await commitElahTurn({
-      assistantAnswer: reply,
-      plannedTool: toolName,
-      toolArgs,
-      actionOutcome: "blocked",
-    });
-    return {
-      ok: true,
-      conversationId: conversation.id,
-      messageId: assistantMsg.id,
-      reply,
-      intent: plan.intent,
-      toolCalls: [],
-      pendingAction: null,
-      refused: true,
-    };
   }
+
+  await writeAgentEvent(policyEventInput);
 
   if (policyDecision.decision === "needs_confirmation") {
     await cancelOpenPendingActions(conversation.id, input.user.id);
@@ -842,6 +943,7 @@ export async function handleAgentChat(
       policyDecision: "needs_confirmation",
       resultSummary: summary,
       latencyMs: Date.now() - started,
+      metadata: { turnId: userMsg.id },
     });
     await patchIntent(intentEventId, {
       toolName,
@@ -869,149 +971,157 @@ export async function handleAgentChat(
   }
 
   // Safe read-only or auto-approved action — execute immediately
-  const toolStarted = Date.now();
-  const result = await runWithToolAuditContext(
-    toolAuditDefaults(input.user, input),
-    () => executeTool(toolName, toolArgs, ctx),
-  );
-  let reply = plan.reply;
-  if (result.ok) {
-    reply = result.summary;
-    if (plan.intent === "card_management" && toolName === "get_cards" && result.data) {
-      const cards = result.data as Array<{ cardId: string; status: string }>;
-      const target = cards.find((c) => c.status === "active") ?? cards[0];
-      if (target && /freeze/.test(input.message.toLowerCase())) {
-        const freezeSummary = await summarizeTool(
-          "freeze_card",
-          { cardId: target.cardId },
-          ctx,
-        );
-        await cancelOpenPendingActions(conversation.id, input.user.id);
-        const freezePending = await prisma.agentPendingAction.create({
-          data: {
+  return runWithEventId(scoringEventId, async () => {
+    const toolStarted = Date.now();
+    const result = await runWithToolAuditContext(
+      toolAuditDefaults(input.user, input),
+      () => executeTool(toolName, toolArgs, ctx),
+    );
+    let reply = plan.reply;
+    if (result.ok) {
+      reply = result.summary;
+      if (plan.intent === "card_management" && toolName === "get_cards" && result.data) {
+        const cards = result.data as Array<{ cardId: string; status: string }>;
+        const target = cards.find((c) => c.status === "active") ?? cards[0];
+        if (target && /freeze/.test(input.message.toLowerCase())) {
+          const freezeSummary = await summarizeTool(
+            "freeze_card",
+            { cardId: target.cardId },
+            ctx,
+          );
+          await cancelOpenPendingActions(conversation.id, input.user.id);
+          const freezePending = await prisma.agentPendingAction.create({
+            data: {
+              userId: input.user.id,
+              conversationId: conversation.id,
+              actionType: "card_management",
+              toolName: "freeze_card",
+              toolArgs: JSON.stringify({ cardId: target.cardId }),
+              summary: freezeSummary,
+              expiresAt: new Date(Date.now() + PENDING_TTL_MINUTES * 60 * 1000),
+            },
+          });
+          reply = `${result.summary} ${freezeSummary}. Please confirm to proceed.`;
+          const assistantMsg = await prisma.agentMessage.create({
+            data: {
+              conversationId: conversation.id,
+              role: "assistant",
+              content: reply,
+              toolName: "get_cards",
+              toolResult: JSON.stringify(result),
+              latencyMs: Date.now() - started,
+            },
+          });
+          await writeAgentEvent({
+            eventType: "confirmation_required",
             userId: input.user.id,
+            sessionId: input.sessionCookieId,
             conversationId: conversation.id,
-            actionType: "card_management",
+            messageId: assistantMsg.id,
+            detectedIntent: plan.intent,
             toolName: "freeze_card",
-            toolArgs: JSON.stringify({ cardId: target.cardId }),
-            summary: freezeSummary,
-            expiresAt: new Date(Date.now() + PENDING_TTL_MINUTES * 60 * 1000),
-          },
-        });
-        reply = `${result.summary} ${freezeSummary}. Please confirm to proceed.`;
-        const assistantMsg = await prisma.agentMessage.create({
-          data: {
-            conversationId: conversation.id,
-            role: "assistant",
-            content: reply,
-            toolName: "get_cards",
-            toolResult: JSON.stringify(result),
+            toolArgsSanitized: sanitizeToolArgs({ cardId: target.cardId }),
+            policyDecision: "needs_confirmation",
+            resultSummary: freezeSummary,
             latencyMs: Date.now() - started,
-          },
-        });
-        await writeAgentEvent({
-          eventType: "confirmation_required",
-          userId: input.user.id,
-          sessionId: input.sessionCookieId,
-          conversationId: conversation.id,
-          messageId: assistantMsg.id,
-          detectedIntent: plan.intent,
-          toolName: "freeze_card",
-          toolArgsSanitized: sanitizeToolArgs({ cardId: target.cardId }),
-          policyDecision: "needs_confirmation",
-          resultSummary: freezeSummary,
-          latencyMs: Date.now() - started,
-        });
-        await commitElahTurn({
-          assistantAnswer: reply,
-          plannedTool: "freeze_card",
-          executedTool: "get_cards",
-          toolArgs: { cardId: target.cardId },
-          toolResultSummary: result.summary,
-          actionOutcome: "pending_confirmation",
-        });
-        return {
-          ok: true,
-          conversationId: conversation.id,
-          messageId: assistantMsg.id,
-          reply,
-          intent: plan.intent,
-          toolCalls: [
-            clientToolCallPayload("get_cards", result.summary, true, result.data),
-          ],
-          pendingAction: await pendingActionView(freezePending),
-          refused: false,
-        };
+            metadata: { turnId: userMsg.id },
+          });
+          await commitElahTurn({
+            assistantAnswer: reply,
+            plannedTool: "freeze_card",
+            executedTool: "get_cards",
+            toolArgs: { cardId: target.cardId },
+            toolResultSummary: result.summary,
+            actionOutcome: "pending_confirmation",
+          });
+          return {
+            ok: true,
+            conversationId: conversation.id,
+            messageId: assistantMsg.id,
+            reply,
+            intent: plan.intent,
+            toolCalls: [
+              clientToolCallPayload("get_cards", result.summary, true, result.data),
+            ],
+            pendingAction: await pendingActionView(freezePending),
+            refused: false,
+          };
+        }
       }
+    } else {
+      reply = result.summary;
     }
-  } else {
-    reply = result.summary;
-  }
 
-  const assistantMsg = await prisma.agentMessage.create({
-    data: {
-      conversationId: conversation.id,
-      role: "assistant",
-      content: reply,
-      toolName,
-      toolResult: JSON.stringify({ ok: result.ok, summary: result.summary, data: result.data }),
-      latencyMs: Date.now() - started,
-    },
-  });
-
-  await writeAgentEvent({
-    eventType: result.ok ? "tool_call_executed" : "tool_call_failed",
-    userId: input.user.id,
-    sessionId: input.sessionCookieId,
-    conversationId: conversation.id,
-    messageId: assistantMsg.id,
-    assistantMessage: reply,
-    detectedIntent: plan.intent,
-    toolName,
-    toolArgsSanitized: sanitized,
-    policyDecision: "allow",
-    resultSummary: result.summary,
-    latencyMs: Date.now() - toolStarted,
-  });
-  await patchIntent(intentEventId, {
-    toolName,
-    toolArgs,
-    policyDecision: "allow",
-    actionStatus: result.ok ? "executed" : "failed",
-  });
-
-  await prisma.agentConversation.update({
-    where: { id: conversation.id },
-    data: { updatedAt: new Date() },
-  });
-
-  await commitElahTurn({
-    assistantAnswer: reply,
-    plannedTool: toolName,
-    executedTool: toolName,
-    toolArgs,
-    toolResultSummary: result.summary,
-    actionOutcome: result.ok ? "executed" : "failed",
-  });
-
-  return {
-    ok: true,
-    conversationId: conversation.id,
-    messageId: assistantMsg.id,
-    reply,
-    intent: plan.intent,
-    toolCalls: [
-      clientToolCallPayload(
+    const assistantMsg = await prisma.agentMessage.create({
+      data: {
+        conversationId: conversation.id,
+        role: "assistant",
+        content: reply,
         toolName,
-        result.summary,
-        result.ok,
-        result.data,
-        result.error,
-      ),
-    ],
-    pendingAction: null,
-    refused: false,
-  };
+        toolResult: JSON.stringify({ ok: result.ok, summary: result.summary, data: result.data }),
+        latencyMs: Date.now() - started,
+      },
+    });
+
+    await writeAgentEvent({
+      eventType: result.ok ? "tool_call_executed" : "tool_call_failed",
+      userId: input.user.id,
+      sessionId: input.sessionCookieId,
+      conversationId: conversation.id,
+      messageId: assistantMsg.id,
+      assistantMessage: reply,
+      detectedIntent: plan.intent,
+      toolName,
+      toolArgsSanitized: sanitized,
+      policyDecision: "allow",
+      resultSummary: result.summary,
+      latencyMs: Date.now() - toolStarted,
+      metadata: {
+        turnId: userMsg.id,
+        ...(result.ok ? {} : { reason: "action_failed" }),
+        modelOutput: planModelOutput(plan, result.summary),
+      },
+    });
+    await patchIntent(intentEventId, {
+      toolName,
+      toolArgs,
+      policyDecision: "allow",
+      actionStatus: result.ok ? "executed" : "failed",
+    });
+
+    await prisma.agentConversation.update({
+      where: { id: conversation.id },
+      data: { updatedAt: new Date() },
+    });
+
+    await commitElahTurn({
+      assistantAnswer: reply,
+      plannedTool: toolName,
+      executedTool: toolName,
+      toolArgs,
+      toolResultSummary: result.summary,
+      actionOutcome: result.ok ? "executed" : "failed",
+    });
+
+    return {
+      ok: true,
+      conversationId: conversation.id,
+      messageId: assistantMsg.id,
+      reply,
+      intent: plan.intent,
+      toolCalls: [
+        clientToolCallPayload(
+          toolName,
+          result.summary,
+          result.ok,
+          result.data,
+          result.error,
+        ),
+      ],
+      pendingAction: null,
+      refused: false,
+    };
+  });
 }
 
 export async function listConversationMessages(

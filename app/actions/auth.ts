@@ -17,7 +17,8 @@ import {
   actorTypeFromRole,
   tierFromRole,
 } from "@/lib/auth/roles";
-import { writeAuditLog } from "@/lib/logging/logger";
+import { writeAuditLog, writeRiskEvent } from "@/lib/logging/logger";
+import type { RiskLevel } from "@/lib/logging/logger";
 
 const loginSchema = z.object({
   email: z.string().email("Enter a valid email."),
@@ -50,7 +51,7 @@ export async function loginAction(
     if (!user || !(await verifyPassword(password, user.passwordHash))) {
       await writeAuditLog({
         actorType: "anonymous",
-        actorName: email,
+        actorName: "anonymous",
         actionType: "login_failed",
         page: "/login",
         toolOrFeatureUsed: "login_form",
@@ -58,12 +59,26 @@ export async function loginAction(
         actionOutcome: "failed",
         reasonForFlagging: "Invalid email or password.",
         ipAddress: clientIp(),
+        createdByAgent: false,
         inputDataSummary: { emailDomain: email.split("@")[1] ?? null },
       }).catch(() => undefined);
       return { error: "Invalid email or password." };
     }
 
     if (user.status !== "active") {
+      await writeAuditLog({
+        actorType: "anonymous",
+        actorName: "anonymous",
+        actionType: "login_failed",
+        page: "/login",
+        toolOrFeatureUsed: "login_form",
+        riskLevel: "medium",
+        actionOutcome: "failed",
+        reasonForFlagging: "account inactive",
+        ipAddress: clientIp(),
+        createdByAgent: false,
+        inputDataSummary: { emailDomain: email.split("@")[1] ?? null },
+      }).catch(() => undefined);
       return { error: "This account is not active." };
     }
 
@@ -80,6 +95,7 @@ export async function loginAction(
       toolOrFeatureUsed: "login_form",
       riskLevel: "low",
       actionOutcome: "succeeded",
+      createdByAgent: false,
       inputDataSummary: { method: "credentials" },
     });
 
@@ -108,6 +124,122 @@ export async function loginAction(
   }
 }
 
+export interface PasswordResetState {
+  error?: string;
+  message?: string;
+}
+
+const resetSchema = z.object({
+  email: z.string().email("Enter a valid email."),
+});
+
+/**
+ * Simulated recovery request. Never emails, never issues a token, never
+ * changes the password. Always writes a monitorable audit row; risk is high
+ * when a known account is targeted with no session (ATO precursor).
+ */
+export async function requestPasswordResetAction(
+  _prev: PasswordResetState | undefined,
+  formData: FormData,
+): Promise<PasswordResetState> {
+  const parsed = resetSchema.safeParse({
+    email: formData.get("email"),
+  });
+  if (!parsed.success) {
+    return { error: parsed.error.errors[0]?.message ?? "Invalid email." };
+  }
+
+  const email = parsed.data.email.toLowerCase();
+  const emailDomain = email.split("@")[1] ?? null;
+  const sessionUser = await getSessionUser().catch(() => null);
+  const target = await prisma.user.findUnique({ where: { email } });
+
+  let riskLevel: RiskLevel = "medium";
+  let reason = "Password recovery requested for an email with no matching user.";
+  let accountKnown = false;
+  let sessionMismatch = false;
+
+  if (target) {
+    accountKnown = true;
+    if (sessionUser && sessionUser.id !== target.id) {
+      riskLevel = "critical";
+      sessionMismatch = true;
+      reason =
+        "Password recovery requested for a different account than the signed-in session.";
+    } else if (sessionUser && sessionUser.id === target.id) {
+      riskLevel = "medium";
+      reason =
+        "Signed-in customer requested password recovery for their own account.";
+    } else {
+      riskLevel = "high";
+      reason =
+        "Password recovery requested for a known account with no session (ATO precursor).";
+    }
+  }
+
+  const log = await writeAuditLog({
+    actorType: sessionUser
+      ? actorTypeFromRole(sessionUser.role)
+      : target
+        ? actorTypeFromRole(target.role)
+        : "anonymous",
+    actorId: sessionUser?.id ?? target?.id ?? null,
+    actorName: "anonymous",
+    role: sessionUser?.role ?? target?.role ?? null,
+    customerTier: sessionUser
+      ? (sessionUser.customerProfile?.tier ?? tierFromRole(sessionUser.role))
+      : target
+        ? tierFromRole(target.role)
+        : null,
+    actionType: "password_reset_requested",
+    page: "/forgot-password",
+    toolOrFeatureUsed: "forgot_password_form",
+    riskLevel,
+    actionOutcome: "submitted",
+    createdByAgent: false,
+    ipAddress: clientIp(),
+    reasonForFlagging: reason,
+    inputDataSummary: {
+      emailDomain,
+      accountKnown,
+      sessionMismatch,
+      simulated: true,
+      passwordUnchanged: true,
+    },
+  });
+
+  if (riskLevel === "high" || riskLevel === "critical") {
+    await writeRiskEvent({
+      severity: riskLevel,
+      eventType: "password_reset_requested",
+      actorType: sessionUser
+        ? actorTypeFromRole(sessionUser.role)
+        : target
+          ? actorTypeFromRole(target.role)
+          : "anonymous",
+      actorId: sessionUser?.id ?? target?.id ?? null,
+      customerProfileId: target?.id
+        ? (
+            await prisma.customerProfile.findUnique({
+              where: { userId: target.id },
+              select: { id: true },
+            })
+          )?.id ?? null
+        : null,
+      relatedAuditLogIds: [log.id],
+      reasonForFlagging: reason,
+      detectedPattern: sessionMismatch
+        ? "password_reset_session_mismatch"
+        : "password_reset_ato_precursor",
+    });
+  }
+
+  return {
+    message:
+      "If that email exists in the simulation, a recovery would be sent. No email is sent and the password is not changed.",
+  };
+}
+
 export async function logoutAction() {
   const user = await getSessionUser();
   if (user) {
@@ -122,6 +254,7 @@ export async function logoutAction() {
       toolOrFeatureUsed: "logout_button",
       riskLevel: "low",
       actionOutcome: "succeeded",
+      createdByAgent: false,
     });
   }
   await destroySession();

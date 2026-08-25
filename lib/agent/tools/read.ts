@@ -72,6 +72,7 @@ const getAccountBalance: ToolDefinition<BalanceArgs> = {
       riskLevel: "low",
       createdByAgent: true,
       targetResource: ctx.profileId,
+      inputDataSummary: { accountType: type },
     });
     return { ok: true, summary, data: rows };
   },
@@ -135,7 +136,13 @@ const getRecentTransactions: ToolDefinition<RecentTxArgs> = {
       actionOutcome: "viewed",
       riskLevel: "low",
       createdByAgent: true,
-      inputDataSummary: { limit, filters: { ...args } },
+      inputDataSummary: {
+        limit,
+        category: args.category ?? null,
+        direction: args.direction ?? null,
+        minAmount: args.minAmount ?? null,
+        maxAmount: args.maxAmount ?? null,
+      },
     });
     const rows = txns.map((t) => ({
       id: t.id,
@@ -342,6 +349,7 @@ const getSavedRecipients: ToolDefinition = {
       actionOutcome: "viewed",
       riskLevel: "low",
       createdByAgent: true,
+      inputDataSummary: { count: rows.length },
     });
     const data = rows.map((r) => ({ name: r.merchantOrRecipient, transferCount: r._count._all }));
     return {
@@ -412,7 +420,7 @@ const getMonthlyStatement: ToolDefinition<StatementArgs> = {
       riskLevel: "medium",
       createdByAgent: true,
       targetResource: doc?.id ?? `statement_${args.month}`,
-      inputDataSummary: { month: args.month, transactionCount: txns },
+      inputDataSummary: { period: args.month, type: "monthly_statement" },
     });
     return {
       ok: true,

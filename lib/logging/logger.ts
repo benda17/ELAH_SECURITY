@@ -3,7 +3,22 @@ import fs from "node:fs/promises";
 import path from "node:path";
 import { prisma } from "@/lib/db";
 import { actorTypeFromRole, tierFromRole } from "@/lib/auth/roles";
-import { getSessionUser, getSessionId, clientIp } from "@/lib/auth/session";
+import {
+  getSessionUser,
+  getSessionId,
+  clientIp,
+  clientUserAgent,
+} from "@/lib/auth/session";
+import {
+  buildElahLogContext,
+  currentEventId,
+  isPageViewActionType,
+  mintEventId,
+  sourceFromCreatedByAgent,
+  truncateUserAgent,
+  userIdHashFromActor,
+  type ElahEventSource,
+} from "@/lib/elah/event-context";
 
 export type RiskLevel = "low" | "medium" | "high" | "critical";
 export type ApprovalStatus =
@@ -35,6 +50,9 @@ export interface WriteAuditLogInput {
   actionOutcome?: string;
   reasonForFlagging?: string | null;
   createdByAgent?: boolean;
+  eventId?: string | null;
+  source?: ElahEventSource | null;
+  userAgent?: string | null;
 }
 
 const LOG_DIR = process.env.LOG_DIR ?? "./logs";
@@ -73,6 +91,47 @@ function safeClientIp(explicit?: string | null) {
   }
 }
 
+function safeClientUserAgent(explicit?: string | null) {
+  if (explicit) return truncateUserAgent(explicit);
+  try {
+    return clientUserAgent();
+  } catch {
+    return null;
+  }
+}
+
+function mergeInputDataSummary(
+  actionType: string,
+  caller: Record<string, unknown> | null | undefined,
+  elah: {
+    amountBucket: string;
+    accountContext: string;
+    recipientType: string;
+    occurredAt: string;
+  },
+): string | null {
+  const summary: Record<string, unknown> = { ...(caller ?? {}) };
+  const useful = !isPageViewActionType(actionType);
+  if (useful) {
+    const existingElah =
+      summary.elah &&
+      typeof summary.elah === "object" &&
+      !Array.isArray(summary.elah)
+        ? (summary.elah as Record<string, unknown>)
+        : {};
+    // Caller keys win; ops fields on the parent object are kept as-is.
+    summary.elah = {
+      amountBucket: elah.amountBucket,
+      accountContext: elah.accountContext,
+      recipientType: elah.recipientType,
+      occurredAt: elah.occurredAt,
+      ...existingElah,
+    };
+  }
+  if (Object.keys(summary).length === 0) return null;
+  return JSON.stringify(summary);
+}
+
 async function appendJsonl(filename: string, payload: Record<string, unknown>) {
   if (!LOG_MIRROR) return;
   try {
@@ -109,6 +168,29 @@ export async function writeAuditLog(input: WriteAuditLogInput) {
   if (!actorType) actorType = "anonymous";
   if (!customerTier && role) customerTier = tierFromRole(role);
 
+  const createdByAgent =
+    input.createdByAgent ?? defaults.createdByAgent ?? false;
+  const eventId =
+    input.eventId ??
+    defaults.eventId ??
+    currentEventId() ??
+    mintEventId();
+  const source: ElahEventSource =
+    input.source ??
+    defaults.source ??
+    sourceFromCreatedByAgent(createdByAgent);
+  const userIdHash = actorId ? userIdHashFromActor(actorId) : null;
+  const userAgent = safeClientUserAgent(
+    input.userAgent ?? defaults.userAgent,
+  );
+  const elahContext = buildElahLogContext({
+    amount: input.amount ?? defaults.amount,
+    createdByAgent,
+    args: input.inputDataSummary ?? null,
+    page: input.page ?? defaults.page,
+    toolName: input.toolOrFeatureUsed ?? defaults.toolOrFeatureUsed,
+  });
+
   const log = await prisma.auditLog.create({
     data: {
       actorType,
@@ -119,9 +201,11 @@ export async function writeAuditLog(input: WriteAuditLogInput) {
       actionType: input.actionType,
       page: input.page ?? null,
       toolOrFeatureUsed: input.toolOrFeatureUsed ?? null,
-      inputDataSummary: input.inputDataSummary
-        ? JSON.stringify(input.inputDataSummary)
-        : null,
+      inputDataSummary: mergeInputDataSummary(
+        input.actionType,
+        input.inputDataSummary,
+        elahContext,
+      ),
       targetResource: input.targetResource ?? null,
       amount: input.amount ?? null,
       riskLevel: input.riskLevel ?? "low",
@@ -132,7 +216,11 @@ export async function writeAuditLog(input: WriteAuditLogInput) {
       userIntent: input.userIntent ?? null,
       actionOutcome: input.actionOutcome ?? "viewed",
       reasonForFlagging: input.reasonForFlagging ?? null,
-      createdByAgent: input.createdByAgent ?? false,
+      createdByAgent,
+      eventId,
+      userIdHash,
+      source,
+      userAgent,
     },
   });
 
@@ -161,6 +249,10 @@ export async function writeAuditLog(input: WriteAuditLogInput) {
     actionOutcome: log.actionOutcome,
     reasonForFlagging: log.reasonForFlagging,
     createdByAgent: log.createdByAgent,
+    eventId: log.eventId,
+    source: log.source,
+    userIdHash: log.userIdHash,
+    userAgent: log.userAgent,
   });
 
   return log;

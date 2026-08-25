@@ -126,3 +126,9 @@ export function clientIp() {
     "127.0.0.1"
   );
 }
+
+export function clientUserAgent(): string | null {
+  const ua = headers().get("user-agent");
+  if (!ua) return null;
+  return ua.length > 400 ? ua.slice(0, 400) : ua;
+}

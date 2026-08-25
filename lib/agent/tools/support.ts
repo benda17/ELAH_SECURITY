@@ -60,7 +60,7 @@ const createSupportCase: ToolDefinition<SupportArgs> = {
       targetResource: ticket.id,
       inputDataSummary: {
         category: args.category ?? "general",
-        subject: args.subject,
+        subjectLength: args.subject.length,
       },
     });
     return {

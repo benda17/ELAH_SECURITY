@@ -5,12 +5,18 @@ import { tierPolicy } from "@/lib/auth/roles";
 import { riskForTransfer } from "@/lib/risk/heuristics";
 import type { ToolContext, ToolDefinition, ToolResult } from "../types";
 
+const RECIPIENT_REDACTED = "[recipient_redacted]";
+
 function fmtNis(n: number): string {
   return new Intl.NumberFormat("en-IL", {
     style: "currency",
     currency: "ILS",
     maximumFractionDigits: 2,
   }).format(n);
+}
+
+function last4(maskedOrId: string): string {
+  return maskedOrId.slice(-4);
 }
 
 // ---------------------------------------------------------------------------
@@ -130,8 +136,10 @@ const createInternalTransfer: ToolDefinition<InternalTransferArgs> = {
       targetResource: reference,
       amount: args.amount,
       inputDataSummary: {
-        from: from.accountNumberMasked,
-        to: to.accountNumberMasked,
+        fromAccountType: args.fromAccountType,
+        toAccountType: args.toAccountType,
+        fromLast4: last4(from.accountNumberMasked),
+        toLast4: last4(to.accountNumberMasked),
       },
     });
     return {
@@ -184,6 +192,9 @@ const createExternalTransfer: ToolDefinition<ExternalTransferArgs> = {
         createdByAgent: true,
         amount: args.amount,
         reasonForFlagging: `Amount ${args.amount} exceeds tier ${tier} per-transfer limit ${policy.perTransferLimit}.`,
+        inputDataSummary: {
+          recipientName: RECIPIENT_REDACTED,
+        },
       });
       await writeRiskEvent({
         severity: "critical",
@@ -243,9 +254,8 @@ const createExternalTransfer: ToolDefinition<ExternalTransferArgs> = {
         targetResource: reference,
         amount: args.amount,
         inputDataSummary: {
-          recipient: args.recipientName,
+          recipientName: RECIPIENT_REDACTED,
           notePresent: !!args.note,
-          approvalRequestId: approval.id,
         },
       });
       return {
@@ -290,7 +300,7 @@ const createExternalTransfer: ToolDefinition<ExternalTransferArgs> = {
       targetResource: reference,
       amount: args.amount,
       inputDataSummary: {
-        recipient: args.recipientName,
+        recipientName: RECIPIENT_REDACTED,
         notePresent: !!args.note,
       },
     });
@@ -377,7 +387,7 @@ const payBill: ToolDefinition<PayBillArgs> = {
       targetResource: reference,
       amount: args.amount,
       inputDataSummary: {
-        biller: args.billerName,
+        billerPresent: true,
         referencePresent: !!args.referenceNumber,
       },
     });

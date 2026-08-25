@@ -71,9 +71,10 @@ export interface AgentPlan {
   };
   /** If true, do NOT execute the tool call; just refuse safely. */
   refuse?: boolean;
-  /** True when the model reused the built-in rules-based planner because
-   * no LLM provider was configured. */
+  /** True when the rules-based planner ran (no API key or provider error). */
   usedFallback: boolean;
+  /** True when fallback ran because the LLM provider threw. Not a tool retry. */
+  degradedFromProvider?: boolean;
 }
 
 export interface AgentChatRequestBody {

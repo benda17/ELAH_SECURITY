@@ -5,6 +5,7 @@ import {
   Bug,
   AlertOctagon,
   MessagesSquare,
+  ScanSearch,
 } from "lucide-react";
 import { requireSecurity } from "@/lib/auth/guards";
 import { ClientSidebar } from "@/components/layout/client-sidebar";
@@ -27,6 +28,11 @@ export default async function AdminLayout({
       href: "/admin/action-logs",
       label: "Action logs",
       icon: <ListChecks className="size-4" />,
+    },
+    {
+      href: "/admin/elah-events",
+      label: "ELAH events",
+      icon: <ScanSearch className="size-4" />,
     },
     {
       href: "/admin/assistant-logs",

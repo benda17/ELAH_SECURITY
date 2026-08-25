@@ -1,7 +1,7 @@
 import Link from "next/link";
-import { MailCheck } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { BrandMark } from "@/components/layout/brand-mark";
+import { ForgotPasswordForm } from "./forgot-password-form";
 
 export default function ForgotPasswordPage() {
   return (
@@ -23,23 +23,13 @@ export default function ForgotPasswordPage() {
           Forgot password
         </h2>
         <p className="mt-1 text-sm text-ink-muted">
-          This is a simulated recovery flow. No real email is ever sent.
+          This is a simulated recovery request. No email is sent and the
+          password does not change. The attempt is logged so ELAH can treat
+          credential recovery as a monitorable — sometimes high-risk — action.
         </p>
 
         <div className="elah-panel mt-6 p-6">
-          <div className="flex items-center gap-2 text-sm text-accent-cyan">
-            <MailCheck className="size-4" />
-            <span>Recovery is disabled in the simulation.</span>
-          </div>
-          <p className="mt-2 text-xs text-ink-muted">
-            In a real deployment, this page would generate a recovery token and
-            email it through an audited channel. For PROJECT ELAH, please use a
-            seeded demo identity with password{" "}
-            <code className="rounded bg-bg-panel/60 px-1 py-0.5 font-mono text-accent-gold border border-line">
-              DemoPass123!
-            </code>
-            .
-          </p>
+          <ForgotPasswordForm />
         </div>
 
         <div className="mt-6">

@@ -19,6 +19,25 @@ const schema = z.object({
   confirmed: z.string().optional(),
 });
 
+/** Envelope-safe transfer args: never persist full account or raw recipient name. */
+function sanitizedTransferSummary(input: {
+  sourceAccountMasked: string;
+  recipientAccount: string;
+  amount: number;
+  memoPresent: boolean;
+  extra?: Record<string, unknown>;
+}): Record<string, unknown> {
+  const compact = input.recipientAccount.replace(/\s/g, "");
+  return {
+    sourceAccount: input.sourceAccountMasked,
+    recipient: "[recipient_redacted]",
+    recipientAccountMasked: compact.slice(-4),
+    amount: input.amount,
+    memoPresent: input.memoPresent,
+    ...input.extra,
+  };
+}
+
 export interface TransferState {
   ok?: boolean;
   error?: string;
@@ -67,12 +86,14 @@ export async function submitTransferAction(
     amount,
     riskLevel: "low",
     actionOutcome: confirmed ? "viewed" : "drafted",
+    createdByAgent: false,
     userIntent: intent,
-    inputDataSummary: {
-      sourceAccount: source.accountNumberMasked,
-      recipient: recipientAccount,
+    inputDataSummary: sanitizedTransferSummary({
+      sourceAccountMasked: source.accountNumberMasked,
+      recipientAccount,
+      amount,
       memoPresent: !!memo,
-    },
+    }),
   });
 
   // Confirmation step required.
@@ -97,13 +118,15 @@ export async function submitTransferAction(
       actionOutcome: "blocked",
       requiresApproval: true,
       approvalStatus: "not_required",
+      createdByAgent: false,
       reasonForFlagging: `Amount ${amount} exceeds tier ${tier} per-transfer limit of ${policy.perTransferLimit}.`,
       userIntent: intent,
-      inputDataSummary: {
-        sourceAccount: source.accountNumberMasked,
-        recipient: recipientAccount,
+      inputDataSummary: sanitizedTransferSummary({
+        sourceAccountMasked: source.accountNumberMasked,
+        recipientAccount,
+        amount,
         memoPresent: !!memo,
-      },
+      }),
     });
     await writeRiskEvent({
       severity: "critical",
@@ -131,15 +154,17 @@ export async function submitTransferAction(
       amount,
       riskLevel: "high",
       actionOutcome: "blocked",
+      createdByAgent: false,
       reasonForFlagging:
         "Memo contains suspicious instruction-like text (simulated prompt-injection detection).",
       userIntent: intent,
-      inputDataSummary: {
-        sourceAccount: source.accountNumberMasked,
-        recipient: recipientAccount,
+      inputDataSummary: sanitizedTransferSummary({
+        sourceAccountMasked: source.accountNumberMasked,
+        recipientAccount,
+        amount,
         memoPresent: true,
-        injectionPatterns: memoInjection.patterns,
-      },
+        extra: { injectionPatterns: memoInjection.patterns },
+      }),
     });
     await writeRiskEvent({
       severity: "high",
@@ -187,12 +212,14 @@ export async function submitTransferAction(
       requiresApproval: true,
       approvalStatus: "pending",
       actionOutcome: "submitted",
+      createdByAgent: false,
       userIntent: intent,
-      inputDataSummary: {
-        sourceAccount: source.accountNumberMasked,
-        recipient: recipientAccount,
+      inputDataSummary: sanitizedTransferSummary({
+        sourceAccountMasked: source.accountNumberMasked,
+        recipientAccount,
+        amount,
         memoPresent: !!memo,
-      },
+      }),
     });
     revalidatePath("/dashboard");
     revalidatePath("/transactions");
@@ -232,12 +259,14 @@ export async function submitTransferAction(
     riskLevel: computedRisk,
     approvalStatus: "not_required",
     actionOutcome: "submitted",
+    createdByAgent: false,
     userIntent: intent,
-    inputDataSummary: {
-      sourceAccount: source.accountNumberMasked,
-      recipient: recipientAccount,
+    inputDataSummary: sanitizedTransferSummary({
+      sourceAccountMasked: source.accountNumberMasked,
+      recipientAccount,
+      amount,
       memoPresent: !!memo,
-    },
+    }),
   });
 
   revalidatePath("/dashboard");

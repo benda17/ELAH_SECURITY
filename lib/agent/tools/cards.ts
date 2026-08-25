@@ -46,6 +46,7 @@ const getCards: ToolDefinition<GetCardsArgs> = {
       actionOutcome: "viewed",
       riskLevel: "low",
       createdByAgent: true,
+      inputDataSummary: { statusFilter: args.status ?? "all" },
     });
     const cards = accounts.map((a) => ({
       cardId: a.id,
@@ -98,6 +99,7 @@ const freezeCard: ToolDefinition<FreezeArgs> = {
       riskLevel: "medium",
       createdByAgent: true,
       targetResource: acct.id,
+      inputDataSummary: { cardLast4: acct.accountNumberMasked.slice(-4) },
     });
     return { ok: true, summary: "Your card has been frozen.", data: { status: "frozen" } };
   },
@@ -136,6 +138,7 @@ const unfreezeCard: ToolDefinition<FreezeArgs> = {
       riskLevel: "medium",
       createdByAgent: true,
       targetResource: acct.id,
+      inputDataSummary: { cardLast4: acct.accountNumberMasked.slice(-4) },
     });
     return { ok: true, summary: "Your card has been unfrozen.", data: { status: "active" } };
   },

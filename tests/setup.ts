@@ -16,13 +16,29 @@ vi.mock("@/lib/auth/session", async (importOriginal) => {
     getSessionUser: vi.fn().mockResolvedValue(null),
     getSessionId: vi.fn().mockReturnValue(null),
     clientIp: vi.fn().mockReturnValue("127.0.0.1"),
+    clientUserAgent: vi.fn().mockReturnValue(null),
   };
 });
 
 beforeAll(() => {
-  execSync("npx prisma db push --skip-generate", {
-    cwd: process.cwd(),
-    env: { ...process.env },
-    stdio: "pipe",
-  });
+  try {
+    execSync("npx prisma db push --skip-generate", {
+      cwd: process.cwd(),
+      env: { ...process.env },
+      stdio: "pipe",
+    });
+  } catch (err) {
+    const output = `${err instanceof Error ? err.message : String(err)} ${
+      err && typeof err === "object" && "stderr" in err
+        ? String((err as { stderr?: Buffer | string }).stderr ?? "")
+        : ""
+    }`;
+    if (/P1001|Can't reach database/.test(output)) {
+      console.warn(
+        "[tests/setup] database unreachable; skipping prisma db push (unit tests that mock Prisma can still run)",
+      );
+      return;
+    }
+    throw err;
+  }
 });
