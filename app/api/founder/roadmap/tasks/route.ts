@@ -3,6 +3,8 @@ import { createTask, listTasks } from "@/lib/roadmap/repository";
 import { recomputeMilestoneProgress } from "@/lib/roadmap/seed";
 import type { TaskCreateInput } from "@/lib/roadmap/types";
 
+export const dynamic = "force-dynamic";
+
 export async function GET(req: NextRequest) {
   const sp = req.nextUrl.searchParams;
   const tasks = await listTasks({

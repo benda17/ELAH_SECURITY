@@ -2,6 +2,8 @@ import { NextResponse } from "next/server";
 import { cookies } from "next/headers";
 import { buildLinkedInAuthorizeUrl, linkedInOAuthConfigured } from "@/lib/founder/content-engine/linkedin";
 
+export const dynamic = "force-dynamic";
+
 export async function GET() {
   if (!linkedInOAuthConfigured()) {
     return NextResponse.json(

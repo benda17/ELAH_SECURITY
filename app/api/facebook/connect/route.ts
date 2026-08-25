@@ -5,6 +5,8 @@ import {
   facebookOAuthConfigured,
 } from "@/lib/founder/content-engine/facebook";
 
+export const dynamic = "force-dynamic";
+
 export async function GET() {
   if (!facebookOAuthConfigured()) {
     return NextResponse.json(

@@ -5,6 +5,8 @@ import {
   saveLinkedInConnection,
 } from "@/lib/founder/content-engine/linkedin";
 
+export const dynamic = "force-dynamic";
+
 export async function GET(req: NextRequest) {
   const url = req.nextUrl;
   const code = url.searchParams.get("code");

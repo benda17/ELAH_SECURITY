@@ -2,6 +2,8 @@ import { NextRequest, NextResponse } from "next/server";
 import { assertCronAuthorized } from "@/lib/founder/content-engine/config";
 import { generateLinkedInDraft } from "@/lib/founder/content-engine/generator";
 
+export const dynamic = "force-dynamic";
+
 export async function GET(request: NextRequest) {
   if (!assertCronAuthorized(request)) {
     return NextResponse.json({ ok: false, error: "Unauthorized" }, { status: 401 });

@@ -6,6 +6,8 @@ import {
   saveFacebookConnection,
 } from "@/lib/founder/content-engine/facebook";
 
+export const dynamic = "force-dynamic";
+
 export async function GET(req: NextRequest) {
   const url = req.nextUrl;
   const code = url.searchParams.get("code");

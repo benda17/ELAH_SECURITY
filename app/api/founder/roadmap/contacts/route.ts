@@ -1,6 +1,8 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createContact, listContacts, updateContact } from "@/lib/roadmap/repository";
 
+export const dynamic = "force-dynamic";
+
 export async function GET() {
   const contacts = await listContacts();
   return NextResponse.json({ contacts });
