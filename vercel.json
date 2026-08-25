@@ -1,5 +1,5 @@
 {
-  "buildCommand": "node scripts/check-database-url.js && npx prisma db push && npm run build",
+  "buildCommand": "npx prisma generate && npm run build",
   "crons": [
     {
       "path": "/api/cron/generate-linkedin-draft",

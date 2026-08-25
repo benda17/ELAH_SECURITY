@@ -272,11 +272,16 @@ model AuditLog {
   actionOutcome     String   @default("viewed")
   reasonForFlagging String?
   createdByAgent    Boolean  @default(false)
+  eventId           String?
+  userIdHash        String?
+  source            String?
+  userAgent         String?
 
   @@index([actorId])
   @@index([actionType])
   @@index([timestamp])
   @@index([riskLevel])
+  @@index([eventId])
 }
 
 model AgentActionLog {
@@ -406,11 +411,13 @@ model AgentEventLog {
   ipAddress         String?
   userAgent         String?
   metadata          String?
+  eventId           String?
 
   @@index([userId])
   @@index([conversationId])
   @@index([eventType])
   @@index([timestamp])
+  @@index([eventId])
 }
 
 // -------------------- Human Intent Matrix (AI assistant analytics) --------------------
@@ -529,6 +536,7 @@ model ElahTrainingEvent {
   weakSignals               String   @default("[]")
   negativeSignals           String   @default("[]")
   notes                     String?
+  eventId                   String?
 
   @@index([createdAt])
   @@index([finalIntent])
