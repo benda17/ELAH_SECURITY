@@ -2,6 +2,8 @@
 
 Measurable conditions for internal MVP readiness (Milestone 10).
 
+Product-definition metrics (Phase 0) live in **`docs/Phase 0 - Product Definition/Tasks 10-22 performed 17 Aug 2026/ELAH_MVP_SUCCESS_METRICS.md`**. Keep this checklist in sync with that document and with MVP scope §9.
+
 ## Scoring
 
 - [ ] ELAH returns numeric score 0.00–1.00 for every scored event  

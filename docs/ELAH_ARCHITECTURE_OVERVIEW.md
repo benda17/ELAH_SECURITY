@@ -1,5 +1,7 @@
 # ELAH Architecture Overview
 
+> **Superseded (17 August 2026).** This sketch still mentions SQLite/`dev.db`. The signed Phase 0 architecture is **`docs/Phase 0 - Product Definition/Tasks 10-22 performed 17 Aug 2026/ELAH_ARCHITECTURE.md`** (Neon Postgres, `POST /v1/score`, fail-open). Keep this page only as a historical pointer.
+
 ## System components
 
 ```

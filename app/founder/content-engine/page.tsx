@@ -21,6 +21,7 @@ import {
   listContentEngineRuns,
   listLinkedInDrafts,
   listSourceEvents,
+  rewriteQueuedDraftLandingUrls,
 } from "@/lib/founder/content-engine/repository";
 
 export const dynamic = "force-dynamic";
@@ -31,6 +32,8 @@ export default async function ContentEnginePage({
   searchParams?: { linkedin?: string; facebook?: string; status?: string };
 }) {
   const statusFilter = searchParams?.status?.trim() || "queue";
+
+  await rewriteQueuedDraftLandingUrls();
 
   const [config, facebook, posts, counts, runs, sources, connection, dailySeries] =
     await Promise.all([

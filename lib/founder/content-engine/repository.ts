@@ -1,5 +1,6 @@
 import "server-only";
 import { prisma } from "@/lib/prisma";
+import { ensureLandingPageLink } from "./llm";
 
 export async function listContentEngineRuns(limit = 20) {
   return prisma.contentEngineRun.findMany({
@@ -13,6 +14,25 @@ export async function listLinkedInDrafts(limit = 50) {
     orderBy: { createdAt: "desc" },
     take: limit,
   });
+}
+
+/** Rewrite unpublished draft bodies that still close with a legacy landing URL. */
+export async function rewriteQueuedDraftLandingUrls(): Promise<number> {
+  const drafts = await prisma.linkedInPostDraft.findMany({
+    where: { status: { not: "published" } },
+    select: { id: true, body: true },
+  });
+  let updated = 0;
+  for (const draft of drafts) {
+    const body = ensureLandingPageLink(draft.body);
+    if (body === draft.body) continue;
+    await prisma.linkedInPostDraft.update({
+      where: { id: draft.id },
+      data: { body },
+    });
+    updated += 1;
+  }
+  return updated;
 }
 
 export async function countLinkedInPostsByStatus() {
@@ -61,7 +81,7 @@ export async function updateDraftStatus(
 export async function updateDraftBody(id: string, body: string, title?: string) {
   return prisma.linkedInPostDraft.update({
     where: { id },
-    data: { body, ...(title != null ? { title } : {}) },
+    data: { body: ensureLandingPageLink(body), ...(title != null ? { title } : {}) },
   });
 }
 

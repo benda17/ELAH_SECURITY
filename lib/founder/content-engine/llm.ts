@@ -1,6 +1,14 @@
 import "server-only";
 
-const LANDING_PAGE_URL = "https://elah-webpage.vercel.app";
+export const LANDING_PAGE_URL = "https://www.elahsecurity.com";
+
+const LEGACY_LANDING_PAGE_URLS = [
+  "https://elah-webpage.vercel.app",
+  "http://elah-webpage.vercel.app",
+  "https://elahsecurity.com",
+  "http://elahsecurity.com",
+  "http://www.elahsecurity.com",
+];
 
 const SYSTEM_PROMPT = `Based on AI security companies' LinkedIn posts, write a LinkedIn company-page post for ELAH Security (banking AI intention scoring / AI security).
 
@@ -35,9 +43,21 @@ If an agent can act, intention visibility is a control — not a nice-to-have.
 ${LANDING_PAGE_URL}`;
 }
 
-function ensureLandingPageLink(text: string): string {
-  const trimmed = text.replace(/\s+$/g, "");
-  if (trimmed.includes(LANDING_PAGE_URL)) return trimmed;
+export function ensureLandingPageLink(text: string): string {
+  let trimmed = text.replace(/\s+$/g, "");
+  trimmed = trimmed.replace(
+    /https?:\/\/(www\.)?elah-webpage\.vercel\.app[^\s)]*/gi,
+    LANDING_PAGE_URL,
+  );
+  for (const legacy of LEGACY_LANDING_PAGE_URLS) {
+    trimmed = trimmed.split(legacy).join(LANDING_PAGE_URL);
+  }
+  if (
+    trimmed.includes(LANDING_PAGE_URL) ||
+    trimmed.includes("www.elahsecurity.com")
+  ) {
+    return trimmed;
+  }
   return `${trimmed}\n\n${LANDING_PAGE_URL}`;
 }
 

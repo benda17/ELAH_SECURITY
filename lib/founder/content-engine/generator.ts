@@ -2,7 +2,7 @@ import "server-only";
 import { prisma } from "@/lib/prisma";
 import { getContentEngineConfig } from "./config";
 import { publishTextToFacebook } from "./facebook";
-import { generatePostBody } from "./llm";
+import { ensureLandingPageLink, generatePostBody } from "./llm";
 import { publishTextToLinkedIn } from "./linkedin";
 
 function parseHashtags(raw: string): string[] {
@@ -173,12 +173,14 @@ export async function publishDraftById(
   if (!draft) return { ok: false, error: "Draft not found" };
   if (draft.status === "published") return { ok: true };
 
-  const result = await publishTextToLinkedIn(draft.body);
+  const body = ensureLandingPageLink(draft.body);
+  const result = await publishTextToLinkedIn(body);
   if (!result.ok) return { ok: false, error: result.error };
 
   await prisma.linkedInPostDraft.update({
     where: { id: draftId },
     data: {
+      body,
       status: "published",
       publishedAt: new Date(),
       ...(result.postId ? { externalPostId: result.postId } : {}),
@@ -214,12 +216,14 @@ export async function publishDraftToFacebookById(
   if (!draft) return { ok: false, error: "Draft not found" };
   if (draft.facebookPostId) return { ok: true, postId: draft.facebookPostId };
 
-  const result = await publishTextToFacebook(draft.body, parseHashtags(draft.hashtags));
+  const body = ensureLandingPageLink(draft.body);
+  const result = await publishTextToFacebook(body, parseHashtags(draft.hashtags));
   if (!result.ok) return { ok: false, error: result.error };
 
   await prisma.linkedInPostDraft.update({
     where: { id: draftId },
     data: {
+      body,
       facebookPostId: result.postId ?? null,
       facebookPublishedAt: new Date(),
     },
