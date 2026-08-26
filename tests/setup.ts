@@ -7,6 +7,9 @@ process.env.DATABASE_URL =
   "postgresql://elah:elah@localhost:5432/elah_banking?schema=public";
 process.env.AUTH_SECRET = "test-auth-secret-for-agent-suite-min-32-chars";
 process.env.LOG_MIRROR_JSONL = "false";
+process.env.ELAH_SERVICE_TOKEN = "test-elah-service-token-min-32-chars";
+process.env.ELAH_SCORE_TIMEOUT_MS = "250";
+delete process.env.ELAH_SERVICE_URL;
 delete process.env.OPENAI_API_KEY;
 
 vi.mock("@/lib/auth/session", async (importOriginal) => {

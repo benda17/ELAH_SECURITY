@@ -18,6 +18,10 @@ import type {
   ElahLabelSource,
 } from "./types";
 import { currentEventId } from "./event-context";
+import {
+  elahScoreFromAgentMetadata,
+  trainingPatchFromElahScore,
+} from "./score-persist";
 
 const DEFAULT_APP_ID = process.env.ELAH_APP_ID ?? "elah-banking-demo";
 
@@ -58,6 +62,14 @@ export async function createElahTrainingEventFromAssistantInteraction(
     trainingContext,
   );
 
+  const scoredLog = await prisma.agentEventLog.findFirst({
+    where: { messageId: interaction.messageId, eventType: "elah_scored" },
+    orderBy: { timestamp: "desc" },
+    select: { metadata: true },
+  });
+  const scored = elahScoreFromAgentMetadata(scoredLog?.metadata);
+  const fromScore = scored ? trainingPatchFromElahScore(scored) : null;
+
   const row = await prisma.elahTrainingEvent.create({
     data: {
       appId: interaction.appId ?? DEFAULT_APP_ID,
@@ -82,15 +94,17 @@ export async function createElahTrainingEventFromAssistantInteraction(
       userHadActiveSession: interaction.userHadActiveSession ?? !!interaction.sessionId,
       mfaStatus: interaction.mfaStatus ?? "unknown",
       finalIntent,
-      elahScoreLabel,
-      humanAgency: coordinates.humanAgency,
-      financialRisk: coordinates.financialRisk,
-      emotionalUrgency: coordinates.emotionalUrgency,
-      labelSource: interaction.labelSource ?? "rules_v0",
-      labelConfidence: interaction.matrixConfidence ?? elahScoreLabel,
-      matchedSignals: JSON.stringify(explanation.matchedSignals),
-      weakSignals: JSON.stringify(explanation.weakSignals),
-      negativeSignals: JSON.stringify(explanation.negativeSignals),
+      elahScoreLabel: fromScore?.elahScoreLabel ?? elahScoreLabel,
+      humanAgency: fromScore?.humanAgency ?? coordinates.humanAgency,
+      financialRisk: fromScore?.financialRisk ?? coordinates.financialRisk,
+      emotionalUrgency: fromScore?.emotionalUrgency ?? coordinates.emotionalUrgency,
+      labelSource: fromScore?.labelSource ?? interaction.labelSource ?? "rules_v0",
+      labelConfidence:
+        fromScore?.labelConfidence ?? interaction.matrixConfidence ?? elahScoreLabel,
+      matchedSignals: fromScore?.matchedSignals ?? JSON.stringify(explanation.matchedSignals),
+      weakSignals: fromScore?.weakSignals ?? JSON.stringify(explanation.weakSignals),
+      negativeSignals:
+        fromScore?.negativeSignals ?? JSON.stringify(explanation.negativeSignals),
       notes: interaction.notes ?? null,
       eventId: interaction.eventId ?? currentEventId() ?? null,
       ...(interaction.createdAt ? { createdAt: interaction.createdAt, updatedAt: interaction.createdAt } : {}),

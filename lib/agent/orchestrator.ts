@@ -25,6 +25,10 @@ import {
   mintEventId,
   runWithEventId,
 } from "@/lib/elah/event-context";
+import { scoreElahEvent } from "@/lib/elah/client";
+import { buildAgentPreToolEvent } from "@/lib/elah/score-event";
+import { persistElahScore } from "@/lib/elah/score-persist";
+import type { ElahExecutionState, ElahOutcome } from "@/lib/elah/envelope";
 import {
   filterToolArgs,
   sanitizeClientError,
@@ -68,6 +72,45 @@ function toolAuditDefaults(
 
 function withScoringEventId<T>(fn: () => Promise<T>): Promise<T> {
   return runWithEventId(mintEventId(), fn);
+}
+
+async function scoreAndPersistPreTool(opts: {
+  user: SessionUser;
+  sessionId: string | null;
+  conversationId: string;
+  messageId: string;
+  utterance: string;
+  toolName?: string | null;
+  toolArgs?: Record<string, unknown> | null;
+  policyDecision: "allow" | "deny" | "needs_confirmation";
+  policyReasons?: string[];
+  outcome: ElahOutcome;
+  executionState: ElahExecutionState;
+  intent?: AgentIntent | null;
+  isInjection?: boolean;
+  ipAddress?: string | null;
+  userAgent?: string | null;
+  eventId?: string | null;
+}): Promise<void> {
+  try {
+    const event = buildAgentPreToolEvent({
+      ...opts,
+      eventId: opts.eventId ?? currentEventId() ?? mintEventId(),
+    });
+    if (!event) return;
+    const result = await scoreElahEvent(event);
+    await persistElahScore({
+      result,
+      eventId: event.eventId,
+      userId: opts.user.id,
+      sessionId: opts.sessionId,
+      conversationId: opts.conversationId,
+      messageId: opts.messageId,
+      toolName: opts.toolName ?? null,
+    });
+  } catch (err) {
+    console.error("[elah-score]", err);
+  }
 }
 
 function riskScoreFor(decision: PolicyDecision, injection: boolean): number {
@@ -335,6 +378,21 @@ export async function handleAgentChat(
           turnId: userMsg.id,
         },
       });
+      await scoreAndPersistPreTool({
+        user: input.user,
+        sessionId: input.sessionCookieId,
+        conversationId: conversation.id,
+        messageId: userMsg.id,
+        utterance: input.message,
+        policyDecision: "deny",
+        policyReasons: injection.matched ? injection.labels : matrixIntent.matchedSignals,
+        outcome: "refused",
+        executionState: "no_tool",
+        intent: "prompt_injection_attempt",
+        isInjection: true,
+        ipAddress: input.ipAddress,
+        userAgent: input.userAgent,
+      });
       await prisma.agentConversation.update({
         where: { id: conversation.id },
         data: { status: "flagged", updatedAt: new Date() },
@@ -491,6 +549,28 @@ export async function handleAgentChat(
         latencyMs: Date.now() - started,
         metadata: { turnId: userMsg.id },
       });
+      const confirmDenyInjection = policyDecision.reasons.some((r) =>
+        /injection/i.test(r),
+      );
+      await scoreAndPersistPreTool({
+        user: input.user,
+        sessionId: input.sessionCookieId,
+        conversationId: conversation.id,
+        messageId: userMsg.id,
+        utterance: input.message,
+        toolName: pending.toolName,
+        toolArgs,
+        policyDecision: policyDecision.decision === "needs_confirmation"
+          ? "needs_confirmation"
+          : "deny",
+        policyReasons: policyDecision.reasons,
+        outcome: confirmDenyInjection ? "refused" : "blocked",
+        executionState: "no_tool",
+        intent: pending.actionType as AgentIntent,
+        isInjection: confirmDenyInjection,
+        ipAddress: input.ipAddress,
+        userAgent: input.userAgent,
+      });
       await patchIntent(intentEventId, {
         toolName: pending.toolName,
         toolArgs,
@@ -553,6 +633,23 @@ export async function handleAgentChat(
       toolName: pending.toolName,
       toolArgsSanitized: sanitizeToolArgs(toolArgs),
       metadata: { turnId: userMsg.id },
+    });
+
+    await scoreAndPersistPreTool({
+      user: input.user,
+      sessionId: input.sessionCookieId,
+      conversationId: conversation.id,
+      messageId: userMsg.id,
+      utterance: input.message,
+      toolName: pending.toolName,
+      toolArgs,
+      policyDecision: "allow",
+      policyReasons: [],
+      outcome: "pending_confirmation",
+      executionState: "pre_tool",
+      intent: pending.actionType as AgentIntent,
+      ipAddress: input.ipAddress,
+      userAgent: input.userAgent,
     });
 
     const toolStarted = Date.now();
@@ -679,6 +776,21 @@ export async function handleAgentChat(
           patterns: historyInjection.patterns,
           turnId: userMsg.id,
         },
+      });
+      await scoreAndPersistPreTool({
+        user: input.user,
+        sessionId: input.sessionCookieId,
+        conversationId: conversation.id,
+        messageId: userMsg.id,
+        utterance: input.message,
+        policyDecision: "deny",
+        policyReasons: historyInjection.labels,
+        outcome: "refused",
+        executionState: "no_tool",
+        intent: "prompt_injection_attempt",
+        isInjection: true,
+        ipAddress: input.ipAddress,
+        userAgent: input.userAgent,
       });
       await patchIntent(intentEventId, {
         actionStatus: "blocked",
@@ -867,6 +979,27 @@ export async function handleAgentChat(
   if (policyDecision.decision === "deny") {
     return runWithEventId(scoringEventId, async () => {
       await writeAgentEvent(policyEventInput);
+      const injectionDeny = policyDecision.reasons.some((r) =>
+        /injection/i.test(r),
+      );
+      await scoreAndPersistPreTool({
+        user: input.user,
+        sessionId: input.sessionCookieId,
+        conversationId: conversation.id,
+        messageId: userMsg.id,
+        utterance: input.message,
+        toolName,
+        toolArgs,
+        policyDecision: "deny",
+        policyReasons: policyDecision.reasons,
+        outcome: injectionDeny ? "refused" : "blocked",
+        executionState: "no_tool",
+        intent: plan.intent,
+        isInjection: injectionDeny,
+        ipAddress: input.ipAddress,
+        userAgent: input.userAgent,
+        eventId: scoringEventId,
+      });
       const reply =
         policyDecision.reasons.some((r) => r.includes("injection"))
           ? "I can't help with that request."
@@ -907,6 +1040,24 @@ export async function handleAgentChat(
   await writeAgentEvent(policyEventInput);
 
   if (policyDecision.decision === "needs_confirmation") {
+    return runWithEventId(scoringEventId, async () => {
+    await scoreAndPersistPreTool({
+      user: input.user,
+      sessionId: input.sessionCookieId,
+      conversationId: conversation.id,
+      messageId: userMsg.id,
+      utterance: input.message,
+      toolName,
+      toolArgs,
+      policyDecision: "needs_confirmation",
+      policyReasons: policyDecision.reasons,
+      outcome: "pending_confirmation",
+      executionState: "pre_tool",
+      intent: plan.intent,
+      ipAddress: input.ipAddress,
+      userAgent: input.userAgent,
+      eventId: scoringEventId,
+    });
     await cancelOpenPendingActions(conversation.id, input.user.id);
     const summary = await summarizeTool(toolName, toolArgs, ctx);
     const expiresAt = new Date(Date.now() + PENDING_TTL_MINUTES * 60 * 1000);
@@ -968,10 +1119,30 @@ export async function handleAgentChat(
       pendingAction: await pendingActionView(pendingRow),
       refused: false,
     };
+    });
   }
 
   // Safe read-only or auto-approved action — execute immediately
   return runWithEventId(scoringEventId, async () => {
+    await scoreAndPersistPreTool({
+      user: input.user,
+      sessionId: input.sessionCookieId,
+      conversationId: conversation.id,
+      messageId: userMsg.id,
+      utterance: input.message,
+      toolName,
+      toolArgs,
+      policyDecision: "allow",
+      policyReasons: [],
+      // Schema §4.1: do not claim executed until the tool returns.
+      // policy.decision=allow distinguishes this from confirm-wait.
+      outcome: "pending_confirmation",
+      executionState: "pre_tool",
+      intent: plan.intent,
+      ipAddress: input.ipAddress,
+      userAgent: input.userAgent,
+      eventId: scoringEventId,
+    });
     const toolStarted = Date.now();
     const result = await runWithToolAuditContext(
       toolAuditDefaults(input.user, input),

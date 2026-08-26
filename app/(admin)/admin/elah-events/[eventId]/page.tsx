@@ -13,6 +13,11 @@ import { listIngestibleEvents } from "@/lib/elah/envelope";
 import { correlateTurn } from "@/lib/elah/correlate";
 import { envelopeForDisplay } from "@/lib/elah/admin-events";
 import {
+  loadLatestScoreSnapshot,
+  formatScoreNumber,
+  type ElahScoreSnapshot,
+} from "@/lib/elah/score-read";
+import {
   formatAgentEventLabel,
   agentEventBadgeVariant,
 } from "@/lib/agent/display";
@@ -67,6 +72,7 @@ export default async function ElahEventDetailPage({
 
   const { event, quality } = found;
   const display = envelopeForDisplay(event);
+  const scoreSnapshot = await loadLatestScoreSnapshot(event.eventId);
   const conversation = event.conversation;
   const correlated =
     conversation?.conversationId && conversation.messageId
@@ -124,7 +130,7 @@ export default async function ElahEventDetailPage({
     <PageShell>
       <SectionHeader
         title="ElahEvent detail"
-        description="Mapped ingest envelope for this scoring unit. ELAH never allows, blocks, or executes. Scores are not fields of this event."
+        description="Mapped ingest envelope for this scoring unit. ELAH never allows, blocks, or executes. Scores are not fields of this event; the score card below is a separate Phase 3 snapshot."
         action={
           <Link
             href="/admin/elah-events"
@@ -150,6 +156,8 @@ export default async function ElahEventDetailPage({
           {formatDate(event.occurredAt)}
         </span>
       </div>
+
+      <ElahScoreCard snapshot={scoreSnapshot} />
 
       {event.source === "agent" || chatMessages.length > 0 ? (
         <Card>
@@ -343,5 +351,130 @@ function KV({ k, v }: { k: string; v: string }) {
       </div>
       <div className="truncate font-mono text-ink">{v}</div>
     </div>
+  );
+}
+
+function SignalList({
+  label,
+  items,
+}: {
+  label: string;
+  items: string[];
+}) {
+  return (
+    <div>
+      <div className="text-[10px] uppercase tracking-widest text-ink-subtle">
+        {label}
+      </div>
+      {items.length === 0 ? (
+        <p className="mt-1 text-sm text-ink-muted">None</p>
+      ) : (
+        <div className="mt-1 flex flex-wrap gap-1.5">
+          {items.map((item) => (
+            <Badge key={`${label}-${item}`} variant="default">
+              {item}
+            </Badge>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
+
+function scoreStatusBadge(snapshot: ElahScoreSnapshot) {
+  if (snapshot.kind === "unavailable") {
+    return <Badge variant="warning">unavailable</Badge>;
+  }
+  if (snapshot.status === "abstained") {
+    return <Badge variant="warning">abstained</Badge>;
+  }
+  return <Badge variant="info">scored</Badge>;
+}
+
+function ElahScoreCard({ snapshot }: { snapshot: ElahScoreSnapshot | null }) {
+  return (
+    <Card>
+      <CardHeader
+        title="ELAH score (rules_v0)"
+        description="Intention reading only. This is not an allow, deny, confirm, or execute decision. Bank policy remains the authority. ELAH never allows, blocks, or executes."
+        action={snapshot ? scoreStatusBadge(snapshot) : undefined}
+      />
+      {!snapshot ? (
+        <p className="text-sm text-ink-muted">
+          Not scored (Phase 3 snapshot missing)
+        </p>
+      ) : snapshot.kind === "unavailable" ? (
+        <div className="grid grid-cols-2 gap-3 text-sm md:grid-cols-3">
+          <KV k="Status" v="unavailable" />
+          <KV k="Reason" v={snapshot.reason} />
+          <KV k="requestId" v={snapshot.requestId ?? "—"} />
+          <KV
+            k="HTTP"
+            v={snapshot.httpStatus != null ? String(snapshot.httpStatus) : "—"}
+          />
+          <KV k="Error code" v={snapshot.errorCode ?? "—"} />
+        </div>
+      ) : (
+        <div className="space-y-4">
+          <div className="grid grid-cols-2 gap-3 text-sm md:grid-cols-4">
+            <KV k="Status" v={snapshot.status} />
+            <KV k="elahScore" v={formatScoreNumber(snapshot.elahScore)} />
+            <KV k="confidence" v={formatScoreNumber(snapshot.confidence)} />
+            <KV k="uncertainty" v={formatScoreNumber(snapshot.uncertainty)} />
+            <KV k="intentLabel" v={snapshot.intentLabel ?? "—"} />
+            <KV k="requestId" v={snapshot.requestId ?? "—"} />
+            <KV k="scoredAt" v={snapshot.scoredAt ?? "—"} />
+            <KV k="scorer" v={snapshot.provenanceScorer ?? "rules_v0"} />
+          </div>
+          <div className="grid grid-cols-2 gap-3 text-sm md:grid-cols-3">
+            <KV
+              k="humanAgency"
+              v={formatScoreNumber(snapshot.coordinates?.humanAgency ?? null)}
+            />
+            <KV
+              k="financialRisk"
+              v={formatScoreNumber(snapshot.coordinates?.financialRisk ?? null)}
+            />
+            <KV
+              k="emotionalUrgency"
+              v={formatScoreNumber(
+                snapshot.coordinates?.emotionalUrgency ?? null,
+              )}
+            />
+          </div>
+          {snapshot.explanation.summary ? (
+            <p className="text-sm text-ink">{snapshot.explanation.summary}</p>
+          ) : null}
+          <div className="space-y-3">
+            <SignalList
+              label="matchedSignals"
+              items={snapshot.explanation.matchedSignals}
+            />
+            <SignalList
+              label="weakSignals"
+              items={snapshot.explanation.weakSignals}
+            />
+            <SignalList
+              label="negativeSignals"
+              items={snapshot.explanation.negativeSignals}
+            />
+          </div>
+          <div className="grid grid-cols-2 gap-3 text-sm md:grid-cols-3">
+            <KV
+              k="policyHook"
+              v={snapshot.policyHook.recommendation ?? "—"}
+            />
+            <KV
+              k="policyHook reasons"
+              v={
+                snapshot.policyHook.reasons.length > 0
+                  ? snapshot.policyHook.reasons.join("; ")
+                  : "—"
+              }
+            />
+          </div>
+        </div>
+      )}
+    </Card>
   );
 }

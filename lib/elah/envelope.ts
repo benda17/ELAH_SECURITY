@@ -155,6 +155,11 @@ const ACTION_ALIAS_TO_CANONICAL: Record<string, ElahActionType> = {
   prompt_injection: "prompt_injection",
 };
 
+/** Live tool / audit alias → canonical ElahEvent.actionType. Unknown aliases return null. */
+export function canonicalActionType(alias: string): ElahActionType | null {
+  return ACTION_ALIAS_TO_CANONICAL[alias] ?? null;
+}
+
 const FORBIDDEN_ARG_KEYS = new Set([
   "userId",
   "customerProfileId",

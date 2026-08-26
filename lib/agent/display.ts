@@ -36,6 +36,10 @@ export function formatAgentEventLabel(
       return "Unauthorized access attempt";
     case "agent_error":
       return "Assistant error";
+    case "elah_scored":
+      return "ELAH scored";
+    case "elah_scoring_unavailable":
+      return "ELAH scoring unavailable";
     default:
       return eventType.replace(/_/g, " ");
   }
@@ -58,7 +62,10 @@ export function agentEventBadgeVariant(
     case "confirmation_required":
       return "warning";
     case "tool_call_requested":
+    case "elah_scored":
       return "info";
+    case "elah_scoring_unavailable":
+      return "warning";
     default:
       return "default";
   }

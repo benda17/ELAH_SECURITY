@@ -29,7 +29,9 @@ export type AgentEventType =
   | "tool_call_failed"
   | "suspicious_prompt_detected"
   | "unauthorized_access_attempt"
-  | "agent_error";
+  | "agent_error"
+  | "elah_scored"
+  | "elah_scoring_unavailable";
 
 export interface WriteAgentEventInput {
   eventType: AgentEventType;

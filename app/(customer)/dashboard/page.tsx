@@ -63,7 +63,12 @@ export default async function CustomerDashboardPage() {
       where: {
         userId: user.id,
         eventType: {
-          notIn: ["agent_message_created", "agent_intent_classified"],
+          notIn: [
+            "agent_message_created",
+            "agent_intent_classified",
+            "elah_scored",
+            "elah_scoring_unavailable",
+          ],
         },
       },
       orderBy: { timestamp: "desc" },

@@ -10,6 +10,10 @@ import { Empty } from "@/components/ui/empty";
 import { formatDate } from "@/lib/utils";
 import { listIngestibleEvents } from "@/lib/elah/envelope";
 import { FILTER_OPTIONS, listDemoCustomers } from "@/lib/elah/admin-events";
+import {
+  loadLatestScoreSnapshots,
+  scoreListBadge,
+} from "@/lib/elah/score-read";
 
 export const dynamic = "force-dynamic";
 
@@ -77,6 +81,10 @@ export default async function ElahEventsPage({
       })
     : listed;
 
+  const scoreSnapshots = await loadLatestScoreSnapshots(
+    events.map((row) => row.event.eventId),
+  );
+
   await writeAuditLog({
     actionType: "elah_events_viewed",
     page: "/admin/elah-events",
@@ -100,7 +108,7 @@ export default async function ElahEventsPage({
     <PageShell>
       <SectionHeader
         title="ELAH events"
-        description="Ingestible ElahEvent envelopes for security review. Page views are excluded. ELAH never allows, blocks, or executes — this list is observability only, with no scores."
+        description="Ingestible ElahEvent envelopes for security review. Page views are excluded. ELAH never allows, blocks, or executes — this list is observability only. Compact score badges are Phase 3 snapshots, not envelope fields."
       />
 
       <Card>
@@ -211,11 +219,16 @@ export default async function ElahEventsPage({
                 <TH>Outcome</TH>
                 <TH>Tool</TH>
                 <TH>Quality</TH>
+                <TH>ELAH</TH>
                 <TH>Event</TH>
               </TR>
             </THead>
             <tbody>
-              {events.map((row) => (
+              {events.map((row) => {
+                const badge = scoreListBadge(
+                  scoreSnapshots.get(row.event.eventId) ?? null,
+                );
+                return (
                 <TR key={`${row.auditLogId}-${row.event.eventId}`} className="hover:bg-bg-subtle/40">
                   <TD className="whitespace-nowrap text-ink-muted">
                     <Link
@@ -259,6 +272,13 @@ export default async function ElahEventsPage({
                     </Badge>
                   </TD>
                   <TD>
+                    {badge ? (
+                      <Badge variant={badge.variant}>{badge.label}</Badge>
+                    ) : (
+                      <span className="text-xs text-ink-subtle">—</span>
+                    )}
+                  </TD>
+                  <TD>
                     <Link
                       href={`/admin/elah-events/${row.event.eventId}`}
                       className="font-mono text-xs text-accent-cyan hover:underline"
@@ -268,7 +288,8 @@ export default async function ElahEventsPage({
                     </Link>
                   </TD>
                 </TR>
-              ))}
+                );
+              })}
             </tbody>
           </Table>
         )}

@@ -1,0 +1,33 @@
+# Phase 3 CI for the ELAH scoring service.
+# Does NOT run `prisma db push` against Neon or any hosted database.
+#
+# Envelope/quality suites mock Prisma and are included here because they do not
+# need a live Postgres. If they start failing without a database, keep only:
+#   npx vitest run tests/elah
+name: CI
+
+on:
+  push:
+  pull_request:
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    env:
+      # In-process handleScore (no remote scorer). tests/setup.ts also sets these.
+      ELAH_SERVICE_TOKEN: test-elah-service-token-min-32-chars
+      ELAH_SCORE_TIMEOUT_MS: "250"
+      AUTH_SECRET: test-auth-secret-for-agent-suite-min-32-chars
+      DATABASE_URL: postgresql://elah:elah@localhost:5432/elah_banking?schema=public
+      LOG_MIRROR_JSONL: "false"
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+      - name: Install dependencies
+        run: npm ci
+      - name: Run ELAH scoring and event contract tests
+        run: npx vitest run tests/elah tests/events/envelope.test.ts tests/events/quality.test.ts
