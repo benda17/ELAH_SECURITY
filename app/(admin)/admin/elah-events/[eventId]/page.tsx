@@ -199,52 +199,55 @@ export default async function ElahEventDetailPage({
           {correlated?.modelOutput ||
           correlated?.policyDecision ||
           correlated?.resultSummary ? (
-            <div className="mt-4 grid grid-cols-2 gap-3 text-sm md:grid-cols-4">
-              <KV
-                k="Planned tool"
-                v={correlated.modelOutput?.plannedTool ?? "—"}
-              />
-              <KV
-                k="Planner"
-                v={
-                  correlated.modelOutput?.usedFallback === true
-                    ? "built-in fallback"
-                    : correlated.modelOutput?.usedFallback === false
-                      ? "language model"
-                      : "—"
-                }
-              />
-              <KV k="Bank policy" v={correlated.policyDecision ?? "—"} />
-            </div>
-            {correlated.modelOutput?.explanation ? (
-              <div className="mt-3">
-                <div className="text-[10px] uppercase tracking-widest text-ink-subtle">
-                  Model explanation
-                </div>
-                <p className="mt-1 whitespace-pre-wrap text-sm text-ink">
-                  {correlated.modelOutput.explanation}
-                </p>
+            <>
+              <div className="mt-4 grid grid-cols-2 gap-3 text-sm md:grid-cols-4">
+                <KV
+                  k="Planned tool"
+                  v={correlated.modelOutput?.plannedTool ?? "—"}
+                />
+                <KV
+                  k="Planner"
+                  v={
+                    correlated.modelOutput?.usedFallback === true
+                      ? "built-in fallback"
+                      : correlated.modelOutput?.usedFallback === false
+                        ? "language model"
+                        : "—"
+                  }
+                />
+                <KV k="Bank policy" v={correlated.policyDecision ?? "—"} />
               </div>
-            ) : null}
-            {correlated.modelOutput?.result ? (
-              <div className="mt-3">
-                <div className="text-[10px] uppercase tracking-widest text-ink-subtle">
-                  Result
+              {correlated.modelOutput?.explanation ? (
+                <div className="mt-3">
+                  <div className="text-[10px] uppercase tracking-widest text-ink-subtle">
+                    Model explanation
+                  </div>
+                  <p className="mt-1 whitespace-pre-wrap text-sm text-ink">
+                    {correlated.modelOutput.explanation}
+                  </p>
                 </div>
-                <p className="mt-1 whitespace-pre-wrap text-sm text-ink">
-                  {correlated.modelOutput.result}
-                </p>
-              </div>
-            ) : correlated.resultSummary ? (
-              <div className="mt-3">
-                <div className="text-[10px] uppercase tracking-widest text-ink-subtle">
-                  Result
+              ) : null}
+              {correlated.modelOutput?.result ? (
+                <div className="mt-3">
+                  <div className="text-[10px] uppercase tracking-widest text-ink-subtle">
+                    Result
+                  </div>
+                  <p className="mt-1 whitespace-pre-wrap text-sm text-ink">
+                    {correlated.modelOutput.result}
+                  </p>
                 </div>
-                <p className="mt-1 whitespace-pre-wrap text-sm text-ink">
-                  {correlated.resultSummary}
-                </p>
-              </div>
-            ) : null}
+              ) : correlated.resultSummary ? (
+                <div className="mt-3">
+                  <div className="text-[10px] uppercase tracking-widest text-ink-subtle">
+                    Result
+                  </div>
+                  <p className="mt-1 whitespace-pre-wrap text-sm text-ink">
+                    {correlated.resultSummary}
+                  </p>
+                </div>
+              ) : null}
+            </>
+          ) : null}
         </Card>
       ) : null}
 

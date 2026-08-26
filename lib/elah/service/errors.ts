@@ -28,6 +28,6 @@ export function errorResult(
   message: string,
   requestId: string | null,
   details?: ErrorDetail[],
-): { status: number; body: ErrorResponse } {
-  return { status, body: errorBody(code, message, requestId, details) };
+): { ok: false; status: number; body: ErrorResponse } {
+  return { ok: false, status, body: errorBody(code, message, requestId, details) };
 }

@@ -171,7 +171,7 @@ function qualityFromCheck(result: unknown): QualityResult {
   if (isRecord(result.quality) && typeof result.quality.ok === "boolean") {
     const q = result.quality;
     return {
-      ok: q.ok,
+      ok: q.ok === true,
       eventId: typeof q.eventId === "string" ? q.eventId : undefined,
       ruleIds: Array.isArray(q.ruleIds)
         ? q.ruleIds.filter((r): r is string => typeof r === "string")
@@ -242,15 +242,17 @@ function stripIdentityFields<T>(value: T, depth = 0): T {
   return out as T;
 }
 
-function occurredAtMs(event: Record<string, unknown>): number {
+function occurredAtMs(event: { occurredAt?: unknown }): number {
   const raw = event.occurredAt;
   if (typeof raw !== "string") return Number.POSITIVE_INFINITY;
   const ms = Date.parse(raw);
   return Number.isFinite(ms) ? ms : Number.POSITIVE_INFINITY;
 }
 
-function keepEarliestByEventId(events: Record<string, unknown>[]): Record<string, unknown>[] {
-  const byId = new Map<string, Record<string, unknown>>();
+function keepEarliestByEventId<T extends { eventId?: unknown; occurredAt?: unknown }>(
+  events: T[],
+): T[] {
+  const byId = new Map<string, T>();
   for (const event of events) {
     const id = typeof event.eventId === "string" ? event.eventId : "";
     if (!id) continue;
@@ -349,7 +351,7 @@ async function collectEvents(
     .map((event) => stripIdentityFields(event))
     .filter((event) => isQualityOk(event, checkElahEventFallback));
   return {
-    events: keepEarliestByEventId(ok).slice(0, limit),
+    events: keepEarliestByEventId(ok).slice(0, limit) as unknown as Record<string, unknown>[],
     source: "fallback",
   };
 }
