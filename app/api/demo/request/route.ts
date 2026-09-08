@@ -44,7 +44,14 @@ export async function POST(request: NextRequest) {
   }
 
   try {
-    const result = await createDemoRequest(payload);
+    const result = await createDemoRequest({
+      name: payload.name,
+      email: payload.email,
+      company: payload.company,
+      role: payload.role,
+      goal: payload.goal,
+      source: payload.source,
+    });
     void notifyFounderOfDemoRequest({
       name: String(payload.name ?? ""),
       email: result.email,
