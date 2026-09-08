@@ -6,12 +6,14 @@ import Image from "next/image";
 import {
   AlertTriangle,
   Beaker,
+  CalendarClock,
   CalendarDays,
   Columns3,
   GitBranch,
   LayoutDashboard,
   ListTodo,
   LogOut,
+  Mail,
   Milestone,
   PenLine,
   Scale,
@@ -29,6 +31,8 @@ const PRIMARY_NAV = [
   { href: "/founder/model-roadmap", label: "Model Roadmap", icon: Target },
   { href: "/founder/fundraising", label: "Fundraising", icon: Milestone },
   { href: "/founder/content-engine", label: "Content Engine", icon: PenLine },
+  { href: "/founder/newsletter", label: "Newsletter", icon: Mail },
+  { href: "/founder/demo-requests", label: "Demo requests", icon: CalendarClock },
   { href: "/founder/settings", label: "Settings", icon: Settings },
 ];
 

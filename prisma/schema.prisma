@@ -634,6 +634,35 @@ model FacebookIntegration {
   @@index([pageId])
 }
 
+// -------------------- Newsletter (marketing hero opt-in) --------------------
+
+model NewsletterSubscriber {
+  id        String   @id @default(cuid())
+  email     String   @unique
+  source    String   @default("hero")
+  createdAt DateTime @default(now())
+
+  @@index([createdAt])
+  @@index([source])
+}
+
+// -------------------- Demo requests (marketing /demo form) --------------------
+
+model DemoRequest {
+  id        String   @id @default(cuid())
+  name      String
+  email     String
+  company   String
+  role      String?
+  goal      String?
+  source    String   @default("demo_page")
+  status    String   @default("new")
+  createdAt DateTime @default(now())
+
+  @@index([createdAt])
+  @@index([email])
+}
+
 // Static catalog of prompt-injection test scenarios (seeded fixtures only)
 model PromptInjectionScenario {
   id                       String   @id @default(cuid())

@@ -24,6 +24,8 @@ export async function middleware(request: NextRequest) {
     pathname.startsWith("/api/facebook") ||
     pathname.startsWith("/api/auth/login") ||
     pathname.startsWith("/api/auth/logout") ||
+    pathname.startsWith("/api/newsletter") ||
+    pathname.startsWith("/api/demo") ||
     pathname.includes(".")
   ) {
     return NextResponse.next();

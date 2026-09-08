@@ -7,9 +7,17 @@ Unified Next.js workspace for the ELAH banking demo analytics and founder admin 
 | Area | Base path | Purpose |
 |------|-----------|---------|
 | **Banking System** | `/banking/*` | Demo analytics, intent matrix, agent logs, users, tool actions, training dataset |
-| **Founder & Manager Admin** | `/founder/*` | Company roadmap, model roadmap, fundraising, content engine, settings |
+| **Founder & Manager Admin** | `/founder/*` | Company roadmap, model roadmap, fundraising, content engine, newsletter, settings |
 
 Login: **http://localhost:3001/login** — founder credentials gate the whole platform.
+
+Local ports (documented for CORS):
+
+| App | Default URL | Notes |
+|-----|-------------|--------|
+| Marketing webpage (`ELAH-Webpage`) | **http://localhost:3000** | Hero newsletter form POSTs here → dashboard |
+| Founder dashboard (this repo) | **http://localhost:3001** | Prisma/Neon + Resend send |
+| Banking demo | **http://localhost:3002** | Separate app; not used by newsletter |
 
 The interactive banking demo itself runs separately (default **http://localhost:3002**). The Banking System sidebar links to it via `BANKING_APP_URL`.
 
@@ -17,7 +25,9 @@ The interactive banking demo itself runs separately (default **http://localhost:
 
 ```bash
 npm install
-npm run db:push
+npx prisma generate
+# Local schema only — do not `prisma db push` to production:
+npx prisma migrate dev --name newsletter_subscribers
 npm run roadmap:seed   # first-time founder roadmap seed
 npm run dev            # http://localhost:3001
 ```
@@ -63,6 +73,32 @@ Never commit `.env` with real secrets.
 - LinkedIn: Connect at `/api/linkedin/connect` (needs `LINKEDIN_CLIENT_ID` / `LINKEDIN_CLIENT_SECRET`), then **Publish to LinkedIn** on a draft
 
 Set `CONTENT_ENGINE_ENABLED=true` for daily cron. Keep `CONTENT_AUTO_PUBLISH=false` until a manual publish succeeds.
+
+### Newsletter
+
+- Public subscribe: `POST /api/newsletter/subscribe` (CORS allows localhost:3000/3001 and `elahsecurity.com`; extra origins via `NEWSLETTER_CORS_ORIGINS`)
+- Body: `{ "email": "a@b.com", "consent": true, "source": "hero" }` — **consent must be true** or the row is not written
+- Schema: `NewsletterSubscriber` (`id`, `email` unique, `source`, `createdAt`)
+- Founder UI: `/founder/newsletter` — compose subject/body, Send via **Resend**
+- If `RESEND_API_KEY` or `RESEND_FROM` is missing, Send returns a clear error and does **not** fake a send
+- Empty list: Send is skipped with a clear message
+
+### Demo requests
+
+- Public form: marketing site `/demo` → `POST /api/demo/request` (same CORS as newsletter)
+- Body: `{ "name", "email", "company", "role?", "goal?", "source": "demo_page" }`
+- Schema: `DemoRequest` (`name`, `email`, `company`, optional `role`/`goal`, `status`, `createdAt`)
+- Founder UI: `/founder/demo-requests`
+- If Resend is configured, a notify email is sent to `DEMO_REQUEST_NOTIFY_EMAIL` (default `elahsecurity@gmail.com`). The row is saved even if notify fails.
+
+After pulling the schema change, run a **local** migrate (do not `prisma db push` to production from this machine):
+
+```bash
+npx prisma generate
+npx prisma migrate dev --name newsletter_subscribers
+```
+
+Copy `RESEND_API_KEY` and `RESEND_FROM` from `.env.example` into `.env`. Never commit real keys.
 
 
 ## Legacy routes
