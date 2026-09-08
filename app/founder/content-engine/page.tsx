@@ -4,8 +4,8 @@ import {
   ConnectLinkedInButton,
   GenerateDraftButton,
   PostCard,
+  PostLandingThreadButton,
 } from "@/components/founder/content-engine-panel";
-import { getContentEngineConfig } from "@/lib/founder/content-engine/config";
 import {
   facebookOAuthConfigured,
   getFacebookPublishStatus,
@@ -15,6 +15,8 @@ import {
   getLinkedInConnectionStatus,
   linkedInOAuthConfigured,
 } from "@/lib/founder/content-engine/linkedin";
+import { getLandingThreadStatus } from "@/lib/founder/content-engine/landing-thread";
+import { parseTwitterPublishNote } from "@/lib/founder/content-engine/twitter";
 import {
   countLinkedInPostsByStatus,
   getDailyPostSeries,
@@ -35,9 +37,8 @@ export default async function ContentEnginePage({
 
   await rewriteQueuedDraftLandingUrls();
 
-  const [config, facebook, posts, counts, runs, sources, connection, dailySeries] =
+  const [facebook, posts, counts, runs, sources, connection, dailySeries, landingThread] =
     await Promise.all([
-      getContentEngineConfig(),
       getFacebookPublishStatus(),
       listLinkedInDrafts(80),
       countLinkedInPostsByStatus(),
@@ -45,6 +46,7 @@ export default async function ContentEnginePage({
       listSourceEvents(),
       getLinkedInConnectionStatus(),
       getDailyPostSeries(30),
+      getLandingThreadStatus(),
     ]);
 
   const canPublish = connection.canPublish;
@@ -79,9 +81,14 @@ export default async function ContentEnginePage({
           <p className="panel-title">Content automation</p>
           <h1 className="text-2xl font-semibold">Content Engine</h1>
           <p className="mt-1 max-w-2xl text-sm text-ink-muted">
-            Generate, review, and publish LinkedIn + Facebook posts. Configure secrets under{" "}
+            Generate, review, and publish LinkedIn + Facebook posts. X uses the same copy-and-paste
+            flow as LinkedIn — no paid API. Configure secrets under{" "}
             <a href="/founder/settings" className="text-accent-cyan hover:underline">
               Settings
+            </a>
+            . Email the opt-in list from{" "}
+            <a href="/founder/newsletter" className="text-accent-cyan hover:underline">
+              Newsletter
             </a>
             .
           </p>
@@ -93,6 +100,7 @@ export default async function ContentEnginePage({
             reconnectForCompany={connection.missingOrgPermission || connection.tokenSaved}
           />
           <ConnectFacebookButton oauthConfigured={facebookOAuthConfigured()} />
+          <PostLandingThreadButton alreadyPosted={landingThread.posted} />
         </div>
       </header>
 
@@ -127,6 +135,13 @@ export default async function ContentEnginePage({
           Facebook ready: ELAH Security · publish from each draft
         </p>
       )}
+      <p className="rounded-lg border border-ink/20 bg-ink/5 px-3 py-2 text-sm text-ink">
+        X posting is copy-and-paste, same as LinkedIn. Each draft copies a 280-character version and
+        opens compose on x.com. Landing-page thread:{" "}
+        {landingThread.posted
+          ? "already marked posted."
+          : "use the button above — each click copies the next tweet."}
+      </p>
 
       <section className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
         {filters
@@ -163,7 +178,7 @@ export default async function ContentEnginePage({
             <p className="text-xs text-ink-dim">
               Generate leaves drafts for review · LinkedIn ready:{" "}
               {canPublish ? "yes" : "no"} · Facebook:{" "}
-              {facebook.configured ? "ready" : "off"}
+              {facebook.configured ? "ready" : "off"} · X: copy & paste
             </p>
           </div>
           <div className="flex flex-wrap gap-1.5">
@@ -198,7 +213,9 @@ export default async function ContentEnginePage({
                 : "No posts in this view yet. Click Generate Now to create one."}
             </p>
           ) : (
-            filtered.map((d) => (
+            filtered.map((d) => {
+              const twitter = parseTwitterPublishNote(d.reviewerNotes);
+              return (
               <PostCard
                 key={d.id}
                 draftId={d.id}
@@ -211,11 +228,14 @@ export default async function ContentEnginePage({
                 externalPostId={d.externalPostId}
                 facebookPostId={d.facebookPostId}
                 facebookPublishedAt={d.facebookPublishedAt?.toISOString() ?? null}
+                twitterPostId={twitter.twitterPostId}
+                twitterPublishedAt={twitter.twitterPublishedAt}
                 canPublish={canPublish}
                 canPublishFacebook={facebook.configured}
                 companyAdminUrl={companyAdminUrl}
               />
-            ))
+              );
+            })
           )}
         </div>
       </section>

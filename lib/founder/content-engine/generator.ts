@@ -4,6 +4,7 @@ import { getContentEngineConfig } from "./config";
 import { publishTextToFacebook } from "./facebook";
 import { ensureLandingPageLink, generatePostBody } from "./llm";
 import { publishTextToLinkedIn } from "./linkedin";
+import { publishTextToTwitter, toTweetText, parseTwitterPublishNote, upsertTwitterPublishNote } from "./twitter";
 
 function parseHashtags(raw: string): string[] {
   try {
@@ -168,10 +169,19 @@ export async function generateLinkedInDraft(
 
 export async function publishDraftById(
   draftId: string,
-): Promise<{ ok: boolean; error?: string }> {
+  options?: { alsoTwitter?: boolean },
+): Promise<{ ok: boolean; error?: string; twitterError?: string }> {
   const draft = await prisma.linkedInPostDraft.findUnique({ where: { id: draftId } });
   if (!draft) return { ok: false, error: "Draft not found" };
-  if (draft.status === "published") return { ok: true };
+  if (draft.status === "published") {
+    if (options?.alsoTwitter) {
+      const twitter = await publishDraftToTwitterById(draftId);
+      return twitter.ok
+        ? { ok: true }
+        : { ok: true, twitterError: twitter.error };
+    }
+    return { ok: true };
+  }
 
   const body = ensureLandingPageLink(draft.body);
   const result = await publishTextToLinkedIn(body);
@@ -186,46 +196,128 @@ export async function publishDraftById(
       ...(result.postId ? { externalPostId: result.postId } : {}),
     },
   });
+
+  if (options?.alsoTwitter) {
+    const twitter = await publishDraftToTwitterById(draftId);
+    if (!twitter.ok) return { ok: true, twitterError: twitter.error };
+  }
   return { ok: true };
 }
 
 /** Mark a draft published after posting manually as the Elah company page in LinkedIn UI. */
 export async function markDraftPublishedManually(
   draftId: string,
-): Promise<{ ok: boolean; error?: string }> {
+  options?: { alsoTwitter?: boolean },
+): Promise<{ ok: boolean; error?: string; twitterError?: string }> {
   const draft = await prisma.linkedInPostDraft.findUnique({ where: { id: draftId } });
   if (!draft) return { ok: false, error: "Draft not found" };
-  if (draft.status === "published") return { ok: true };
+  if (draft.status !== "published") {
+    const linkedInNote = "Posted manually as Elah Security company page via LinkedIn admin UI";
+    const existingNotes = draft.reviewerNotes?.trim() ?? "";
+    const reviewerNotes = !existingNotes
+      ? linkedInNote
+      : existingNotes.includes(linkedInNote)
+        ? existingNotes
+        : `${existingNotes}\n${linkedInNote}`;
+    await prisma.linkedInPostDraft.update({
+      where: { id: draftId },
+      data: {
+        status: "published",
+        publishedAt: new Date(),
+        externalPostId: `manual-company:${Date.now()}`,
+        reviewerNotes,
+      },
+    });
+  }
 
-  await prisma.linkedInPostDraft.update({
-    where: { id: draftId },
-    data: {
-      status: "published",
-      publishedAt: new Date(),
-      externalPostId: `manual-company:${Date.now()}`,
-      reviewerNotes: "Posted manually as Elah Security company page via LinkedIn admin UI",
-    },
-  });
+  if (options?.alsoTwitter) {
+    const twitter = await publishDraftToTwitterById(draftId);
+    if (!twitter.ok) return { ok: true, twitterError: twitter.error };
+  }
   return { ok: true };
 }
 
 export async function publishDraftToFacebookById(
   draftId: string,
+  options?: { alsoTwitter?: boolean },
+): Promise<{ ok: boolean; error?: string; postId?: string; twitterError?: string }> {
+  const draft = await prisma.linkedInPostDraft.findUnique({ where: { id: draftId } });
+  if (!draft) return { ok: false, error: "Draft not found" };
+  if (!draft.facebookPostId) {
+    const body = ensureLandingPageLink(draft.body);
+    const result = await publishTextToFacebook(body, parseHashtags(draft.hashtags));
+    if (!result.ok) return { ok: false, error: result.error };
+
+    await prisma.linkedInPostDraft.update({
+      where: { id: draftId },
+      data: {
+        body,
+        facebookPostId: result.postId ?? null,
+        facebookPublishedAt: new Date(),
+      },
+    });
+  }
+
+  if (options?.alsoTwitter) {
+    const twitter = await publishDraftToTwitterById(draftId);
+    if (!twitter.ok) {
+      return {
+        ok: true,
+        postId: (await prisma.linkedInPostDraft.findUnique({
+          where: { id: draftId },
+          select: { facebookPostId: true },
+        }))?.facebookPostId ?? undefined,
+        twitterError: twitter.error,
+      };
+    }
+  }
+
+  const updated = await prisma.linkedInPostDraft.findUnique({
+    where: { id: draftId },
+    select: { facebookPostId: true },
+  });
+  return { ok: true, postId: updated?.facebookPostId ?? undefined };
+}
+
+/** Record that the founder pasted this draft into X compose (no API). */
+export async function markDraftPostedToTwitterManually(
+  draftId: string,
 ): Promise<{ ok: boolean; error?: string; postId?: string }> {
   const draft = await prisma.linkedInPostDraft.findUnique({ where: { id: draftId } });
   if (!draft) return { ok: false, error: "Draft not found" };
-  if (draft.facebookPostId) return { ok: true, postId: draft.facebookPostId };
+  const existing = parseTwitterPublishNote(draft.reviewerNotes);
+  if (existing.twitterPostId) return { ok: true, postId: existing.twitterPostId };
+
+  const at = new Date();
+  const postId = `manual-compose:${at.getTime()}`;
+  await prisma.linkedInPostDraft.update({
+    where: { id: draftId },
+    data: {
+      reviewerNotes: upsertTwitterPublishNote(draft.reviewerNotes, postId, at),
+    },
+  });
+  return { ok: true, postId };
+}
+
+export async function publishDraftToTwitterById(
+  draftId: string,
+): Promise<{ ok: boolean; error?: string; postId?: string }> {
+  const draft = await prisma.linkedInPostDraft.findUnique({ where: { id: draftId } });
+  if (!draft) return { ok: false, error: "Draft not found" };
+  const existing = parseTwitterPublishNote(draft.reviewerNotes);
+  if (existing.twitterPostId) return { ok: true, postId: existing.twitterPostId };
 
   const body = ensureLandingPageLink(draft.body);
-  const result = await publishTextToFacebook(body, parseHashtags(draft.hashtags));
-  if (!result.ok) return { ok: false, error: result.error };
+  const text = toTweetText(body, parseHashtags(draft.hashtags));
+  const result = await publishTextToTwitter(text);
+  if (!result.ok || !result.postId) return { ok: false, error: result.error };
 
+  const at = new Date();
   await prisma.linkedInPostDraft.update({
     where: { id: draftId },
     data: {
       body,
-      facebookPostId: result.postId ?? null,
-      facebookPublishedAt: new Date(),
+      reviewerNotes: upsertTwitterPublishNote(draft.reviewerNotes, result.postId, at),
     },
   });
   return { ok: true, postId: result.postId };

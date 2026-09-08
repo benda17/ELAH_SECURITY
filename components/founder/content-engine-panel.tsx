@@ -2,7 +2,12 @@
 
 import { useRouter } from "next/navigation";
 import { useState } from "react";
-import { buildLinkedInClipboardText } from "@/lib/founder/content-engine/format-post";
+import {
+  buildLinkedInClipboardText,
+  buildTwitterClipboardText,
+  TWITTER_COMPOSE_URL,
+} from "@/lib/founder/content-engine/format-post";
+import { LANDING_PAGE_TWEETS } from "@/lib/founder/content-engine/landing-copy";
 
 export function GenerateDraftButton() {
   const router = useRouter();
@@ -81,6 +86,57 @@ export function ConnectFacebookButton({ oauthConfigured }: { oauthConfigured: bo
     >
       Connect Facebook
     </a>
+  );
+}
+
+export function PostLandingThreadButton({ alreadyPosted }: { alreadyPosted: boolean }) {
+  const [busy, setBusy] = useState(false);
+  const [threadIndex, setThreadIndex] = useState(0);
+  const [message, setMessage] = useState<string | null>(null);
+
+  async function copyNextTweet() {
+    setBusy(true);
+    setMessage(null);
+    try {
+      const tweet = LANDING_PAGE_TWEETS[threadIndex] ?? LANDING_PAGE_TWEETS[0];
+      const win = window.open(TWITTER_COMPOSE_URL, "_blank", "noopener,noreferrer");
+      await navigator.clipboard.writeText(tweet);
+      const n = threadIndex + 1;
+      const total = LANDING_PAGE_TWEETS.length;
+      setThreadIndex(n >= total ? 0 : n);
+      setMessage(
+        win
+          ? `Copied tweet ${n}/${total}. Paste on X${threadIndex === 0 ? "" : " as a reply"}. Click again for the next tweet.`
+          : `Copied tweet ${n}/${total}. Popup blocked — open x.com/compose/post and paste.`,
+      );
+    } catch {
+      setMessage("Could not copy/open X. Copy the tweet manually, then open x.com/compose/post.");
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  return (
+    <div>
+      <button
+        type="button"
+        onClick={copyNextTweet}
+        disabled={busy || alreadyPosted}
+        className="rounded-lg border border-ink/30 bg-ink/5 px-4 py-2 text-sm font-medium text-ink disabled:opacity-50"
+        title={
+          alreadyPosted
+            ? "This landing thread is already marked posted"
+            : "Copy the next landing tweet and open X compose"
+        }
+      >
+        {alreadyPosted
+          ? "Landing thread posted"
+          : busy
+            ? "Opening X…"
+            : `Copy landing tweet ${threadIndex + 1}/${LANDING_PAGE_TWEETS.length}`}
+      </button>
+      {message && <p className="mt-2 text-xs text-ink-muted">{message}</p>}
+    </div>
   );
 }
 
@@ -243,6 +299,8 @@ export function PostCard({
   externalPostId,
   facebookPostId,
   facebookPublishedAt,
+  twitterPostId,
+  twitterPublishedAt,
   canPublish,
   canPublishFacebook,
   companyAdminUrl,
@@ -257,12 +315,15 @@ export function PostCard({
   externalPostId: string | null;
   facebookPostId: string | null;
   facebookPublishedAt: string | null;
+  twitterPostId: string | null;
+  twitterPublishedAt: string | null;
   canPublish: boolean;
   canPublishFacebook: boolean;
   companyAdminUrl: string;
 }) {
   const tags = parseHashtags(hashtags);
   const isPublished = status === "published";
+  const showActions = !isPublished || !facebookPostId || !twitterPostId;
 
   return (
     <article className="rounded-xl border border-surface-border bg-surface-subtle/40 p-4">
@@ -274,6 +335,9 @@ export function PostCard({
             {publishedAt ? ` · Published ${new Date(publishedAt).toLocaleString()}` : ""}
             {facebookPublishedAt
               ? ` · Facebook ${new Date(facebookPublishedAt).toLocaleString()}`
+              : ""}
+            {twitterPublishedAt
+              ? ` · X ${new Date(twitterPublishedAt).toLocaleString()}`
               : ""}
           </p>
         </div>
@@ -297,7 +361,7 @@ export function PostCard({
         </div>
       )}
 
-      {(isPublished || facebookPostId) && (
+      {(isPublished || facebookPostId || twitterPostId) && (
         <div className="mt-3 flex flex-wrap items-center gap-3 text-xs text-accent-emerald">
           {isPublished && (
             <span>
@@ -307,21 +371,28 @@ export function PostCard({
             </span>
           )}
           {facebookPostId && <span>Facebook: {facebookPostId}</span>}
+          {twitterPostId && (
+            <span>
+              {twitterPostId.startsWith("manual-compose:")
+                ? "Posted on X (paste)"
+                : `X: ${twitterPostId}`}
+            </span>
+          )}
           {externalPostId && !externalPostId.startsWith("manual-company:") && (
             <span className="text-ink-dim">LI: {externalPostId}</span>
           )}
         </div>
       )}
 
-      {!isPublished || !facebookPostId ? (
+      {showActions ? (
         <div className="mt-3">
           <DraftActions
             draftId={draftId}
             body={body}
             hashtags={tags}
-            status={status}
             canPublish={canPublish}
             canPublishFacebook={canPublishFacebook && !facebookPostId}
+            alreadyOnTwitter={Boolean(twitterPostId)}
             companyAdminUrl={companyAdminUrl}
             showLinkedInActions={!isPublished}
           />
@@ -335,18 +406,18 @@ export function DraftActions({
   draftId,
   body,
   hashtags,
-  status,
   canPublish,
   canPublishFacebook,
+  alreadyOnTwitter,
   companyAdminUrl,
   showLinkedInActions = true,
 }: {
   draftId: string;
   body: string;
   hashtags: string[];
-  status: string;
   canPublish: boolean;
   canPublishFacebook: boolean;
+  alreadyOnTwitter: boolean;
   companyAdminUrl: string;
   showLinkedInActions?: boolean;
 }) {
@@ -355,8 +426,16 @@ export function DraftActions({
   const [busy, setBusy] = useState(false);
   const [message, setMessage] = useState<string | null>(null);
 
+  async function persistEdits() {
+    await fetch(`/api/founder/content-engine/drafts/${draftId}`, {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ action: "edit", text }),
+    });
+  }
+
   async function patch(
-    action: "approve" | "reject" | "edit" | "publish" | "mark_published" | "publish_facebook",
+    action: "approve" | "reject" | "edit" | "publish" | "mark_published" | "publish_facebook" | "mark_twitter_posted",
   ) {
     setBusy(true);
     setMessage(null);
@@ -373,6 +452,8 @@ export function DraftActions({
         setMessage("Published to LinkedIn via API.");
       } else if (action === "publish_facebook") {
         setMessage("Published to Facebook Page.");
+      } else if (action === "mark_twitter_posted") {
+        setMessage("Marked as posted on X.");
       } else if (action === "mark_published") {
         setMessage("Marked as published on the Elah Security page.");
       }
@@ -388,20 +469,37 @@ export function DraftActions({
     setBusy(true);
     setMessage(null);
     try {
-      // Persist latest edits first so status tracking matches what was copied.
-      await fetch(`/api/founder/content-engine/drafts/${draftId}`, {
-        method: "PATCH",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ action: "edit", text }),
-      });
+      await persistEdits();
       const clipboard = buildLinkedInClipboardText(text, hashtags);
       await navigator.clipboard.writeText(clipboard);
       window.open(companyAdminUrl, "_blank", "noopener,noreferrer");
       setMessage(
         "Copied. On LinkedIn: Start a post as Elah Security → paste → Post. Then click Mark as published.",
       );
+      router.refresh();
     } catch {
       setMessage("Could not copy/open LinkedIn. Copy the text manually, then open the company admin page.");
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  async function postToX() {
+    setBusy(true);
+    setMessage(null);
+    try {
+      const win = window.open(TWITTER_COMPOSE_URL, "_blank", "noopener,noreferrer");
+      await persistEdits();
+      const clipboard = buildTwitterClipboardText(text, hashtags);
+      await navigator.clipboard.writeText(clipboard);
+      setMessage(
+        win
+          ? "Copied. On X: paste → Post. Then click Mark as posted on X."
+          : "Copied. Popup blocked — open x.com/compose/post and paste, then Mark as posted on X.",
+      );
+      router.refresh();
+    } catch {
+      setMessage("Could not copy/open X. Copy the text manually, then open x.com/compose/post.");
     } finally {
       setBusy(false);
     }
@@ -450,6 +548,27 @@ export function DraftActions({
         >
           Publish to Facebook
         </button>
+        {!alreadyOnTwitter && (
+          <>
+            <button
+              type="button"
+              disabled={busy}
+              onClick={postToX}
+              className="min-h-11 rounded border border-ink/30 bg-ink/5 px-3 py-2 text-xs font-semibold text-ink disabled:opacity-40"
+              title="Copy a 280-character version and open X compose"
+            >
+              Post to X
+            </button>
+            <button
+              type="button"
+              disabled={busy}
+              onClick={() => patch("mark_twitter_posted")}
+              className="rounded border border-ink/30 px-2 py-1 text-xs text-ink"
+            >
+              Mark as posted on X
+            </button>
+          </>
+        )}
         <button
           type="button"
           disabled={busy}

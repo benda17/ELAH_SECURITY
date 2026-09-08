@@ -71,6 +71,13 @@ export default async function FounderSettingsPage() {
             {facebook.pageName ? ` · ${facebook.pageName}` : ""}
           </p>
         </div>
+        <div>
+          <p className="panel-title">X / Twitter publish</p>
+          <p className="mt-1 text-sm font-medium text-ink">Copy & paste</p>
+          <p className="mt-1 text-[11px] text-ink-dim">
+            Opens x.com compose. No paid posting API.
+          </p>
+        </div>
       </section>
 
       <section className="panel">
@@ -128,6 +135,34 @@ export default async function FounderSettingsPage() {
             <strong>ELAH Security</strong>. Redirect URI: <code>{fbOauth.redirectUri}</code>
           </p>
         )}
+      </section>
+
+      <section className="panel">
+        <div className="mb-4">
+          <h2 className="text-sm font-semibold">X / Twitter (copy & paste)</h2>
+          <p className="mt-1 text-xs text-ink-dim">
+            Same flow as LinkedIn. No developer keys and no paid posting API.
+          </p>
+        </div>
+        <ol className="list-decimal space-y-2 pl-5 text-xs text-ink-muted">
+          <li>
+            Content Engine → <strong>Post to X</strong> copies a 280-character version and opens{" "}
+            <a
+              className="text-accent-cyan underline"
+              href="https://x.com/compose/post"
+              target="_blank"
+              rel="noreferrer"
+            >
+              x.com/compose/post
+            </a>
+            .
+          </li>
+          <li>Paste, post as the ELAH account, then click <strong>Mark as posted on X</strong>.</li>
+          <li>
+            For the landing-page thread, each click copies the next tweet so you can paste it as a
+            reply.
+          </li>
+        </ol>
       </section>
 
       <section className="panel">

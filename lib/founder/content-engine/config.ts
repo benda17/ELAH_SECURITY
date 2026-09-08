@@ -17,6 +17,7 @@ export type ContentEngineConfig = {
   facebookAutoPublish: boolean;
   facebookReady: boolean;
   linkedInReady: boolean;
+  twitterReady: boolean;
   llmReady: boolean;
   missingRequired: string[];
   envVars: EnvVarSpec[];
@@ -111,6 +112,38 @@ const ENV_SPECS: Omit<EnvVarSpec, "configured" | "displayValue">[] = [
     required: false,
     description: "Legacy flag; generate no longer auto-posts — use Publish on each draft",
   },
+  {
+    key: "X_API_KEY",
+    required: false,
+    description:
+      "Unused for posting. X uses copy-and-paste compose. Optional leftover if you later enable the paid API.",
+  },
+  {
+    key: "X_API_SECRET",
+    required: false,
+    description: "X/Twitter API Key Secret (Consumer Secret) — same Keys and tokens page",
+  },
+  {
+    key: "X_ACCESS_TOKEN",
+    required: false,
+    description:
+      "X user Access Token — generate with Read and Write after User authentication is set to Read and write",
+  },
+  {
+    key: "X_ACCESS_TOKEN_SECRET",
+    required: false,
+    description: "X user Access Token Secret — pair of the Access Token above",
+  },
+  {
+    key: "RESEND_API_KEY",
+    required: false,
+    description: "Resend API key for Newsletter sends — resend.com/api-keys",
+  },
+  {
+    key: "RESEND_FROM",
+    required: false,
+    description: "From address, e.g. ELAH <elahsecurity@gmail.com>",
+  },
 ];
 
 function maskValue(key: string, value: string): string {
@@ -156,6 +189,7 @@ export async function getContentEngineConfig(): Promise<ContentEngineConfig> {
     facebookAutoPublish,
     facebookReady,
     linkedInReady,
+    twitterReady: true,
     llmReady,
     missingRequired,
     envVars,
@@ -163,6 +197,7 @@ export async function getContentEngineConfig(): Promise<ContentEngineConfig> {
       "Use GROQ_API_KEY for free draft generation (no OpenAI credits).",
       "Connect LinkedIn from Content Engine, or set LINKEDIN_ACCESS_TOKEN + LINKEDIN_AUTHOR_URN.",
       "Facebook: Connect once; publish drafts to ELAH Security from the panel.",
+      "X/Twitter: copy-and-paste from Content Engine (Post to X). No paid posting API.",
       "Content cron runs 3× daily (06:00, 12:00, 18:00 UTC).",
       "Add secrets in Vercel → Project → Settings → Environment Variables.",
       "Cron schedule in vercel.json uses UTC.",

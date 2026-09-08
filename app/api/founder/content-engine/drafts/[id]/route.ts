@@ -1,10 +1,28 @@
 import { NextRequest, NextResponse } from "next/server";
 import {
+  markDraftPostedToTwitterManually,
   markDraftPublishedManually,
   publishDraftById,
   publishDraftToFacebookById,
+  publishDraftToTwitterById,
 } from "@/lib/founder/content-engine/generator";
 import { updateDraftBody, updateDraftStatus } from "@/lib/founder/content-engine/repository";
+
+function withTwitter(
+  result: { ok: boolean; error?: string; twitterError?: string; postId?: string },
+) {
+  if (!result.ok) {
+    return NextResponse.json({ ok: false, error: result.error }, { status: 400 });
+  }
+  if (result.twitterError) {
+    return NextResponse.json({
+      ok: true,
+      postId: result.postId,
+      twitterError: result.twitterError,
+    });
+  }
+  return NextResponse.json({ ok: true, postId: result.postId });
+}
 
 export async function PATCH(
   req: NextRequest,
@@ -17,10 +35,13 @@ export async function PATCH(
       | "edit"
       | "publish"
       | "mark_published"
-      | "publish_facebook";
+      | "publish_facebook"
+      | "publish_twitter"
+      | "mark_twitter_posted";
     text?: string;
     title?: string;
     notes?: string;
+    alsoTwitter?: boolean;
   };
 
   if (body.action === "edit" && body.text) {
@@ -39,23 +60,37 @@ export async function PATCH(
   }
 
   if (body.action === "publish") {
-    const result = await publishDraftById(params.id);
-    if (!result.ok) {
-      return NextResponse.json({ ok: false, error: result.error }, { status: 400 });
-    }
-    return NextResponse.json({ ok: true });
+    return withTwitter(
+      await publishDraftById(params.id, { alsoTwitter: Boolean(body.alsoTwitter) }),
+    );
   }
 
   if (body.action === "mark_published") {
-    const result = await markDraftPublishedManually(params.id);
-    if (!result.ok) {
-      return NextResponse.json({ ok: false, error: result.error }, { status: 400 });
-    }
-    return NextResponse.json({ ok: true });
+    return withTwitter(
+      await markDraftPublishedManually(params.id, {
+        alsoTwitter: Boolean(body.alsoTwitter),
+      }),
+    );
   }
 
   if (body.action === "publish_facebook") {
-    const result = await publishDraftToFacebookById(params.id);
+    return withTwitter(
+      await publishDraftToFacebookById(params.id, {
+        alsoTwitter: Boolean(body.alsoTwitter),
+      }),
+    );
+  }
+
+  if (body.action === "publish_twitter") {
+    const result = await publishDraftToTwitterById(params.id);
+    if (!result.ok) {
+      return NextResponse.json({ ok: false, error: result.error }, { status: 400 });
+    }
+    return NextResponse.json({ ok: true, postId: result.postId });
+  }
+
+  if (body.action === "mark_twitter_posted") {
+    const result = await markDraftPostedToTwitterManually(params.id);
     if (!result.ok) {
       return NextResponse.json({ ok: false, error: result.error }, { status: 400 });
     }
