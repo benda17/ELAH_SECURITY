@@ -1,11 +1,12 @@
 import { NewsletterComposeForm } from "@/components/founder/newsletter-compose";
+import { NewsletterMailStatus } from "@/components/founder/newsletter-mail-status";
 import {
   countNewsletterSubscribers,
   listNewsletterSubscribers,
 } from "@/lib/newsletter/repository";
 import { resendConfigured } from "@/lib/newsletter/send";
 
-export const metadata = { title: "ELAH · Newsletter" };
+export const metadata = { title: "ELAH · Weekly Newsletter" };
 export const dynamic = "force-dynamic";
 
 export default async function NewsletterPage() {
@@ -30,27 +31,15 @@ export default async function NewsletterPage() {
     <div className="space-y-6">
       <header>
         <p className="panel-title">Content manager</p>
-        <h1 className="text-2xl font-semibold">Newsletter</h1>
+        <h1 className="text-2xl font-semibold">Weekly Newsletter</h1>
         <p className="mt-1 max-w-2xl text-sm text-ink-muted">
-          Compose an email and send it to every address that opted in on the
-          marketing hero. Subscribers are stored here — the webpage only POSTs
-          the form.
+          Compose the weekly newsletter and send it to every address that opted
+          in on the marketing hero. Subscribers are stored here — the webpage
+          only POSTs the form.
         </p>
       </header>
 
-      {!resend.apiKey ? (
-        <p className="rounded-lg border border-accent-rose/40 bg-accent-rose/10 px-3 py-2 text-sm text-accent-rose">
-          RESEND_API_KEY is not set. Add it to <code>.env</code> locally. Send
-          will not run and nothing is faked.
-        </p>
-      ) : (
-        <p className="rounded-lg border border-accent-emerald/40 bg-accent-emerald/10 px-3 py-2 text-sm text-accent-emerald">
-          Resend is configured. From {resend.fromValue}. Sends go to the live
-          subscriber list only. Resend may reject Gmail as From until you verify{" "}
-          <code>elahsecurity.com</code> in Resend; Reply-To stays{" "}
-          <code>elahsecurity@gmail.com</code>.
-        </p>
-      )}
+      <NewsletterMailStatus />
 
       {loadError ? (
         <p className="rounded-lg border border-accent-amber/40 bg-accent-amber/10 px-3 py-2 text-sm text-accent-amber">
@@ -65,10 +54,12 @@ export default async function NewsletterPage() {
           <p className="mt-1 text-xs text-ink-dim">From the database, not a placeholder</p>
         </div>
         <div className="panel py-4">
-          <p className="panel-title">Resend</p>
+          <p className="panel-title">Email sending</p>
           <p className="stat-value mt-1 text-2xl">{resendReady ? "Ready" : "Off"}</p>
           <p className="mt-1 text-xs text-ink-dim">
-            Key {resend.apiKey ? "set" : "missing"} · From {resend.from ? "set" : "missing"}
+            {resend.apiKey
+              ? `Connected · ${resend.fromValue}`
+              : "Connect Resend in Settings to publish"}
           </p>
         </div>
       </section>
@@ -78,6 +69,7 @@ export default async function NewsletterPage() {
         <NewsletterComposeForm
           subscriberCount={count}
           resendReady={resendReady}
+          fromValue={resend.fromValue}
         />
       </section>
 

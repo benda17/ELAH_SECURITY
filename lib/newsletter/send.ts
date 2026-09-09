@@ -1,5 +1,6 @@
 import { Resend } from "resend";
 import { listNewsletterSubscribers } from "./repository";
+import { renderNewsletterEmailHtml } from "./template";
 
 const BATCH_SIZE = 100;
 const DEFAULT_FROM = "ELAH <elahsecurity@gmail.com>";
@@ -8,18 +9,6 @@ const REPLY_TO = "elahsecurity@gmail.com";
 export type NewsletterSendResult =
   | { ok: true; sent: number }
   | { ok: false; error: string; skipped?: boolean };
-
-function escapeHtml(text: string): string {
-  return text
-    .replace(/&/g, "&amp;")
-    .replace(/</g, "&lt;")
-    .replace(/>/g, "&gt;")
-    .replace(/"/g, "&quot;");
-}
-
-function toHtml(body: string): string {
-  return `<p>${escapeHtml(body).replace(/\n/g, "<br />")}</p>`;
-}
 
 function fromAddress(): string {
   return process.env.RESEND_FROM?.trim() || DEFAULT_FROM;
@@ -58,7 +47,7 @@ export async function sendNewsletterToAll(input: {
   }
 
   const resend = new Resend(apiKey);
-  const html = toHtml(input.body);
+  const html = renderNewsletterEmailHtml(input);
   let sent = 0;
 
   for (let i = 0; i < subscribers.length; i += BATCH_SIZE) {

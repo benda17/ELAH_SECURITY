@@ -14,6 +14,8 @@ import {
   linkedInOAuthConfigured,
 } from "@/lib/founder/content-engine/linkedin";
 import { getLinkedInIntegration } from "@/lib/founder/content-engine/repository";
+import { NewsletterMailStatus } from "@/components/founder/newsletter-mail-status";
+import { resendConfigured } from "@/lib/newsletter/send";
 
 export const metadata = { title: "ELAH · Founder Settings" };
 export const dynamic = "force-dynamic";
@@ -28,6 +30,7 @@ export default async function FounderSettingsPage() {
     getPublishCredentials(),
   ]);
   const canPublish = Boolean(publishCreds);
+  const resend = resendConfigured();
 
   return (
     <div className="space-y-6">
@@ -76,6 +79,15 @@ export default async function FounderSettingsPage() {
           <p className="mt-1 text-sm font-medium text-ink">Copy & paste</p>
           <p className="mt-1 text-[11px] text-ink-dim">
             Opens x.com compose. No paid posting API.
+          </p>
+        </div>
+        <div>
+          <p className="panel-title">Weekly Newsletter</p>
+          <p className="mt-1 text-sm font-medium text-ink">
+            {resend.apiKey ? "Ready" : "Not connected"}
+          </p>
+          <p className="mt-1 text-[11px] text-ink-dim">
+            {resend.apiKey ? `From ${resend.fromValue}` : "Needs a Resend API key"}
           </p>
         </div>
       </section>
@@ -139,6 +151,17 @@ export default async function FounderSettingsPage() {
 
       <section className="panel">
         <div className="mb-4">
+          <h2 className="text-sm font-semibold">Weekly Newsletter</h2>
+          <p className="mt-1 text-xs text-ink-dim">
+            Content Engine writes the weekly newsletter. Resend delivers it to subscribers.
+            Keys are not pasted in this UI — they live in <code>.env.local</code> or Vercel.
+          </p>
+        </div>
+        <NewsletterMailStatus />
+      </section>
+
+      <section className="panel">
+        <div className="mb-4">
           <h2 className="text-sm font-semibold">X / Twitter (copy & paste)</h2>
           <p className="mt-1 text-xs text-ink-dim">
             Same flow as LinkedIn. No developer keys and no paid posting API.
@@ -146,7 +169,8 @@ export default async function FounderSettingsPage() {
         </div>
         <ol className="list-decimal space-y-2 pl-5 text-xs text-ink-muted">
           <li>
-            Content Engine → <strong>Post to X</strong> copies a 280-character version and opens{" "}
+            Content Engine → <strong>Post to X</strong> copies the same full post as LinkedIn /
+            Facebook and opens{" "}
             <a
               className="text-accent-cyan underline"
               href="https://x.com/compose/post"

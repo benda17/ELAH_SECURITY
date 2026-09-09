@@ -6,6 +6,10 @@ import {
   PostCard,
   PostLandingThreadButton,
 } from "@/components/founder/content-engine-panel";
+import { NewsletterComposeForm } from "@/components/founder/newsletter-compose";
+import { NewsletterMailStatus } from "@/components/founder/newsletter-mail-status";
+import { countNewsletterSubscribers } from "@/lib/newsletter/repository";
+import { resendConfigured } from "@/lib/newsletter/send";
 import {
   facebookOAuthConfigured,
   getFacebookPublishStatus,
@@ -37,7 +41,7 @@ export default async function ContentEnginePage({
 
   await rewriteQueuedDraftLandingUrls();
 
-  const [facebook, posts, counts, runs, sources, connection, dailySeries, landingThread] =
+  const [facebook, posts, counts, runs, sources, connection, dailySeries, landingThread, resend] =
     await Promise.all([
       getFacebookPublishStatus(),
       listLinkedInDrafts(80),
@@ -47,7 +51,18 @@ export default async function ContentEnginePage({
       getLinkedInConnectionStatus(),
       getDailyPostSeries(30),
       getLandingThreadStatus(),
+      Promise.resolve(resendConfigured()),
     ]);
+
+  const resendReady = resend.apiKey && resend.from;
+  let subscriberCount = 0;
+  let subscriberLoadError: string | null = null;
+  try {
+    subscriberCount = await countNewsletterSubscribers();
+  } catch {
+    subscriberLoadError =
+      "Could not read newsletter subscribers. Run a Prisma migrate against this schema, then npx prisma generate.";
+  }
 
   const canPublish = connection.canPublish;
   const companyAdminUrl = getElahCompanyAdminPostsUrl();
@@ -81,16 +96,9 @@ export default async function ContentEnginePage({
           <p className="panel-title">Content automation</p>
           <h1 className="text-2xl font-semibold">Content Engine</h1>
           <p className="mt-1 max-w-2xl text-sm text-ink-muted">
-            Generate, review, and publish LinkedIn + Facebook posts. X uses the same copy-and-paste
-            flow as LinkedIn — no paid API. Configure secrets under{" "}
-            <a href="/founder/settings" className="text-accent-cyan hover:underline">
-              Settings
-            </a>
-            . Email the opt-in list from{" "}
-            <a href="/founder/newsletter" className="text-accent-cyan hover:underline">
-              Newsletter
-            </a>
-            .
+            Generate, review, and publish LinkedIn + Facebook posts. X copies the same full post
+            (not a truncated tweet) and opens compose — no paid API. Write the weekly newsletter
+            below and publish it to the opt-in list.
           </p>
         </div>
         <div className="flex flex-wrap items-center gap-3">
@@ -136,8 +144,8 @@ export default async function ContentEnginePage({
         </p>
       )}
       <p className="rounded-lg border border-ink/20 bg-ink/5 px-3 py-2 text-sm text-ink">
-        X posting is copy-and-paste, same as LinkedIn. Each draft copies a 280-character version and
-        opens compose on x.com. Landing-page thread:{" "}
+        X posting is copy-and-paste, same as LinkedIn. Each draft copies the full post (body +
+        hashtags) and opens compose on x.com. Landing-page thread:{" "}
         {landingThread.posted
           ? "already marked posted."
           : "use the button above — each click copies the next tweet."}
@@ -152,6 +160,43 @@ export default async function ContentEnginePage({
               <p className="stat-value mt-1 text-2xl">{f.count}</p>
             </div>
           ))}
+      </section>
+
+      <section className="panel">
+        <div className="mb-4 flex flex-wrap items-end justify-between gap-3">
+          <div>
+            <p className="panel-title">Email</p>
+            <h2 className="text-sm font-semibold">Weekly Newsletter</h2>
+            <p className="mt-1 text-xs text-ink-dim">
+              Write the weekly newsletter and publish it to every opt-in address.
+              Subscriber list lives under{" "}
+              <a href="/founder/newsletter" className="text-accent-cyan hover:underline">
+                Weekly Newsletter
+              </a>
+              .
+            </p>
+          </div>
+          <div className="text-right">
+            <p className="stat-value text-2xl">{subscriberLoadError ? "—" : subscriberCount}</p>
+            <p className="text-[11px] text-ink-dim">
+              Recipients · {resendReady ? "sending connected" : "sending not connected"}
+            </p>
+          </div>
+        </div>
+
+        <NewsletterMailStatus compact />
+
+        {subscriberLoadError ? (
+          <p className="mb-4 rounded-lg border border-accent-amber/40 bg-accent-amber/10 px-3 py-2 text-sm text-accent-amber">
+            {subscriberLoadError}
+          </p>
+        ) : null}
+
+        <NewsletterComposeForm
+          subscriberCount={subscriberCount}
+          resendReady={Boolean(resendReady)}
+          fromValue={resend.fromValue}
+        />
       </section>
 
       <section className="panel">

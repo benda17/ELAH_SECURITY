@@ -137,12 +137,13 @@ const ENV_SPECS: Omit<EnvVarSpec, "configured" | "displayValue">[] = [
   {
     key: "RESEND_API_KEY",
     required: false,
-    description: "Resend API key for Newsletter sends — resend.com/api-keys",
+    description:
+      "Turns on newsletter sending. Create a free key at resend.com/api-keys, then add it here or in Vercel.",
   },
   {
     key: "RESEND_FROM",
     required: false,
-    description: "From address, e.g. ELAH <elahsecurity@gmail.com>",
+    description: "From line on the email, e.g. ELAH <elahsecurity@gmail.com>",
   },
 ];
 
@@ -198,6 +199,7 @@ export async function getContentEngineConfig(): Promise<ContentEngineConfig> {
       "Connect LinkedIn from Content Engine, or set LINKEDIN_ACCESS_TOKEN + LINKEDIN_AUTHOR_URN.",
       "Facebook: Connect once; publish drafts to ELAH Security from the panel.",
       "X/Twitter: copy-and-paste from Content Engine (Post to X). No paid posting API.",
+      "Weekly Newsletter: set RESEND_API_KEY so Publish can deliver to subscribers.",
       "Content cron runs 3× daily (06:00, 12:00, 18:00 UTC).",
       "Add secrets in Vercel → Project → Settings → Environment Variables.",
       "Cron schedule in vercel.json uses UTC.",

@@ -488,18 +488,18 @@ export function DraftActions({
     setBusy(true);
     setMessage(null);
     try {
-      const win = window.open(TWITTER_COMPOSE_URL, "_blank", "noopener,noreferrer");
       await persistEdits();
       const clipboard = buildTwitterClipboardText(text, hashtags);
       await navigator.clipboard.writeText(clipboard);
+      const win = window.open(TWITTER_COMPOSE_URL, "_blank", "noopener,noreferrer");
       setMessage(
         win
-          ? "Copied. On X: paste → Post. Then click Mark as posted on X."
-          : "Copied. Popup blocked — open x.com/compose/post and paste, then Mark as posted on X.",
+          ? "Copied the full post. On X: paste → Post. Then click Mark as posted on X."
+          : "Copied the full post. Popup blocked — open x.com/compose/post, paste, then Mark as posted on X.",
       );
       router.refresh();
     } catch {
-      setMessage("Could not copy/open X. Copy the text manually, then open x.com/compose/post.");
+      setMessage("Could not copy/open X. Copy the post manually, then open x.com/compose/post.");
     } finally {
       setBusy(false);
     }
@@ -555,7 +555,7 @@ export function DraftActions({
               disabled={busy}
               onClick={postToX}
               className="min-h-11 rounded border border-ink/30 bg-ink/5 px-3 py-2 text-xs font-semibold text-ink disabled:opacity-40"
-              title="Copy a 280-character version and open X compose"
+              title="Copy the same full post as LinkedIn/Facebook and open X compose"
             >
               Post to X
             </button>

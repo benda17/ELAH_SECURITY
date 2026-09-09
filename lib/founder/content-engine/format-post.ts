@@ -35,14 +35,14 @@ export function companyPageAdminPostsUrl(organizationId: string): string {
 const MAX_TWEET_CHARS = 280;
 const LANDING = "https://www.elahsecurity.com";
 
-/** Logged-in compose UI. We copy text and let the founder paste — no paid posting API. */
+/** Logged-in compose UI. We copy the full post and let the founder paste — no paid API. */
 export const TWITTER_COMPOSE_URL = "https://x.com/compose/post";
 
 function codePointLength(text: string): number {
   return Array.from(text).length;
 }
 
-/** Truncate a LinkedIn-length draft to a pasteable tweet (280 chars). */
+/** Truncate to 280 chars — only for the paid X API path, not the compose paste. */
 export function toTweetText(body: string, hashtags: string[] = []): string {
   const tags = hashtags
     .map((t) => t.trim())
@@ -63,6 +63,7 @@ export function toTweetText(body: string, hashtags: string[] = []): string {
   return `${cut.trim()}…${suffix}`;
 }
 
+/** Same full post LinkedIn and Facebook publish — not a 280-character snippet. */
 export function buildTwitterClipboardText(body: string, hashtags: string[] = []): string {
-  return toTweetText(body, hashtags);
+  return buildLinkedInClipboardText(body, hashtags);
 }
