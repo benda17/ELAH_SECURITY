@@ -634,6 +634,19 @@ model FacebookIntegration {
   @@index([pageId])
 }
 
+model GmailIntegration {
+  id              String    @id @default(cuid())
+  email           String?
+  accessToken     String?
+  refreshToken    String?
+  tokenExpiresAt  DateTime?
+  accessTokenSet  Boolean   @default(false)
+  lastConnectedAt DateTime?
+  configNotes     String?
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
+}
+
 // -------------------- Newsletter (marketing hero opt-in) --------------------
 
 model NewsletterSubscriber {

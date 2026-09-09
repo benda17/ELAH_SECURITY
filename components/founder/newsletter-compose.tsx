@@ -158,7 +158,7 @@ export function NewsletterComposeForm({
         <p className="inline-flex items-center gap-2 text-xs text-ink-dim">
           <Mail className="size-3.5" />
           {subscriberCount} subscriber{subscriberCount === 1 ? "" : "s"} on the list
-          {resendReady ? "" : " · sending not connected yet"}
+          {resendReady ? "" : " · Gmail not connected yet"}
         </p>
         <button
           type="button"
@@ -167,7 +167,7 @@ export function NewsletterComposeForm({
           className="inline-flex min-h-11 items-center gap-2 rounded-lg bg-accent-cyan px-4 py-2 text-sm font-medium text-surface-base disabled:opacity-50"
           title={
             !resendReady
-              ? "Connect email sending in Settings first"
+              ? "Connect Gmail in Settings first"
               : subscriberCount === 0
                 ? "No newsletter subscribers yet"
                 : "Review, then publish to the opt-in list"

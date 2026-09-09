@@ -33,7 +33,7 @@ export async function sendNewsletterAction(
 
   const result = await sendNewsletterToAll({ subject, body });
   if (!result.ok) {
-    return { error: result.error, skipped: result.skipped, sent: 0 };
+    return { error: result.error, skipped: result.skipped, sent: result.sent ?? 0 };
   }
 
   return { sent: result.sent };

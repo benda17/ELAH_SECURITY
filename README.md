@@ -1,12 +1,12 @@
 # ELAH Platform
 
-Unified Next.js workspace for the ELAH banking demo analytics and founder admin tools. Two clearly separated areas share one **Postgres** database (same Neon DB as the banking simulation in production).
+Unified Next.js workspace for ELAH demo analytics and founder admin tools. Banking analytics read the shared **Postgres** (Neon) database. CRM Simulation analytics read a **separate local SQLite** file — never merged into Neon.
 
 ## Workspace areas
 
 | Area | Base path | Purpose |
 |------|-----------|---------|
-| **Banking System** | `/banking/*` | Demo analytics, intent matrix, agent logs, users, tool actions, training dataset |
+| **Banking System** | `/banking/*` | Demo analytics, intent matrix, agent logs, users, tool actions, training dataset, CRM System (`/banking/crm`) |
 | **Founder & Manager Admin** | `/founder/*` | Company roadmap, model roadmap, fundraising, content engine, newsletter, settings |
 
 Login: **http://localhost:3001/login** — founder credentials gate the whole platform.
@@ -16,16 +16,18 @@ Local ports (documented for CORS):
 | App | Default URL | Notes |
 |-----|-------------|--------|
 | Marketing webpage (`ELAH-Webpage`) | **http://localhost:3000** | Hero newsletter form POSTs here → dashboard |
-| Founder dashboard (this repo) | **http://localhost:3001** | Prisma/Neon + Resend send |
+| Founder dashboard (this repo) | **http://localhost:3001** | Prisma/Neon + Gmail send |
 | Banking demo | **http://localhost:3002** | Separate app; not used by newsletter |
+| ELAH CRM Simulation | **http://localhost:3003** | Local SQLite; analytics reads via `CRM_DATABASE_URL` |
 
-The interactive banking demo itself runs separately (default **http://localhost:3002**). The Banking System sidebar links to it via `BANKING_APP_URL`.
+The interactive banking demo runs separately (default **http://localhost:3002**). ELAH CRM Simulation is **http://localhost:3003**. Sidebars link via `BANKING_APP_URL` and `CRM_APP_URL`.
 
 ## Quick start
 
 ```bash
 npm install
 npx prisma generate
+npx prisma generate --schema prisma-crm/schema.prisma
 # Local schema only — do not `prisma db push` to production:
 npx prisma migrate dev --name newsletter_subscribers
 npm run roadmap:seed   # first-time founder roadmap seed
@@ -34,10 +36,11 @@ npm run dev            # http://localhost:3001
 
 ## Environment
 
-Copy `.env.example` to `.env` and set `DATABASE_URL` to the **same Neon Postgres URL** as the Banking System:
+Copy `.env.example` to `.env` and set `DATABASE_URL` to the **same Neon Postgres URL** as the Banking System. For CRM analytics, set `CRM_DATABASE_URL` to the local SQLite file (never the banking Neon):
 
 ```
 DATABASE_URL="postgresql://USER:PASSWORD@ep-XXXX.neon.tech/neondb?sslmode=require"
+CRM_DATABASE_URL="file:../../elah-crm-simulator/prisma/dev.db"
 ```
 
 Never commit `.env` with real secrets.
@@ -79,8 +82,8 @@ Set `CONTENT_ENGINE_ENABLED=true` for daily cron. Keep `CONTENT_AUTO_PUBLISH=fal
 - Public subscribe: `POST /api/newsletter/subscribe` (CORS allows localhost:3000/3001 and `elahsecurity.com`; extra origins via `NEWSLETTER_CORS_ORIGINS`)
 - Body: `{ "email": "a@b.com", "consent": true, "source": "hero" }` — **consent must be true** or the row is not written
 - Schema: `NewsletterSubscriber` (`id`, `email` unique, `source`, `createdAt`)
-- Founder UI: `/founder/newsletter` — compose subject/body, Send via **Resend**
-- If `RESEND_API_KEY` or `RESEND_FROM` is missing, Send returns a clear error and does **not** fake a send
+- Founder UI: `/founder/newsletter` — compose subject/body, Send via **Gmail API**
+- If Gmail is not connected, Send returns a clear error and does **not** fake a send
 - Empty list: Send is skipped with a clear message
 
 ### Demo requests
@@ -89,7 +92,7 @@ Set `CONTENT_ENGINE_ENABLED=true` for daily cron. Keep `CONTENT_AUTO_PUBLISH=fal
 - Body: `{ "name", "email", "company", "role?", "goal?", "source": "demo_page" }`
 - Schema: `DemoRequest` (`name`, `email`, `company`, optional `role`/`goal`, `status`, `createdAt`)
 - Founder UI: `/founder/demo-requests`
-- If Resend is configured, a notify email is sent to `DEMO_REQUEST_NOTIFY_EMAIL` (default `elahsecurity@gmail.com`). The row is saved even if notify fails.
+- If Gmail is connected, a notify email is sent to `DEMO_REQUEST_NOTIFY_EMAIL` (default `elahsecurity@gmail.com`). The row is saved even if notify fails.
 
 After pulling the schema change, run a **local** migrate (do not `prisma db push` to production from this machine):
 
@@ -98,7 +101,7 @@ npx prisma generate
 npx prisma migrate dev --name newsletter_subscribers
 ```
 
-Copy `RESEND_API_KEY` and `RESEND_FROM` from `.env.example` into `.env`. Never commit real keys.
+Copy `GOOGLE_CLIENT_ID` and `GOOGLE_CLIENT_SECRET` from `.env.example` into `.env`. Never commit real keys. Then Connect Gmail in Settings as `elahsecurity@gmail.com`.
 
 
 ## Legacy routes

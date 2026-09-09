@@ -135,15 +135,25 @@ const ENV_SPECS: Omit<EnvVarSpec, "configured" | "displayValue">[] = [
     description: "X user Access Token Secret — pair of the Access Token above",
   },
   {
-    key: "RESEND_API_KEY",
+    key: "GOOGLE_CLIENT_ID",
     required: false,
-    description:
-      "Turns on newsletter sending. Create a free key at resend.com/api-keys, then add it here or in Vercel.",
+    description: "Google Cloud OAuth client ID — used to send newsletters from Gmail",
   },
   {
-    key: "RESEND_FROM",
+    key: "GOOGLE_CLIENT_SECRET",
     required: false,
-    description: "From line on the email, e.g. ELAH <elahsecurity@gmail.com>",
+    description: "Google Cloud OAuth client secret",
+  },
+  {
+    key: "GOOGLE_REDIRECT_URI",
+    required: false,
+    description:
+      "Must be https://YOUR-DOMAIN/api/gmail/callback (add the same URL in Google Cloud → OAuth client)",
+  },
+  {
+    key: "GMAIL_FROM",
+    required: false,
+    description: "Gmail address to send as (default elahsecurity@gmail.com)",
   },
 ];
 
@@ -199,7 +209,7 @@ export async function getContentEngineConfig(): Promise<ContentEngineConfig> {
       "Connect LinkedIn from Content Engine, or set LINKEDIN_ACCESS_TOKEN + LINKEDIN_AUTHOR_URN.",
       "Facebook: Connect once; publish drafts to ELAH Security from the panel.",
       "X/Twitter: copy-and-paste from Content Engine (Post to X). No paid posting API.",
-      "Weekly Newsletter: set RESEND_API_KEY so Publish can deliver to subscribers.",
+      "Weekly Newsletter: Connect Gmail in Settings (GOOGLE_CLIENT_ID + GOOGLE_CLIENT_SECRET).",
       "Content cron runs 3× daily (06:00, 12:00, 18:00 UTC).",
       "Add secrets in Vercel → Project → Settings → Environment Variables.",
       "Cron schedule in vercel.json uses UTC.",

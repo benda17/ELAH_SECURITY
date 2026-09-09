@@ -22,6 +22,7 @@ export async function middleware(request: NextRequest) {
     pathname.startsWith("/api/cron") ||
     pathname.startsWith("/api/linkedin") ||
     pathname.startsWith("/api/facebook") ||
+    pathname.startsWith("/api/gmail") ||
     pathname.startsWith("/api/auth/login") ||
     pathname.startsWith("/api/auth/logout") ||
     pathname.startsWith("/api/newsletter") ||
@@ -55,6 +56,6 @@ export async function middleware(request: NextRequest) {
 
 export const config = {
   matcher: [
-    "/((?!_next/static|_next/image|favicon.ico|api/newsletter|api/demo|api/auth/login|api/auth/logout|api/cron|api/linkedin|api/facebook).*)",
+    "/((?!_next/static|_next/image|favicon.ico|api/newsletter|api/demo|api/auth/login|api/auth/logout|api/cron|api/linkedin|api/facebook|api/gmail).*)",
   ],
 };

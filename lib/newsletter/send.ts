@@ -1,24 +1,18 @@
-import { Resend } from "resend";
 import { listNewsletterSubscribers } from "./repository";
 import { renderNewsletterEmailHtml } from "./template";
-
-const BATCH_SIZE = 100;
-const DEFAULT_FROM = "ELAH <elahsecurity@gmail.com>";
-const REPLY_TO = "elahsecurity@gmail.com";
+import { getGmailSendStatus, sendGmailToMany } from "./gmail";
 
 export type NewsletterSendResult =
   | { ok: true; sent: number }
-  | { ok: false; error: string; skipped?: boolean };
+  | { ok: false; error: string; skipped?: boolean; sent?: number };
 
-function fromAddress(): string {
-  return process.env.RESEND_FROM?.trim() || DEFAULT_FROM;
-}
-
-export function resendConfigured(): { apiKey: boolean; from: boolean; fromValue: string } {
+/** @deprecated Use getGmailSendStatus — kept so existing imports keep compiling during the switch. */
+export async function resendConfigured() {
+  const status = await getGmailSendStatus();
   return {
-    apiKey: Boolean(process.env.RESEND_API_KEY?.trim()),
-    from: Boolean(fromAddress()),
-    fromValue: fromAddress(),
+    apiKey: status.ready,
+    from: Boolean(status.fromValue),
+    fromValue: status.fromValue,
   };
 }
 
@@ -26,16 +20,15 @@ export async function sendNewsletterToAll(input: {
   subject: string;
   body: string;
 }): Promise<NewsletterSendResult> {
-  const apiKey = process.env.RESEND_API_KEY?.trim();
-  if (!apiKey) {
+  const status = await getGmailSendStatus();
+  if (!status.ready) {
     return {
       ok: false,
-      error:
-        "RESEND_API_KEY is not set. Add it to .env locally — no email was sent.",
+      error: status.oauthApp
+        ? "Gmail is not connected. Open Settings and click Connect Gmail — no email was sent."
+        : "Set GOOGLE_CLIENT_ID and GOOGLE_CLIENT_SECRET, then Connect Gmail in Settings — no email was sent.",
     };
   }
-
-  const from = fromAddress();
 
   const subscribers = await listNewsletterSubscribers();
   if (subscribers.length === 0) {
@@ -46,36 +39,15 @@ export async function sendNewsletterToAll(input: {
     };
   }
 
-  const resend = new Resend(apiKey);
   const html = renderNewsletterEmailHtml(input);
-  let sent = 0;
+  const result = await sendGmailToMany(
+    subscribers.map((s) => s.email),
+    { subject: input.subject, text: input.body, html },
+  );
 
-  for (let i = 0; i < subscribers.length; i += BATCH_SIZE) {
-    const chunk = subscribers.slice(i, i + BATCH_SIZE);
-    const { data, error } = await resend.batch.send(
-      chunk.map((s) => ({
-        from,
-        replyTo: REPLY_TO,
-        to: s.email,
-        subject: input.subject,
-        html,
-        text: input.body,
-      })),
-    );
-
-    if (error || !data) {
-      const detail = error?.message?.trim() || "Resend rejected the request.";
-      return {
-        ok: false,
-        error:
-          sent > 0
-            ? `Sent ${sent} then Resend failed: ${detail}`
-            : `Resend send failed: ${detail}`,
-      };
-    }
-
-    sent += data.data.length;
+  if (result.error) {
+    return { ok: false, error: result.error, sent: result.sent };
   }
 
-  return { ok: true, sent };
+  return { ok: true, sent: result.sent };
 }

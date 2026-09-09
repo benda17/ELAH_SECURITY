@@ -4,14 +4,14 @@ import {
   countNewsletterSubscribers,
   listNewsletterSubscribers,
 } from "@/lib/newsletter/repository";
-import { resendConfigured } from "@/lib/newsletter/send";
+import { getGmailSendStatus } from "@/lib/newsletter/gmail";
 
 export const metadata = { title: "ELAH · Weekly Newsletter" };
 export const dynamic = "force-dynamic";
 
 export default async function NewsletterPage() {
-  const resend = resendConfigured();
-  const resendReady = resend.apiKey && resend.from;
+  const gmail = await getGmailSendStatus();
+  const mailReady = gmail.ready;
 
   let count = 0;
   let subscribers: Awaited<ReturnType<typeof listNewsletterSubscribers>> = [];
@@ -55,11 +55,11 @@ export default async function NewsletterPage() {
         </div>
         <div className="panel py-4">
           <p className="panel-title">Email sending</p>
-          <p className="stat-value mt-1 text-2xl">{resendReady ? "Ready" : "Off"}</p>
+          <p className="stat-value mt-1 text-2xl">{mailReady ? "Ready" : "Off"}</p>
           <p className="mt-1 text-xs text-ink-dim">
-            {resend.apiKey
-              ? `Connected · ${resend.fromValue}`
-              : "Connect Resend in Settings to publish"}
+            {gmail.ready
+              ? `Gmail · ${gmail.fromValue}`
+              : "Connect Gmail in Settings to publish"}
           </p>
         </div>
       </section>
@@ -68,8 +68,8 @@ export default async function NewsletterPage() {
         <h2 className="mb-3 text-sm font-semibold">Compose</h2>
         <NewsletterComposeForm
           subscriberCount={count}
-          resendReady={resendReady}
-          fromValue={resend.fromValue}
+          resendReady={mailReady}
+          fromValue={gmail.fromValue}
         />
       </section>
 

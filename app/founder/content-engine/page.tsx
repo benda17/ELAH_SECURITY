@@ -9,7 +9,7 @@ import {
 import { NewsletterComposeForm } from "@/components/founder/newsletter-compose";
 import { NewsletterMailStatus } from "@/components/founder/newsletter-mail-status";
 import { countNewsletterSubscribers } from "@/lib/newsletter/repository";
-import { resendConfigured } from "@/lib/newsletter/send";
+import { getGmailSendStatus } from "@/lib/newsletter/gmail";
 import {
   facebookOAuthConfigured,
   getFacebookPublishStatus,
@@ -41,7 +41,7 @@ export default async function ContentEnginePage({
 
   await rewriteQueuedDraftLandingUrls();
 
-  const [facebook, posts, counts, runs, sources, connection, dailySeries, landingThread, resend] =
+  const [facebook, posts, counts, runs, sources, connection, dailySeries, landingThread, gmail] =
     await Promise.all([
       getFacebookPublishStatus(),
       listLinkedInDrafts(80),
@@ -51,10 +51,10 @@ export default async function ContentEnginePage({
       getLinkedInConnectionStatus(),
       getDailyPostSeries(30),
       getLandingThreadStatus(),
-      Promise.resolve(resendConfigured()),
+      getGmailSendStatus(),
     ]);
 
-  const resendReady = resend.apiKey && resend.from;
+  const mailReady = gmail.ready;
   let subscriberCount = 0;
   let subscriberLoadError: string | null = null;
   try {
@@ -179,7 +179,7 @@ export default async function ContentEnginePage({
           <div className="text-right">
             <p className="stat-value text-2xl">{subscriberLoadError ? "—" : subscriberCount}</p>
             <p className="text-[11px] text-ink-dim">
-              Recipients · {resendReady ? "sending connected" : "sending not connected"}
+              Recipients · {mailReady ? "Gmail connected" : "Gmail not connected"}
             </p>
           </div>
         </div>
@@ -194,8 +194,8 @@ export default async function ContentEnginePage({
 
         <NewsletterComposeForm
           subscriberCount={subscriberCount}
-          resendReady={Boolean(resendReady)}
-          fromValue={resend.fromValue}
+          resendReady={mailReady}
+          fromValue={gmail.fromValue}
         />
       </section>
 

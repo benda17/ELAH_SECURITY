@@ -70,6 +70,31 @@ export function ConnectLinkedInButton({
   );
 }
 
+export function ConnectGmailButton({
+  oauthConfigured,
+  connected = false,
+}: {
+  oauthConfigured: boolean;
+  connected?: boolean;
+}) {
+  if (!oauthConfigured) {
+    return (
+      <p className="text-xs text-ink-dim">
+        Set <code>GOOGLE_CLIENT_ID</code> and <code>GOOGLE_CLIENT_SECRET</code>, then connect.
+      </p>
+    );
+  }
+
+  return (
+    <a
+      href="/api/gmail/connect"
+      className="inline-flex rounded-lg border border-accent-gold/40 bg-accent-gold/10 px-4 py-2 text-sm font-medium text-accent-gold hover:bg-accent-gold/20"
+    >
+      {connected ? "Reconnect Gmail" : "Connect Gmail"}
+    </a>
+  );
+}
+
 export function ConnectFacebookButton({ oauthConfigured }: { oauthConfigured: boolean }) {
   if (!oauthConfigured) {
     return (

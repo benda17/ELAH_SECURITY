@@ -1,25 +1,15 @@
-import { resendConfigured } from "@/lib/newsletter/send";
+import { getGmailSendStatus, gmailOAuthConfigured } from "@/lib/newsletter/gmail";
 
-export function NewsletterMailStatus({ compact = false }: { compact?: boolean }) {
-  const resend = resendConfigured();
-
-  if (resend.apiKey) return null;
+export async function NewsletterMailStatus({ compact = false }: { compact?: boolean }) {
+  const status = await getGmailSendStatus();
+  if (status.ready) return null;
 
   return (
     <div className="rounded-xl border border-accent-amber/40 bg-accent-amber/10 px-4 py-3 text-sm text-ink">
-      <p className="font-medium text-accent-amber">Email sending is not connected yet</p>
+      <p className="font-medium text-accent-amber">Gmail is not connected yet</p>
       <p className="mt-1.5 text-ink-muted">
-        This page writes the newsletter. A mail service called{" "}
-        <a
-          href="https://resend.com"
-          target="_blank"
-          rel="noreferrer"
-          className="text-accent-cyan hover:underline"
-        >
-          Resend
-        </a>{" "}
-        is what actually delivers it, the same way LinkedIn delivers LinkedIn posts.
-        Until a Resend API key is in the environment, Publish stays off so we never
+        Newsletters send through your Gmail inbox ({status.fromValue}), the same way LinkedIn
+        posts go through LinkedIn. Until you connect that account, Publish stays off so we never
         pretend an email went out.
       </p>
       {compact ? (
@@ -30,26 +20,26 @@ export function NewsletterMailStatus({ compact = false }: { compact?: boolean })
           </a>
           . You can still write and preview here.
         </p>
+      ) : gmailOAuthConfigured() ? (
+        <p className="mt-3">
+          <a
+            href="/api/gmail/connect"
+            className="inline-flex rounded-lg border border-accent-gold/40 bg-accent-gold/10 px-4 py-2 text-sm font-medium text-accent-gold hover:bg-accent-gold/20"
+          >
+            Connect Gmail
+          </a>
+        </p>
       ) : (
         <ol className="mt-3 list-decimal space-y-1 pl-5 text-ink-muted">
           <li>
-            Create a free API key at{" "}
-            <a
-              href="https://resend.com/api-keys"
-              target="_blank"
-              rel="noreferrer"
-              className="text-accent-cyan hover:underline"
-            >
-              resend.com/api-keys
-            </a>
-            .
+            Create a Google Cloud OAuth client (Web application) and enable the Gmail API.
           </li>
           <li>
-            Add it as <code className="text-ink">RESEND_API_KEY</code> in{" "}
-            <code>.env.local</code> on this machine, or in Vercel → Environment
-            Variables for production.
+            Add <code className="text-ink">GOOGLE_CLIENT_ID</code> and{" "}
+            <code className="text-ink">GOOGLE_CLIENT_SECRET</code> in{" "}
+            <code>.env.local</code> or Vercel.
           </li>
-          <li>Restart the Founder app, then publish.</li>
+          <li>Restart, then Connect Gmail as elahsecurity@gmail.com.</li>
         </ol>
       )}
     </div>

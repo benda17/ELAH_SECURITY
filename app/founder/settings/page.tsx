@@ -1,5 +1,6 @@
 import {
   ConnectFacebookButton,
+  ConnectGmailButton,
   ConnectLinkedInButton,
 } from "@/components/founder/content-engine-panel";
 import { getContentEngineConfig } from "@/lib/founder/content-engine/config";
@@ -15,22 +16,27 @@ import {
 } from "@/lib/founder/content-engine/linkedin";
 import { getLinkedInIntegration } from "@/lib/founder/content-engine/repository";
 import { NewsletterMailStatus } from "@/components/founder/newsletter-mail-status";
-import { resendConfigured } from "@/lib/newsletter/send";
+import { getGmailSendStatus, gmailOAuthConfigured } from "@/lib/newsletter/gmail";
 
 export const metadata = { title: "ELAH · Founder Settings" };
 export const dynamic = "force-dynamic";
 
-export default async function FounderSettingsPage() {
+export default async function FounderSettingsPage({
+  searchParams,
+}: {
+  searchParams?: { gmail?: string };
+}) {
   const oauthDebug = getLinkedInOAuthDebug();
   const fbOauth = getFacebookOAuthDebug();
-  const [config, facebook, integration, publishCreds] = await Promise.all([
+  const [config, facebook, integration, publishCreds, gmail] = await Promise.all([
     getContentEngineConfig(),
     getFacebookPublishStatus(),
     getLinkedInIntegration(),
     getPublishCredentials(),
+    getGmailSendStatus(),
   ]);
   const canPublish = Boolean(publishCreds);
-  const resend = resendConfigured();
+  const gmailFlag = searchParams?.gmail?.trim() || "";
 
   return (
     <div className="space-y-6">
@@ -84,10 +90,10 @@ export default async function FounderSettingsPage() {
         <div>
           <p className="panel-title">Weekly Newsletter</p>
           <p className="mt-1 text-sm font-medium text-ink">
-            {resend.apiKey ? "Ready" : "Not connected"}
+            {gmail.ready ? "Ready" : "Not connected"}
           </p>
           <p className="mt-1 text-[11px] text-ink-dim">
-            {resend.apiKey ? `From ${resend.fromValue}` : "Needs a Resend API key"}
+            {gmail.ready ? `From ${gmail.fromValue}` : "Needs Connect Gmail"}
           </p>
         </div>
       </section>
@@ -150,11 +156,69 @@ export default async function FounderSettingsPage() {
       </section>
 
       <section className="panel">
+        <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
+          <div>
+            <h2 className="text-sm font-semibold">Gmail Connect</h2>
+            <p className="mt-1 text-xs text-ink-dim">
+              Sends as {gmail.fromValue}. Free Gmail allows about 500 messages per day.
+              <br />
+              redirect: <code>{gmail.redirectUri}</code>
+              <br />
+              client id: {gmail.oauthApp ? "set" : "missing"} · connected:{" "}
+              {gmail.connected ? gmail.email || "yes" : "no"}
+            </p>
+          </div>
+          <ConnectGmailButton
+            oauthConfigured={gmailOAuthConfigured()}
+            connected={gmail.connected}
+          />
+        </div>
+        {gmailFlag === "connected" ? (
+          <p className="mb-3 rounded-lg border border-accent-emerald/40 bg-accent-emerald/10 px-3 py-2 text-sm text-accent-emerald">
+            Gmail connected. Publish will send from {gmail.fromValue}.
+          </p>
+        ) : gmailFlag.startsWith("error:") ? (
+          <p className="mb-3 rounded-lg border border-accent-rose/40 bg-accent-rose/10 px-3 py-2 text-sm text-accent-rose">
+            {decodeURIComponent(gmailFlag.slice("error:".length))}
+          </p>
+        ) : null}
+        <p className="mb-3 text-xs text-ink-muted">
+          You do not need an @elahsecurity.com mailbox. Connect the Gmail you already use.
+        </p>
+        <ol className="list-decimal space-y-1 pl-5 text-xs text-ink-muted">
+          <li>
+            Open{" "}
+            <a
+              className="text-accent-cyan underline"
+              href="https://console.cloud.google.com/apis/library/gmail.googleapis.com"
+              target="_blank"
+              rel="noreferrer"
+            >
+              Google Cloud → Gmail API
+            </a>{" "}
+            and Enable it.
+          </li>
+          <li>
+            APIs &amp; Services → Credentials → Create credentials → OAuth client ID → Web
+            application. Add authorized redirect URI <code>{gmail.redirectUri}</code>.
+          </li>
+          <li>
+            OAuth consent screen: External, add <code>elahsecurity@gmail.com</code> as a test
+            user. Scope needed: <code>gmail.send</code>.
+          </li>
+          <li>
+            Set <code>GOOGLE_CLIENT_ID</code> and <code>GOOGLE_CLIENT_SECRET</code> in{" "}
+            <code>.env.local</code> (and Vercel for production), restart, then Connect.
+          </li>
+        </ol>
+      </section>
+
+      <section className="panel">
         <div className="mb-4">
           <h2 className="text-sm font-semibold">Weekly Newsletter</h2>
           <p className="mt-1 text-xs text-ink-dim">
-            Content Engine writes the weekly newsletter. Resend delivers it to subscribers.
-            Keys are not pasted in this UI — they live in <code>.env.local</code> or Vercel.
+            Content Engine writes the weekly newsletter. Gmail delivers it to subscribers after
+            you connect the inbox above.
           </p>
         </div>
         <NewsletterMailStatus />
@@ -243,7 +307,7 @@ export default async function FounderSettingsPage() {
           </li>
           <li>
             OAuth callbacks: <code>/api/linkedin/callback</code>,{" "}
-            <code>/api/facebook/callback</code>
+            <code>/api/facebook/callback</code>, <code>/api/gmail/callback</code>
           </li>
         </ul>
       </section>
