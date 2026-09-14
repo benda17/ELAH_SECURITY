@@ -23,6 +23,26 @@ export function formatAgentEventLabel(
       return "Action confirmed";
     case "action_cancelled":
       return "Action cancelled";
+    case "policy_denied":
+      return "Policy blocked";
+    case "page_view":
+      return "Page viewed";
+    case "tickets_list_viewed":
+      return "Tickets list";
+    case "ticket_opened":
+      return "Ticket opened";
+    case "ticket_created":
+      return "Ticket created";
+    case "ticket_comment_added":
+      return "Comment added";
+    case "kb_search":
+      return "Help search";
+    case "kb_article_viewed":
+      return "Help article";
+    case "login":
+      return "Signed in";
+    case "logout":
+      return "Signed out";
     case "suspicious_prompt_detected":
       return "Suspicious prompt";
     case "unauthorized_access_attempt":
@@ -41,9 +61,12 @@ export function assistantEventTone(
     case "tool_call_executed":
     case "policy_check_passed":
     case "action_confirmed":
+    case "ticket_created":
+    case "ticket_comment_added":
       return "success";
     case "tool_call_failed":
     case "policy_check_failed":
+    case "policy_denied":
     case "suspicious_prompt_detected":
     case "unauthorized_access_attempt":
     case "agent_error":

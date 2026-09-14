@@ -31,6 +31,7 @@ export const PHASE_ORDER = [
   "Phase 13 — Fundraising and investor outreach",
   "Phase 14 — Company, legal, privacy, and compliance",
   "Phase 15 — Team and operations",
+  "Phase 16 — B2B SaaS CS/CRM wedge",
 ] as const;
 
 export const STATUS_LABELS: Record<TaskStatus, string> = {
@@ -108,6 +109,14 @@ export const CRITICAL_PATH_FRAGMENTS = [
   "Build a deterministic rules-based baseline",
   "Define evaluation metrics",
   "Conduct banking-domain interviews",
+  "Rewrite ICP for CS/CRM ops first-buyer",
+  "Build CRM simulator as first demo venue",
+  "Deploy ELAH CRM Simulation to Vercel",
+  "Provision dedicated Neon database for CRM",
+  "Define support-tool taxonomy and intent labels",
+  "Score genuine intent before support tools",
+  "Plan gold dataset for support events",
+  "Wire mock ELAH score into CRM simulator",
 ];
 
 export const READINESS_WORKSTREAM_MAP: Record<string, keyof import("./types").RoadmapMetrics["readiness"]> = {

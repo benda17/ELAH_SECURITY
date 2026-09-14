@@ -1,6 +1,8 @@
 import { prisma } from "@/lib/prisma";
 import { CRITICAL_PATH_FRAGMENTS } from "../constants";
 import type { TaskPriority, TaskStatus } from "../types";
+import { PHASE13_INVESTORS } from "./investors";
+import { PHASE16_NAME } from "./phase16";
 import { MILESTONE_SPECS, PHASE_SPECS } from "./phases";
 
 function slugify(text: string): string {
@@ -118,6 +120,16 @@ function inferStatus(phase: string, title: string): {
       match: "create a mock scoring implementation",
       note: "calculateInitialElahScore acts as mock; separate service not deployed.",
     },
+    {
+      phases: ["Phase 16"],
+      match: "rewrite icp for cs/crm ops first-buyer",
+      note: "ICP memo exists (Proposed). Founder Approve still required.",
+    },
+    {
+      phases: ["Phase 16"],
+      match: "build crm simulator as first demo venue",
+      note: "ELAH CRM Simulation is on GitHub and Vercel with dedicated Neon. In review — founder confirmed the hosted site works 14 Sep 2026.",
+    },
   ];
 
   for (const p of inProgressPatterns) {
@@ -127,8 +139,8 @@ function inferStatus(phase: string, title: string): {
     }
   }
 
-  // Phase-level defaults for early engineering work
-  if (phase.startsWith("Phase 1") || phase.startsWith("Phase 2")) {
+  // Phase-level defaults for early engineering work (em dash so Phase 10+ do not match).
+  if (phase.startsWith("Phase 1 —") || phase.startsWith("Phase 2 —")) {
     return {
       status: "backlog",
       progress: 5,
@@ -138,6 +150,14 @@ function inferStatus(phase: string, title: string): {
 
   if (phase.startsWith("Phase 11") || phase.startsWith("Phase 12") || phase.startsWith("Phase 13")) {
     return { status: "backlog", progress: 0, notes: "No outreach recorded yet." };
+  }
+
+  if (phase.startsWith(PHASE16_NAME) || phase.startsWith("Phase 16")) {
+    return {
+      status: "backlog",
+      progress: 0,
+      notes: "CS/CRM wedge. Do not mark Done without evidence.",
+    };
   }
 
   return { status: "backlog", progress: 0 };
@@ -174,6 +194,7 @@ function milestoneIdForPhase(phaseIndex: number, milestoneIds: string[]): string
     13: 14,
     14: 14,
     15: 15,
+    16: 16,
   };
   const idx = map[phaseIndex];
   return idx !== undefined ? milestoneIds[idx] ?? null : null;
@@ -396,6 +417,7 @@ export async function seedRoadmapIfEmpty(): Promise<{ seeded: boolean; counts: R
       priority: "medium",
       notes: "Recruit via Phase 11 interview script.",
     },
+    ...PHASE13_INVESTORS,
   ];
 
   for (const c of contacts) {

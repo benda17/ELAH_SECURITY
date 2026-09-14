@@ -1,0 +1,245 @@
+// Read-only ELAH CRM Simulation schema for the analytics dashboard.
+// Separate Prisma client — never point this at Neon / the banking DATABASE_URL.
+
+generator client {
+  provider = "prisma-client-js"
+  output   = "../lib/crm/generated"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("CRM_DATABASE_URL")
+}
+
+model User {
+  id           String   @id @default(cuid())
+  email        String   @unique
+  passwordHash String
+  name         String
+  role         String // regular_customer | premium_customer | enterprise_customer | support_agent | security_reviewer
+  status       String   @default("active")
+  createdAt    DateTime @default(now())
+  lastLoginAt  DateTime?
+
+  customerAccount CustomerAccount?
+  sessions        Session[]
+  conversations   AgentConversation[]
+  pendingActions  AgentPendingAction[]
+  assignedTickets Ticket[]            @relation("AssignedAgent")
+}
+
+model Session {
+  id        String   @id @default(cuid())
+  userId    String
+  token     String   @unique
+  createdAt DateTime @default(now())
+  expiresAt DateTime
+  ipAddress String?
+  userAgent String?
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+}
+
+/// CRM contact / workspace for a HelioDesk customer (demo users only).
+model CustomerAccount {
+  id              String   @id @default(cuid())
+  userId          String   @unique
+  accountNumber   String   @unique
+  workspaceName   String
+  plan            String // starter | growth | enterprise
+  billingEmail    String
+  phone           String
+  companyRole     String
+  seatCount       Int      @default(3)
+  monthlySpendUsd Float    @default(0)
+  status          String   @default("active") // active | past_due | cancelled
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  user          User           @relation(fields: [userId], references: [id], onDelete: Cascade)
+  tickets       Ticket[]
+  notes         CrmNote[]
+  subscriptions Subscription[]
+}
+
+model Subscription {
+  id                String    @id @default(cuid())
+  customerAccountId String
+  product           String
+  plan              String
+  status            String    @default("active") // active | cancelled | past_due
+  renewsOn          DateTime
+  cancelledAt       DateTime?
+  createdAt         DateTime  @default(now())
+
+  customerAccount CustomerAccount @relation(fields: [customerAccountId], references: [id], onDelete: Cascade)
+
+  @@index([customerAccountId])
+}
+
+model Ticket {
+  id                String   @id @default(cuid())
+  ticketNumber      String   @unique
+  customerAccountId String
+  assignedAgentId   String?
+  category          String // billing | bug | how_to | account | feature | other
+  subject           String
+  message           String
+  priority          String   @default("normal") // low | normal | high | urgent
+  status            String   @default("open") // open | pending | waiting_on_customer | resolved | closed | escalated
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
+
+  customerAccount CustomerAccount  @relation(fields: [customerAccountId], references: [id], onDelete: Cascade)
+  assignedAgent   User?            @relation("AssignedAgent", fields: [assignedAgentId], references: [id])
+  comments        TicketComment[]
+  refunds         RefundRequest[]
+
+  @@index([customerAccountId])
+  @@index([status])
+}
+
+model TicketComment {
+  id        String   @id @default(cuid())
+  ticketId  String
+  author    String
+  body      String
+  createdAt DateTime @default(now())
+
+  ticket Ticket @relation(fields: [ticketId], references: [id], onDelete: Cascade)
+
+  @@index([ticketId])
+}
+
+model RefundRequest {
+  id                String    @id @default(cuid())
+  customerAccountId String
+  ticketId          String?
+  amountUsd         Float
+  reason            String
+  status            String    @default("submitted") // submitted | confirmed | denied | paid
+  createdAt         DateTime  @default(now())
+  decidedAt         DateTime?
+
+  ticket Ticket? @relation(fields: [ticketId], references: [id], onDelete: SetNull)
+
+  @@index([customerAccountId])
+}
+
+model CrmNote {
+  id                String   @id @default(cuid())
+  customerAccountId String
+  author            String
+  body              String
+  visibility        String   @default("internal")
+  createdAt         DateTime @default(now())
+
+  customerAccount CustomerAccount @relation(fields: [customerAccountId], references: [id], onDelete: Cascade)
+
+  @@index([customerAccountId])
+}
+
+model AgentConversation {
+  id        String   @id @default(cuid())
+  userId    String
+  title     String?
+  status    String   @default("active")
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  user           User                 @relation(fields: [userId], references: [id], onDelete: Cascade)
+  messages       AgentMessage[]
+  pendingActions AgentPendingAction[]
+
+  @@index([userId])
+}
+
+model AgentMessage {
+  id             String   @id @default(cuid())
+  conversationId String
+  role           String // user | assistant | tool
+  content        String
+  toolName       String?
+  toolResult     String?
+  latencyMs      Int?
+  createdAt      DateTime @default(now())
+
+  conversation AgentConversation @relation(fields: [conversationId], references: [id], onDelete: Cascade)
+
+  @@index([conversationId])
+}
+
+model AgentPendingAction {
+  id             String    @id @default(cuid())
+  userId         String
+  conversationId String
+  actionType     String
+  toolName       String
+  toolArgs       String
+  summary        String
+  status         String    @default("pending")
+  createdAt      DateTime  @default(now())
+  expiresAt      DateTime
+  executedAt     DateTime?
+  resultSummary  String?
+
+  user         User              @relation(fields: [userId], references: [id], onDelete: Cascade)
+  conversation AgentConversation @relation(fields: [conversationId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([conversationId])
+}
+
+/// Operational event log. Scores are NOT stored on this row.
+model AgentEventLog {
+  id                String   @id @default(cuid())
+  timestamp         DateTime @default(now())
+  eventType         String
+  eventId           String?
+  userId            String?
+  sessionId         String?
+  conversationId    String?
+  messageId         String?
+  userMessage       String?
+  assistantMessage  String?
+  detectedIntent    String?
+  toolName          String?
+  toolArgsSanitized String?
+  policyDecision    String? // allow | deny | needs_confirmation — COMPANY policy
+  policyReasons     String?
+  resultSummary     String?
+  latencyMs         Int?
+  ipAddress         String?
+  userAgent         String?
+  metadata          String?
+
+  @@index([userId])
+  @@index([conversationId])
+  @@index([eventType])
+  @@index([eventId])
+  @@index([timestamp])
+}
+
+/// ELAH score lives here — never on the event envelope, never on customer chat.
+model ElahScoreSnapshot {
+  id                  String   @id @default(cuid())
+  eventId             String   @unique
+  scoredAt            DateTime @default(now())
+  genuineIntentScore  Float?
+  confidence          Float?
+  intentLabel         String?
+  recommendation      String? // advisory only: proceed | review | abstain — ELAH never allow/block/execute
+  reasonCodes         String?
+  scorer              String   @default("rules_stub_v0")
+  unavailable         Boolean  @default(false)
+  unavailableReason   String?
+  userId              String?
+  conversationId      String?
+  messageId           String?
+  toolName            String?
+
+  @@index([scoredAt])
+  @@index([intentLabel])
+}

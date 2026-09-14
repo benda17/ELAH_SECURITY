@@ -8,11 +8,13 @@
     "start": "next start -p 3001",
     "lint": "next lint",
     "db:generate": "prisma generate",
+    "db:generate:crm": "prisma generate --schema prisma-crm/schema.prisma",
     "db:push": "prisma db push",
     "roadmap:seed": "tsx scripts/seed-roadmap.ts",
+    "roadmap:seed:phase16": "tsx scripts/seed-phase16-cs-crm-wedge.ts",
     "test:roadmap": "tsx tests/roadmap-metrics.test.ts",
     "dev:clean": "rm -rf .next && next dev -p 3001",
-    "postinstall": "prisma generate"
+    "postinstall": "prisma generate && CRM_DATABASE_URL=\"file:./dev.db\" prisma generate --schema prisma-crm/schema.prisma"
   },
   "dependencies": {
     "@prisma/client": "^5.22.0",

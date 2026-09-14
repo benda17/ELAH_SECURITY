@@ -28,24 +28,29 @@ export interface RoadmapMilestone {
 
 export const HERO_HIGHLIGHTS = [
   {
-    title: "Banking-only MVP",
+    title: "CS/CRM first wedge",
     description:
-      "Focused on authenticated banking assistant messages — no generic chatbot scoring.",
+      "First-client motion is B2B SaaS customer-support and CRM operations — not a bank sale.",
     icon: "landmark" as const,
   },
   {
-    title: "Numeric intention score",
+    title: "Existing banking demo",
     description:
-      "A calibrated 0.00–1.00 probability that the message reflects genuine banking intent.",
+      "Authenticated banking assistant remains a working scoring demo and a later vertical.",
     icon: "gauge" as const,
   },
   {
-    title: "Explainable graph coordinates",
+    title: "ELAH scores, never acts",
     description:
-      "Human Agency, Financial Risk, and Emotional Urgency with matched signal breakdown.",
+      "A calibrated 0.00–1.00 intention score. Tenant policy allow/deny/confirm. ELAH never allows, blocks, or executes.",
     icon: "network" as const,
   },
 ] as const;
+
+// CRM wedge example for copy only — ProductDefinitionCard still renders PRODUCT_EXAMPLE.
+// { input: { userMessage: "Issue a $40 refund on this ticket and set the account owner" },
+//   output: { elahScore: 0.81, primaryIntent: "refund_request", coordinates: { humanAgency: 0.74, financialRisk: 0.66, emotionalUrgency: 0.28 },
+//     explanation: ["Refund verb detected", "Amount detected", "Ticket context detected", "CRM write proposed"] } }
 
 export const PRODUCT_EXAMPLE = {
   input: {
@@ -335,8 +340,11 @@ export const FIRST_ROUND_PLAN = {
   runway: "12 months",
   mainMilestone:
     "Install ELAH inside a first client's demo or development environment",
+  askStatus: "Founder-approved working ask",
+  askApprovedOn: "26 August 2026",
+  closed: false,
   description:
-    "ELAH is planning a $400K pre-seed / angel-pre-seed round to fund 12 months of focused execution. The goal is to turn the current technical MVP into a pilot-ready AI security model: a separate lightweight ELAH service that scores human intention, returns explainable graph coordinates, and can be installed in a first client demo or development environment.",
+    "ELAH is planning a $400K pre-seed / angel-pre-seed round to fund 12 months of focused execution. The goal is to turn the current technical MVP into a pilot-ready AI security model: a separate lightweight ELAH service that scores human intention, returns explainable graph coordinates, and can be installed in a first client demo or development environment. Founder approved this working ask on 26 August 2026. It is not a closed round.",
   closingStatement:
     "$400K to turn the current MVP into a pilot-ready AI security model.",
 } as const;

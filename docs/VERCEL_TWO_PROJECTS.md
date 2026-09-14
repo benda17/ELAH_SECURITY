@@ -1,13 +1,14 @@
-# ELAH — Two-project Vercel deployment
+# ELAH — Vercel deployments
 
-ELAH runs as **two Vercel deployments** from **[benda17/ELAH_SECURITY](https://github.com/benda17/ELAH_SECURITY)** on separate branches:
+Banking and the founder platform are **two Vercel projects** from **[benda17/ELAH_SECURITY](https://github.com/benda17/ELAH_SECURITY)** on separate branches. **ELAH CRM Simulation** is a **third Vercel project** from its own repo (`elah-crm-simulator`), with its **own** Neon database — never the banking `DATABASE_URL`.
 
-| Project | Git branch | Default port | Vercel role |
-|---------|------------|--------------|-------------|
-| **ELAH Banking Demo** | `ELAH_BANKING_SYSTEM` | 3000 / 3002 | Interactive banking app + AI assistant |
-| **ELAH Founder Platform** | `ELAH_FOUNDER_PLATFORM` | 3001 | Banking analytics + Founder admin + Content Engine |
+| Project | Git | Default port | Vercel role |
+|---------|-----|--------------|-------------|
+| **ELAH Banking Simulation** | `benda17/ELAH_SECURITY` branch `ELAH_BANKING_SYSTEM` | 3000 / 3002 | Interactive banking app + AI assistant |
+| **ELAH Founder Platform** | `benda17/ELAH_SECURITY` branch `ELAH_FOUNDER_PLATFORM` | 3001 | Banking analytics + Founder admin + Content Engine |
+| **ELAH CRM Simulation** | Separate repo (this machine: `elah-crm-simulator`) | 3003 | Interactive CRM / helpdesk demo |
 
-Both share one **Neon Postgres** database in production (`DATABASE_URL`).
+Banking and founder share one **Neon Postgres** database. CRM uses a **different** Neon project.
 
 ## Project 1 — Banking Demo
 
@@ -67,6 +68,24 @@ NEXT_PUBLIC_BANKING_APP_URL=https://your-banking-demo.vercel.app
 ```
 
 The **Banking System → Banking App** sidebar opens this URL.
+
+In the Founder Platform project, also set the CRM demo URL after it is deployed:
+
+```
+CRM_APP_URL=https://elahcrmsystem.vercel.app
+NEXT_PUBLIC_CRM_APP_URL=https://elahcrmsystem.vercel.app
+```
+
+**CRM System → Open CRM App** uses this URL. CRM has its own Neon database; do not set `CRM_DATABASE_URL` to the banking Neon URL.
+
+## Project 3 — ELAH CRM Simulation
+
+Separate GitHub repo (local folder `elah-crm-simulator`). See that repo’s `deploy/README.md`.
+
+- New Vercel project (not a branch of `ELAH_SECURITY`)
+- New Neon `DATABASE_URL`
+- `AUTH_SECRET`
+- Seed from your laptop (`ALLOW_HOSTED_DB=1 npm run db:push:hosted`)
 
 ## Clone
 

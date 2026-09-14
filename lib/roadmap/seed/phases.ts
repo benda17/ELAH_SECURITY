@@ -2,6 +2,8 @@
  * Roadmap phase definitions — every task from the founder operating brief.
  * Status is assigned at seed time via evidence map in seed/index.ts.
  */
+import { PHASE16_NAME, PHASE16_TASKS } from "./phase16";
+
 export interface PhaseSpec {
   phase: string;
   workstream: string;
@@ -561,6 +563,12 @@ export const PHASE_SPECS: PhaseSpec[] = [
       "Track runway.",
     ],
   },
+  {
+    phase: PHASE16_NAME,
+    workstream: "Product",
+    category: "Wedge",
+    tasks: PHASE16_TASKS.map((t) => t.title),
+  },
 ];
 
 export const MILESTONE_SPECS = [
@@ -660,5 +668,12 @@ export const MILESTONE_SPECS = [
     title: "Initial fundraising outreach launched",
     exitCriteria: "Target list prioritized; first wave of outreach sent.",
     targetMonthsFromNow: 6,
+  },
+  {
+    order: 17,
+    title: "CS/CRM wedge defined; first demo venue in motion",
+    exitCriteria:
+      "ICP rewritten for CS/CRM ops lead; support-domain taxonomy Proposed; ELAH CRM Simulation live (own GitHub + Vercel + Neon); gold plan uses synthetic/simulator events only; one-pager wedge sentence updated; Phase 11–12 labeled as later banking vertical. No live customer tickets.",
+    targetMonthsFromNow: 4,
   },
 ] as const;

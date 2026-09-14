@@ -8,6 +8,12 @@ const nextConfig = {
   async redirects() {
     return [
       { source: "/banking", destination: "/banking/dashboard", permanent: false },
+      { source: "/crm", destination: "/banking/crm", permanent: false },
+      { source: "/crm/dashboard", destination: "/banking/crm", permanent: false },
+      { source: "/crm/agent-logs", destination: "/banking/crm/logs", permanent: false },
+      { source: "/crm/users", destination: "/banking/crm/users", permanent: false },
+      { source: "/crm/actions", destination: "/banking/crm/actions", permanent: false },
+      { source: "/crm/app", destination: "/banking/crm/app", permanent: false },
       { source: "/founder", destination: "/founder/overview", permanent: false },
       { source: "/intent-matrix", destination: "/banking/intent-matrix", permanent: false },
       { source: "/training-dataset", destination: "/banking/training-dataset", permanent: false },

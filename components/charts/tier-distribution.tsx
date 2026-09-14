@@ -7,6 +7,9 @@ const COLORS: Record<string, string> = {
   basic: "#22d3ee",
   premium: "#a78bfa",
   vip: "#f6c453",
+  starter: "#22d3ee",
+  growth: "#a78bfa",
+  enterprise: "#f6c453",
 };
 
 export function TierDistributionChart({

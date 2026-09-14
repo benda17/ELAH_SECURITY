@@ -7,6 +7,7 @@ import {
   BrainCircuit,
   Database,
   ExternalLink,
+  Headset,
   LayoutDashboard,
   ScrollText,
   Users,
@@ -23,10 +24,20 @@ const NAV = [
   { href: "/banking/users", label: "Users", icon: Users },
   { href: "/banking/actions", label: "Actions", icon: Wrench },
   { href: "/banking/training-dataset", label: "Training Dataset", icon: Database },
+  { href: "/banking/crm", label: "CRM System", icon: Headset },
+];
+
+const CRM_NAV = [
+  { href: "/banking/crm", label: "Overview" },
+  { href: "/banking/crm/logs", label: "Command logs" },
+  { href: "/banking/crm/users", label: "CRM users" },
+  { href: "/banking/crm/actions", label: "CRM actions" },
+  { href: "/banking/crm/app", label: "Open CRM App" },
 ];
 
 export function BankingSidebar() {
   const pathname = usePathname();
+  const inCrm = pathname === "/banking/crm" || pathname.startsWith("/banking/crm/");
   return (
     <AppDrawerShell eyebrow="Banking System" title="ELAH Demo">
       <div className="hidden border-b border-surface-border p-4 lg:block">
@@ -42,7 +53,10 @@ export function BankingSidebar() {
       </div>
       <nav className="flex-1 space-y-0.5 overflow-y-auto p-2">
         {NAV.map(({ href, label, icon: Icon }) => {
-          const active = pathname === href || pathname.startsWith(`${href}/`);
+          const active =
+            href === "/banking/crm"
+              ? inCrm
+              : pathname === href || pathname.startsWith(`${href}/`);
           return (
             <Link
               key={href}
@@ -59,6 +73,30 @@ export function BankingSidebar() {
             </Link>
           );
         })}
+        {inCrm ? (
+          <div className="mt-2 border-t border-surface-border pt-2">
+            <p className="mb-1 px-3 text-[10px] font-semibold uppercase tracking-wider text-ink-dim">
+              CRM Simulation
+            </p>
+            {CRM_NAV.map(({ href, label }) => {
+              const active = pathname === href;
+              return (
+                <Link
+                  key={href}
+                  href={href}
+                  className={cn(
+                    "flex min-h-11 items-center rounded-lg px-3 py-2 text-sm transition-colors lg:min-h-0 lg:py-1.5 lg:text-xs",
+                    active
+                      ? "bg-accent-cyan/15 text-accent-cyan"
+                      : "text-ink-muted hover:text-ink",
+                  )}
+                >
+                  {label}
+                </Link>
+              );
+            })}
+          </div>
+        ) : null}
       </nav>
       <div className="space-y-1 border-t border-surface-border p-3 pb-[max(0.75rem,env(safe-area-inset-bottom))] text-xs">
         <Link href="/founder/overview" className="block min-h-11 py-2 text-ink-muted hover:text-ink lg:min-h-0 lg:py-0">
