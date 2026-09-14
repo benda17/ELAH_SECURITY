@@ -69,11 +69,10 @@ NEXT_PUBLIC_BANKING_APP_URL=https://your-banking-demo.vercel.app
 
 The **Banking System → Banking App** sidebar opens this URL.
 
-In the Founder Platform project, also set the CRM demo URL after it is deployed:
+In the Founder Platform project, also set the CRM demo URL after it is deployed. Use **Encrypted** `CRM_APP_URL` only — not `NEXT_PUBLIC_CRM_APP_URL` (Open CRM App is a server page).
 
 ```
 CRM_APP_URL=https://elahcrmsystem.vercel.app
-NEXT_PUBLIC_CRM_APP_URL=https://elahcrmsystem.vercel.app
 ```
 
 **CRM System → Open CRM App** uses this URL. CRM has its own Neon database; do not set `CRM_DATABASE_URL` to the banking Neon URL.

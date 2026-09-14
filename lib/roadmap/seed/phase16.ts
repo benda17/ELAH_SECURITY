@@ -535,7 +535,7 @@ export const PHASE16_TASKS: Phase16TaskSpec[] = [
     estimatedEffort: "0.5d",
     syncStatus: true,
     description: card(
-      "Set founder-platform CRM_APP_URL / NEXT_PUBLIC_CRM_APP_URL to the live Vercel CRM demo so Banking System → Open CRM App opens the hosted site, not localhost:3003.",
+      "Set founder-platform CRM_APP_URL (Encrypted, not NEXT_PUBLIC_) to the live Vercel CRM demo so Banking System → Open CRM App opens the hosted site, not localhost:3003.",
       "Hostname known: https://elahcrmsystem.vercel.app. Documented in .env.example and VERCEL_TWO_PROJECTS.md. Local .env already points at production. Production founder Vercel env still needs the founder to paste + redeploy if not set.",
       "Paste the Vercel URL into the founder Vercel project env (Production + Preview). Redeploy founder platform. Do not put secrets in git.",
       "Open CRM App hits the public CRM demo.",
@@ -544,7 +544,7 @@ export const PHASE16_TASKS: Phase16TaskSpec[] = [
     successCriteria:
       "- Founder production Open CRM App opens the hosted CRM Simulation.\n- Local .env can still use :3003.",
     deliverables:
-      "Founder Vercel env CRM_APP_URL + NEXT_PUBLIC_CRM_APP_URL.",
+      "Founder Vercel env CRM_APP_URL (Encrypted).",
     notes: "In progress: URL known. Done when production founder Open CRM App hits elahcrmsystem.vercel.app.",
     links: [
       "elah-analytics-dashboard/lib/crm/config.ts",
