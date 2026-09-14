@@ -501,15 +501,15 @@ export const PHASE16_TASKS: Phase16TaskSpec[] = [
     title: "Seed CRM demo users and command logs",
     workstream: "Engineering",
     category: "Dataset",
-    status: "in_progress",
+    status: "done",
     priority: "high",
     isCriticalPath: false,
-    progressPercentage: 70,
+    progressPercentage: 100,
     estimatedEffort: "2d",
     syncStatus: true,
     description: card(
       "Seed 30 distinct demo customers plus staff, then research-shaped portal/command logs (dashboard, tickets, billing, some chat) so the CRM demo and analytics are not an empty shell.",
-      "Local SQLite has 30 customers + 10,000 AgentEventLog rows + score snapshots. Hosted Neon has identities/tickets from db:seed (14 Sep 2026) but not the 10k traffic pack.",
+      "Hosted CRM Neon elah_crm re-seeded 14 Sep 2026: 30 customers + staff, then 10,000 AgentEventLog rows + score snapshots. Synthetic/simulator only. Local SQLite still has its own 10k pack.",
       "Optional: ALLOW_HOSTED_DB=1 npm run seed:traffic against CRM Neon if the hosted demo should show volume. Do not invent live-customer logs.",
       "Demo logins work on Vercel; local analytics can show command volume.",
       "Exporting real Zendesk; mixing unlabeled CRM JSONL into banking gold v1.0.",
@@ -519,7 +519,7 @@ export const PHASE16_TASKS: Phase16TaskSpec[] = [
     deliverables:
       "elah-crm-simulator prisma/seed.ts + scripts/seed-crm-traffic.ts.",
     notes:
-      "Identities done on Neon. 10k traffic still local-only unless re-run hosted.",
+      "Done 14 Sep 2026 on CRM Neon (not banking). DemoPass123!.",
     links: [
       "elah-crm-simulator/scripts/seed-crm-traffic.ts",
     ],
