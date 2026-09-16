@@ -115,6 +115,9 @@ export function FounderSidebar() {
         <Link href="/banking/dashboard" className="block min-h-11 py-2 text-ink-muted hover:text-ink lg:min-h-0 lg:py-0">
           → Banking analytics
         </Link>
+        <Link href="/banking/crm" className="block min-h-11 py-2 text-ink-muted hover:text-ink lg:min-h-0 lg:py-0">
+          → CRM System
+        </Link>
         <form action={founderLogoutAction}>
           <button
             type="submit"

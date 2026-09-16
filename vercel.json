@@ -1,5 +1,5 @@
 {
-  "buildCommand": "npx prisma generate && npx tsx scripts/generate-crm-client.ts && npm run build",
+  "buildCommand": "npx prisma generate && node scripts/generate-crm-client.js && npm run build",
   "crons": [
     {
       "path": "/api/cron/generate-linkedin-draft",
