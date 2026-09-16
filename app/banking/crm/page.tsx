@@ -28,7 +28,7 @@ import {
   assistantEventTone,
   formatAgentEventLabel,
 } from "@/lib/agent-display";
-import { isCrmDatabaseConfigured } from "@/lib/crm/config";
+import { isCrmDatabaseConfigured, isCrmPostgresUrl } from "@/lib/crm/config";
 import {
   getCrmConversationStatus,
   getCrmEventsByDay,
@@ -163,15 +163,24 @@ export default async function BankingCrmPage() {
             </span>
           </div>
           <div>
-            DB: <code className="text-accent-cyan">CRM SQLite</code>
+            DB:{" "}
+            <code className="text-accent-cyan">
+              {configured
+                ? isCrmPostgresUrl()
+                  ? "CRM Neon (read-only)"
+                  : "CRM SQLite"
+                : "unset"}
+            </code>
           </div>
         </div>
       </header>
 
       {!configured ? (
         <p className="mb-6 rounded-lg border border-accent-amber/40 bg-accent-amber/10 px-4 py-3 text-sm text-accent-amber">
-          CRM_DATABASE_URL is not set. Point it at the CRM Simulation <code>prisma/dev.db</code>{" "}
-          file (local SQLite only — not Neon).
+          CRM_DATABASE_URL is not set. Local: point it at CRM Simulation{" "}
+          <code>prisma/dev.db</code>. Production: Encrypted{" "}
+          <code>CRM_DATABASE_URL</code> to CRM Neon <code>elah_crm</code> — never
+          the banking Neon.
         </p>
       ) : null}
 

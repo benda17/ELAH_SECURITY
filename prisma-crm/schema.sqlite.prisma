@@ -1,5 +1,5 @@
-// Read-only ELAH CRM Simulation schema for the analytics dashboard.
-// Postgres / Vercel. Keep models in sync with schema.sqlite.prisma.
+// Read-only ELAH CRM Simulation schema for local `npm run dev`.
+// SQLite. Keep models in sync with schema.prisma (Postgres / Vercel).
 // Never point CRM_DATABASE_URL at the banking DATABASE_URL.
 
 generator client {
@@ -8,7 +8,7 @@ generator client {
 }
 
 datasource db {
-  provider = "postgresql"
+  provider = "sqlite"
   url      = env("CRM_DATABASE_URL")
 }
 

@@ -73,9 +73,10 @@ In the Founder Platform project, also set the CRM demo URL after it is deployed.
 
 ```
 CRM_APP_URL=https://elahcrmsystem.vercel.app
+CRM_DATABASE_URL=postgresql://…/elah_crm?sslmode=require
 ```
 
-**CRM System → Open CRM App** uses this URL. CRM has its own Neon database; do not set `CRM_DATABASE_URL` to the banking Neon URL.
+**CRM System → Open CRM App** uses `CRM_APP_URL`. Hosted CRM charts use Encrypted `CRM_DATABASE_URL` (CRM Neon `elah_crm` only). Local `.env` stays `file:../../elah-crm-simulator/prisma/dev.db`. Do **not** set `CRM_DATABASE_URL` to the banking Neon.
 
 ## Project 3 — ELAH CRM Simulation
 

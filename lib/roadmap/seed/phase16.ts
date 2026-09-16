@@ -481,7 +481,7 @@ export const PHASE16_TASKS: Phase16TaskSpec[] = [
     syncStatus: true,
     description: card(
       "Show CRM command logs, users, and actions inside the founder Banking System chrome as CRM System — another nav page, not a separate CRM-only shell. Reads the CRM SQLite (local) or later a hosted CRM DB. Never merge CRM rows into banking Neon.",
-      "Local founder app has /banking/crm, /banking/crm/logs, users, actions, app. Old /crm/* redirects. CRM_DATABASE_URL is still the sibling SQLite file. Hosted founder Vercel cannot see that file unless CRM_DATABASE_URL is pointed at CRM Neon (separate card).",
+      "Local founder app has /banking/crm, /banking/crm/logs, users, actions, app. Old /crm/* redirects. Production reads CRM Neon elah_crm via Encrypted CRM_DATABASE_URL (Postgres client). Local stays SQLite. Never merge into banking Neon.",
       "Verify /banking/crm on local :3001. Decide whether production founder platform should read CRM Neon (read-only) — that is a later env change, not a schema merge.",
       "CRM System visible next to Dashboard / Agent Logs in Banking System nav.",
       "Copying CRM events into banking AgentEventLog; a second founder chrome named HelioDesk.",
@@ -491,7 +491,7 @@ export const PHASE16_TASKS: Phase16TaskSpec[] = [
     deliverables:
       "elah-analytics-dashboard app/banking/crm/* + sidebar.",
     notes:
-      "In review locally. Production analytics will stay empty until CRM_DATABASE_URL is a hosted CRM URL.",
+      "In review: local SQLite works. Production charts need Encrypted CRM_DATABASE_URL=CRM Neon elah_crm, then redeploy. Never banking DATABASE_URL.",
     links: [
       "elah-analytics-dashboard/app/banking/crm/page.tsx",
       "elah-analytics-dashboard/lib/crm/config.ts",
@@ -528,15 +528,15 @@ export const PHASE16_TASKS: Phase16TaskSpec[] = [
     title: "Point founder dashboard at live CRM Vercel URL",
     workstream: "Engineering",
     category: "Integration",
-    status: "in_progress",
+    status: "done",
     priority: "high",
     isCriticalPath: false,
-    progressPercentage: 70,
+    progressPercentage: 100,
     estimatedEffort: "0.5d",
     syncStatus: true,
     description: card(
       "Set founder-platform CRM_APP_URL (Encrypted, not NEXT_PUBLIC_) to the live Vercel CRM demo so Banking System → Open CRM App opens the hosted site, not localhost:3003.",
-      "Hostname known: https://elahcrmsystem.vercel.app. Documented in .env.example and VERCEL_TWO_PROJECTS.md. Local .env already points at production. Production founder Vercel env still needs the founder to paste + redeploy if not set.",
+      "Founder confirmed 16 Sep 2026: production founder platform deployed with Encrypted CRM_APP_URL=https://elahcrmsystem.vercel.app.",
       "Paste the Vercel URL into the founder Vercel project env (Production + Preview). Redeploy founder platform. Do not put secrets in git.",
       "Open CRM App hits the public CRM demo.",
       "Pointing CRM_APP_URL at the banking demo.",
@@ -545,7 +545,7 @@ export const PHASE16_TASKS: Phase16TaskSpec[] = [
       "- Founder production Open CRM App opens the hosted CRM Simulation.\n- Local .env can still use :3003.",
     deliverables:
       "Founder Vercel env CRM_APP_URL (Encrypted).",
-    notes: "In progress: URL known. Done when production founder Open CRM App hits elahcrmsystem.vercel.app.",
+    notes: "Done 16 Sep 2026. Encrypted CRM_APP_URL only — no NEXT_PUBLIC_ twin.",
     links: [
       "elah-analytics-dashboard/lib/crm/config.ts",
       "elah-analytics-dashboard/docs/VERCEL_TWO_PROJECTS.md",

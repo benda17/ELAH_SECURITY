@@ -10,8 +10,9 @@ export default function BankingCrmAppPage() {
       <h1 className="text-2xl font-semibold">ELAH CRM Simulation</h1>
       <p className="mt-2 text-sm text-ink-muted">
         The B2B helpdesk + CRM demo runs as a separate Next.js app (customer portal,
-        support chat, analyst events). This dashboard reads its local SQLite logs —
-        it does not write to that database.
+        support chat, analyst events). This dashboard reads CRM logs read-only
+        (local SQLite or CRM Neon <code>elah_crm</code>). It never writes to that
+        database and never uses the banking Neon.
       </p>
       <Link
         href={CRM_APP_URL}

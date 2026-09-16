@@ -1,7 +1,14 @@
 import { PrismaClient } from "./generated";
-import { isCrmDatabaseConfigured } from "./config";
+import {
+  assertCrmDatabaseUrlSafe,
+  isCrmDatabaseConfigured,
+} from "./config";
 
-export { isCrmDatabaseConfigured, CRM_APP_URL } from "./config";
+export {
+  isCrmDatabaseConfigured,
+  isCrmPostgresUrl,
+  CRM_APP_URL,
+} from "./config";
 
 declare global {
   // eslint-disable-next-line no-var
@@ -16,6 +23,7 @@ export function getCrmPrisma(): PrismaClient {
   if (!isCrmDatabaseConfigured()) {
     throw new Error("CRM_DATABASE_URL is not set");
   }
+  assertCrmDatabaseUrlSafe();
   if (global.__crmPrisma) return global.__crmPrisma;
   const client = createClient();
   if (process.env.NODE_ENV !== "production") {
