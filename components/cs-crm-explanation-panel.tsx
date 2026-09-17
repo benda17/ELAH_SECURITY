@@ -45,6 +45,9 @@ export function CsCrmExplanationPanel({
       <p className="text-[10px] font-semibold uppercase tracking-[0.18em] text-accent-cyan">
         Selected-point evidence
       </p>
+      <p className="mt-2 text-[10px] font-semibold uppercase tracking-[0.14em] text-ink-dim">
+        Intent assessment — why it appears aligned or misaligned
+      </p>
       <h3 className="mt-1 font-mono text-sm font-semibold text-ink">{selected.intentLabel}</h3>
       <p className="mt-1 text-ink-muted">
         {selected.unavailable
@@ -64,24 +67,65 @@ export function CsCrmExplanationPanel({
           <dt className="text-ink-dim">Recommendation</dt>
           <dd className="text-ink">{recCopy(selected.recommendation, selected.unavailable)}</dd>
         </div>
-        <div>
-          <dt className="text-ink-dim">Company policy</dt>
-          <dd>
-            {policy ? (
-              <span className={cn("pill capitalize", POLICY_PILL[policy] ?? "border-surface-border text-ink-muted")}>
-                {policy.replace(/_/g, " ")}
-              </span>
-            ) : (
-              <span className="text-ink-muted">—</span>
-            )}
-            <p className="mt-1 text-[10px] text-ink-dim">Company policy, not ELAH.</p>
-          </dd>
-        </div>
-        <div>
-          <dt className="text-ink-dim">Tool</dt>
-          <dd className="font-mono text-ink">{selected.toolName ?? "—"}</dd>
-        </div>
       </dl>
+
+      <section className="mt-3 rounded-lg border border-surface-border bg-surface-raised/50 p-3">
+        <p className="text-[10px] font-semibold uppercase tracking-[0.14em] text-ink-dim">
+          Action evidence — what happened
+        </p>
+        <dl className="mt-2 grid gap-2 sm:grid-cols-2">
+          <div>
+            <dt className="text-ink-dim">Platform action / tool</dt>
+            <dd className="font-mono text-ink">
+              {selected.platformAction ?? selected.toolName ?? "—"}
+            </dd>
+          </div>
+          <div>
+            <dt className="text-ink-dim">Normalized action</dt>
+            <dd className="font-mono text-ink">
+              {selected.normalizedActionId
+                ? `${selected.normalizedActionId} · ${selected.normalizedActionName ?? "name unavailable"}`
+                : "Unmapped — no research ID"}
+            </dd>
+          </div>
+          <div>
+            <dt className="text-ink-dim">Class</dt>
+            <dd className="text-ink">{selected.actionClass ?? "—"}</dd>
+          </div>
+          <div>
+            <dt className="text-ink-dim">Ontology impact</dt>
+            <dd className="text-ink">{selected.actionImpact ?? "—"}</dd>
+          </div>
+          <div className="sm:col-span-2">
+            <dt className="text-ink-dim">Mapping provenance / status</dt>
+            <dd className="text-ink">
+              <span className="font-mono">{selected.actionMappingStatus ?? "unmapped"}</span>
+              {selected.actionMappingReason ? ` · ${selected.actionMappingReason}` : ""}
+            </dd>
+            <p className="mt-1 text-[10px] text-ink-dim">
+              Impact is research evidence, not “ELAH blocked” and not a company-policy decision.
+            </p>
+          </div>
+        </dl>
+      </section>
+
+      <section className="mt-3 rounded-lg border border-surface-border p-3">
+        <p className="text-[10px] font-semibold uppercase tracking-[0.14em] text-ink-dim">
+          Company policy — separate decision
+        </p>
+        <div className="mt-2">
+          {policy ? (
+            <span className={cn("pill capitalize", POLICY_PILL[policy] ?? "border-surface-border text-ink-muted")}>
+              {policy.replace(/_/g, " ")}
+            </span>
+          ) : (
+            <span className="text-ink-muted">—</span>
+          )}
+          <p className="mt-1 text-[10px] text-ink-dim">
+            Company policy owns allow, deny, and confirmation. ELAH never executes the tool.
+          </p>
+        </div>
+      </section>
 
       {selected.messageSnippet ? (
         <div className="mt-3">

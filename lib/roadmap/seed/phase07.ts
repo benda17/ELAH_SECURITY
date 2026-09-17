@@ -41,7 +41,10 @@ export interface Phase07TaskSpec {
   syncStatus?: boolean;
 }
 
-const FREEZE_BODY = `${PRODUCT_FREEZE} ${PIVOT_SENTENCE} Coordinates explain; they are not an allow/deny. Origin is not “safe.”`;
+const ACTION_EVIDENCE =
+  "17 Sep 2026 research overlay: normalized action says what happened; the existing 16-label intent says why it appears aligned/misaligned. Action class/impact are evidence only, never a fourth axis or policy.";
+
+const FREEZE_BODY = `${PRODUCT_FREEZE} ${PIVOT_SENTENCE} Coordinates explain; they are not an allow/deny. Origin is not “safe.” ${ACTION_EVIDENCE}`;
 
 const OUT_GRAPH =
   "A fourth axis; putting elahScore on the envelope or on the customer/support UI; ELAH allow/block/execute; chain-of-thought or private model reasoning; live customer tickets; prisma db push onto the wrong DB; quoting banking holdout as CS/CRM accuracy.";
@@ -126,8 +129,8 @@ export const PHASE07_TASKS: Phase07TaskSpec[] = [
     inn: `${PHASE7_DOC_DIR}/ELAH_COORDINATE_CALCULATION.md.`,
     successCriteria:
       "- Mapping table x/y/z → HA/FR/EU is explicit.\n- Clamp and non-persistent jitter stated.\n- Internal 5-vectors stay off ScoreResponse.\n- CS/CRM path uses the same three fields.",
-    deliverables: `${PHASE7_DOC_DIR}/ELAH_COORDINATE_CALCULATION.md`,
-    notes: "Done: coordinate-calculation design and display atlas approved by founder 17 Sep 2026.",
+    deliverables: `${PHASE7_DOC_DIR}/ELAH_COORDINATE_CALCULATION.md; lib/elah/cs-crm-coordinates.ts tool→action fallback and metadata parser.`,
+    notes: "Done: coordinate design approved 17 Sep 2026. Additive action mapping is research-derived; refund stays unmapped and human mapping review remains open.",
     links: [
       "lib/intent-matrix-points.ts",
       "docs/Phase 0 - Product Definition/ELAH_COORDINATE_SYSTEM.md",
@@ -252,8 +255,8 @@ export const PHASE07_TASKS: Phase07TaskSpec[] = [
     inn: `${PHASE7_DOC_DIR}/ELAH_GRAPH_VISUAL_OVERLAYS.md.`,
     successCriteria:
       "- One point per scored action.\n- Jitter not persisted.\n- No elahScore on customer UI.\n- No CRM rows copied into banking Neon.",
-    deliverables: `${PHASE7_DOC_DIR}/ELAH_GRAPH_VISUAL_OVERLAYS.md`,
-    notes: "In progress: banking-demo point cloud live. CS/CRM overlay not Done.",
+    deliverables: `${PHASE7_DOC_DIR}/ELAH_GRAPH_VISUAL_OVERLAYS.md; normalized action evidence on founder IntentMatrixPoint rows where available.`,
+    notes: "In progress: founder point clouds exist; action evidence resolves from sanitized metadata or reviewed fallback. Human validation remains open.",
     links: ["lib/intent-matrix-points.ts", "components/charts/intent-matrix-3d.tsx"],
   }),
   spec({
@@ -330,8 +333,8 @@ export const PHASE07_TASKS: Phase07TaskSpec[] = [
     inn: `${PHASE7_DOC_DIR}/ELAH_EXPLANATION_PANEL.md.`,
     successCriteria:
       "- Evidence fields named from ScoreResponse 1.0.\n- No CoT / hidden activations.\n- Provenance (rules vs model) visible to analysts.\n- Customer UI excluded.",
-    deliverables: `${PHASE7_DOC_DIR}/ELAH_EXPLANATION_PANEL.md`,
-    notes: "Partial off-graph (admin score card). Graph integration is spec.",
+    deliverables: `${PHASE7_DOC_DIR}/ELAH_EXPLANATION_PANEL.md; components/cs-crm-explanation-panel.tsx action-evidence block.`,
+    notes: "In review: founder CRM selected-point panel separates action, intent assessment, and company policy. Signal-list coverage and human validation remain incomplete.",
     links: [
       "docs/Phase 0 - Product Definition/ELAH_EXPLAINABILITY.md",
       "docs/Phase 5 - Baseline scoring system/ELAH_BASELINE_DASHBOARD.md",
@@ -412,8 +415,8 @@ export const PHASE07_TASKS: Phase07TaskSpec[] = [
     inn: `${PHASE7_DOC_DIR}/ELAH_EXPLANATION_PANEL.md.`,
     successCriteria:
       "- Panel fields listed and mapped to ScoreResponse 1.0 + event policy decision.\n- Customer/support user UI excluded.\n- No CoT.\n- No live customer tickets.",
-    deliverables: `${PHASE7_DOC_DIR}/ELAH_EXPLANATION_PANEL.md`,
-    notes: "In progress: admin event detail exists. Graph-linked panel not Done.",
+    deliverables: `${PHASE7_DOC_DIR}/ELAH_EXPLANATION_PANEL.md; components/cs-crm-explanation-panel.tsx; lib/crm/queries.ts action mapping.`,
+    notes: "In progress: founder CRM graph-linked panel shows normalized action evidence separately from intent and company policy. Production click-test and analyst validation remain open.",
     links: [
       "docs/Phase 5 - Baseline scoring system/ELAH_BASELINE_DASHBOARD.md",
       "app/banking/intent-matrix/page.tsx",
@@ -501,8 +504,8 @@ export const PHASE07_TASKS: Phase07TaskSpec[] = [
     inn: `${PHASE7_DOC_DIR}/ELAH_FAITHFULNESS_AND_PRIVACY.md.`,
     successCriteria:
       "- Method named; live scorer named.\n- Offline model not treated as live.\n- No CoT as a faithfulness target.\n- No live customer events.",
-    deliverables: `${PHASE7_DOC_DIR}/ELAH_FAITHFULNESS_AND_PRIVACY.md`,
-    notes: "Protocol only. Not Done.",
+    deliverables: `${PHASE7_DOC_DIR}/ELAH_FAITHFULNESS_AND_PRIVACY.md; tests/cs-crm-coordinates.test.ts action mapping checks.`,
+    notes: "Protocol plus focused mapping tests only. No analyst session, IAA, customer validation, or model-accuracy evidence; not Done.",
     links: [
       "docs/Phase 6 - ELAH model development/ELAH_MODEL_CARD.md",
       "docs/Phase 5 - Baseline scoring system/ELAH_RULES_BASELINE.md",

@@ -117,20 +117,21 @@ export const PHASE16_TASKS: Phase16TaskSpec[] = [
     estimatedEffort: "5d",
     syncStatus: true,
     description: card(
-      "Define a closed intent-label set for support + CRM tool calls (tickets, refunds, CRM field updates, escalation, macros, PII export). This is a new domain set. Do not invent a 23rd banking label and do not stretch dispute_chargeback / support_escalation to cover Zendesk refunds.",
-      "Taxonomy memo written: docs/Phase 16 - B2B SaaS CS CRM wedge/ELAH_CS_CRM_TAXONOMY.md — 16 labels, cs_crm_taxonomy v0.1 (Proposed). Live CRM scorer uses the same closed set (cs_crm_rules_v0). Founder Approve still required.",
-      "Proposed taxonomy memo:  labels for genuine ticket/refund/CRM intent, mistaken agent, prompt injection / policy bypass, data exfil via ticket export, refund abuse, unauthorized CRM overwrite. Version it separately (e.g. cs_crm_taxonomy 0.1). Mapping table to banking labels is optional and must say ‘not the same closed set’.",
-      "Proposed closed label list + definitions + non-goals.",
-      "Adding a 23rd banking intent; mixing CS rows into gold v1.0; claiming the 22-label set covers refunds.",
+      "Define a closed intent-label set for support + CRM tool calls and keep it separate from the supplied CRM/SaaS human-action ontology. Intent is why a request/tool appears aligned or misaligned; normalized action is what happened. Do not turn 249 actions into intents.",
+      "Taxonomy memo remains 16 labels, cs_crm_taxonomy v0.1 (Proposed). Research mapping note added from the 17 Sep 2026 PDF: 249 actions, 9 domains, 28 critical. Founder approval and human mapping review still required; this is not customer evidence.",
+      "Apply the normative two-label rule: exact source `normalizedActionId` plus one closed-set `intentLabel`. Preserve native action and leave action ID null/unmapped if no exact source ID exists. The research has no normalized refund action ID, so do not invent one.",
+      "Proposed 16-label taxonomy + ELAH-WEDGE-RESEARCH-001 action-ontology mapping note.",
+      "Adding a 23rd banking intent; replacing the 16 intents with 249 actions; inventing action IDs (including refund); claiming mappings are customer-validated.",
     ),
     successCriteria:
-      "- Named domain version, not an edit to banking taxonomy 1.0.\n- Each label has a one-line definition and an out-of-scope note.\n- Injection / bypass still exist in this domain (tools can still be hijacked).\n- Status Proposed until founder Approve.",
+      "- Named domain version, not an edit to banking taxonomy 1.0.\n- Existing closed 16 intent labels remain intact.\n- `normalizedActionId` (what happened) and `intentLabel` (why aligned/misaligned) are separate.\n- No action ID is invented when the source lacks a mapping.\n- Status Proposed until founder Approve and mappings receive human review.",
     deliverables:
-      "docs/Phase 16 - B2B SaaS CS CRM wedge/ELAH_CS_CRM_TAXONOMY.md (ELAH-WEDGE-TAX-001).",
+      "docs/Phase 16 - B2B SaaS CS CRM wedge/ELAH_CS_CRM_TAXONOMY.md (ELAH-WEDGE-TAX-001) + ELAH_CRM_SAAS_HUMAN_ACTIONS_RESEARCH.md (ELAH-WEDGE-RESEARCH-001).",
     notes:
-      "In review: memo + generator match. Do not mark Done until founder Approves. Banking 22-label freeze stays.",
+      "In review: documentation incorporates the supplied 17 Sep 2026 research. The PDF is research input, not demand, interview, production-accuracy, or blanket mapping approval evidence. Banking 22-label freeze stays.",
     links: [
       "lib/elah-roadmap-data.ts",
+      "docs/Phase 16 - B2B SaaS CS CRM wedge/ELAH_CRM_SAAS_HUMAN_ACTIONS_RESEARCH.md",
       "docs/ELAH_LABEL_TAXONOMY.md",
       "docs/Phase 4 - Dataset and labeling system/ELAH_LABEL_TAXONOMY.md",
     ],
@@ -259,19 +260,20 @@ export const PHASE16_TASKS: Phase16TaskSpec[] = [
     estimatedEffort: "5d",
     syncStatus: true,
     description: card(
-      "Plan a versioned gold set for support/CRM events: synthetic + CRM-simulator logs after they are labeled. Not live customer tickets, not production CRM exports, not an in-place rewrite of banking gold v1.0.",
-      "Plan memo + first synthetic cut: cs_crm_gold 0.1, 516 rows, seed 20260914, train/val/holdout. Generator in elah-crm-simulator. rules_v0 holdout 1.00 is lexicon-echo — not a production claim. IAA still later. Founder Approve still required.",
-      "Write a dataset plan: schema (reuse envelope, new domain labels), sources (synthetic packs + labeled simulator only), split/leakage keys, privacy (no real ticket text, no customer emails). New datasetVersion (e.g. cs_crm_gold 0.1). Do not copy live Zendesk. Do not train by mixing banking gold with unlabeled CS JSONL.",
-      "Gold plan memo + version name.",
-      "Live customer data; overwriting banking gold v1.0; claiming a holdout score for CS that was not measured.",
+      "Plan a versioned gold set for support/CRM events with separate normalized-action and intent labels plus authority, scope, state, evidence, sequence, external-effect, and result context. Synthetic + labeled simulator only; never live customer tickets or banking-gold edits.",
+      "Plan memo + first synthetic cut: cs_crm_gold 0.1, 516 rows, seed 20260914, train/val/holdout. Research-informed schema and counterfactual-pair method are Proposed. rules_v0 holdout 1.00 remains lexicon-echo, not production evidence. IAA and mapping review remain later.",
+      "Use an exact source `normalizedActionId` or null/unmapped, preserve native action, and add one of 16 `intentLabel` values. Build negative/counterfactual twins by holding the action constant and varying authority, scope, evidence, sequence, or magnitude; keep twin groups in one split.",
+      "Gold plan + ELAH-WEDGE-RESEARCH-001 schema/mapping reference.",
+      "Live customer data; invented action IDs; overwriting banking gold v1.0; quoting synthetic holdout as production accuracy.",
     ),
     successCriteria:
-      "- New datasetVersion, not an edit of banking v1.0.\n- Sources listed; live customer data forbidden.\n- Labeling + IAA called out as later cards.\n- Privacy: no real ticket bodies.",
+      "- New datasetVersion, not an edit of banking v1.0.\n- Sources listed; live customer data forbidden.\n- Action and intent labels stay separate; missing action mappings remain unmapped.\n- Context fields and leakage-safe counterfactual pairs are specified.\n- Labeling, mapping review, and IAA remain human-evidence gaps.",
     deliverables:
-      "docs/Phase 16 - B2B SaaS CS CRM wedge/ELAH_CS_CRM_GOLD_PLAN.md (ELAH-WEDGE-GOLD-001).",
+      "docs/Phase 16 - B2B SaaS CS CRM wedge/ELAH_CS_CRM_GOLD_PLAN.md (ELAH-WEDGE-GOLD-001) + ELAH_CRM_SAAS_HUMAN_ACTIONS_RESEARCH.md (ELAH-WEDGE-RESEARCH-001).",
     notes:
-      "In review: plan + synthetic JSONL exist. Do not quote 1.00 as production. Do not mix into banking gold v1.0.",
+      "In review: plan + synthetic JSONL exist. Research supplied 17 Sep 2026 informs the proposed schema; it does not establish customer demand, human labels/IAA, founder approval, or production accuracy. Do not quote 1.00 as production.",
     links: [
+      "docs/Phase 16 - B2B SaaS CS CRM wedge/ELAH_CRM_SAAS_HUMAN_ACTIONS_RESEARCH.md",
       "docs/Phase 4 - Dataset and labeling system/ELAH_DATASET_VERSIONING.md",
       "docs/Phase 4 - Dataset and labeling system/ELAH_DATASET_PRIVACY.md",
     ],

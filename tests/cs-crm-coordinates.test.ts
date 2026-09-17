@@ -1,11 +1,13 @@
 import assert from "node:assert/strict";
 import {
+  CRM_TOOL_ACTION_FALLBACKS,
   CS_CRM_INTENTS,
   alternativeInterpretations,
   csCrmCoordinates,
   financialRiskLevel,
   isDeviationPoint,
   pointDisplayOpacity,
+  resolveNormalizedActionEvidence,
   round3,
   sanitizeMetadata,
 } from "../lib/elah/cs-crm-coordinates";
@@ -64,6 +66,69 @@ const sanitized = sanitizeMetadata({
 assert.equal(sanitized.password, "[redacted]");
 assert.equal((sanitized.nested as Record<string, unknown>).apiKey, "[redacted]");
 assert.equal((sanitized.nested as Record<string, unknown>).tool, "list_tickets");
+
+assert.equal(Object.keys(CRM_TOOL_ACTION_FALLBACKS).length, 11);
+assert.deepEqual(resolveNormalizedActionEvidence("list_tickets", {}), {
+  platformAction: "list_tickets",
+  normalizedActionId: "SUP-25",
+  normalizedActionName: "view_queue",
+  actionClass: "Observe",
+  actionImpact: "Moderate",
+  actionMappingStatus: "fallback",
+  actionMappingReason:
+    "Historical fallback verified against ELAH Research Note 01 (17 Sep 2026).",
+});
+assert.deepEqual(resolveNormalizedActionEvidence("request_refund", {}), {
+  platformAction: "request_refund",
+  normalizedActionId: null,
+  normalizedActionName: null,
+  actionClass: null,
+  actionImpact: null,
+  actionMappingStatus: "unmapped",
+  actionMappingReason:
+    "Research Note 01 contains no normalized refund action ID; no ID invented.",
+});
+assert.deepEqual(
+  resolveNormalizedActionEvidence("get_ticket", {
+    normalizedAction: {
+      normalizedActionId: "CRM-18",
+      normalizedActionName: "producer_override",
+      actionClass: "Change",
+      actionImpact: "High",
+      actionMappingStatus: "mapped",
+      actionMappingReason: "Mapped by upstream adapter v2.",
+    },
+    platformAction: "vendor.open_case",
+  }),
+  {
+    platformAction: "vendor.open_case",
+    normalizedActionId: "CRM-18",
+    normalizedActionName: "producer_override",
+    actionClass: "Change",
+    actionImpact: "High",
+    actionMappingStatus: "metadata",
+    actionMappingReason: "Mapped by upstream adapter v2.",
+  },
+);
+assert.deepEqual(
+  resolveNormalizedActionEvidence("add_crm_note", {
+    platformAction: "add_crm_note",
+    normalizedActionId: "CRM-18",
+    normalizedAction: "add_note",
+    actionClass: "Change",
+    impact: "Moderate",
+    actionMappingStatus: "mapped",
+  }),
+  {
+    platformAction: "add_crm_note",
+    normalizedActionId: "CRM-18",
+    normalizedActionName: "add_note",
+    actionClass: "Change",
+    actionImpact: "Moderate",
+    actionMappingStatus: "metadata",
+    actionMappingReason: "Producer-supplied normalized action metadata.",
+  },
+);
 
 const points: IntentMatrixPoint[] = [
   {

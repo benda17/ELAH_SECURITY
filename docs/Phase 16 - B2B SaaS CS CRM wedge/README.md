@@ -4,7 +4,7 @@ Canonical **documentation** pack for Phase 16. First-client motion is **B2B SaaS
 
 **Product freeze (unchanged):** ELAH scores genuine support/CRM intent **before tools**. Company policy allow / deny / confirm. **ELAH never allows, blocks, or executes.** Scores are **not** on the event envelope; they live in `ElahScoreSnapshot`. Customer / support-user UI MUST NOT show `elahScore`. Fail-open 250 ms → `scoring_unavailable`, not a block.
 
-Evidence date: **14 September 2026**. Pivot founder-approved **8 September 2026**. Working ask (Phase 13, unchanged): **$400K** pre-seed / 12 months (**not closed**). Year-1 plan revenue **$0**.
+Evidence date: **17 September 2026**. Pivot founder-approved **8 September 2026**. The human-actions PDF supplied **17 September 2026** is a research input / Proposed mapping, not customer or model evidence. Working ask (Phase 13, unchanged): **$400K** pre-seed / 12 months (**not closed**). Year-1 plan revenue **$0**.
 
 Demo venue: **ELAH CRM Simulation**. GitHub [`benda17/ELAH_SECURITY-CRM-System`](https://github.com/benda17/ELAH_SECURITY-CRM-System). Local [http://localhost:3003](http://localhost:3003). Hosted: [https://elahcrmsystem.vercel.app](https://elahcrmsystem.vercel.app). Dedicated Neon `elah_crm` — never banking `DATABASE_URL`.
 
@@ -52,18 +52,19 @@ Upload path for Kanban links: `docs/Phase 16 - B2B SaaS CS CRM wedge/<file>`.
 | 17 | Seed CRM demo users and command logs | `task-16-seed-crm-demo-users-and-command-logs` | **done** (14 Sep 2026) | — | GitHub `prisma/seed.ts` + `scripts/seed-crm-traffic.ts`. Hosted Neon `elah_crm`: 30 customers + 10k synthetic command logs. Local SQLite has its own pack. |
 | 18 | Point founder dashboard at live CRM Vercel URL | `task-16-point-founder-dashboard-at-live-crm-vercel-url` | **done** (16 Sep 2026) | — | Encrypted `CRM_APP_URL=https://elahcrmsystem.vercel.app` on founder production. |
 | 19 | Record GTM pivot on Phase 11–12 Kanban cards | `task-16-record-gtm-pivot-on-phase-11-12-kanban-cards` | **done** | — | `lib/roadmap/seed/phase16.ts` + `scripts/seed-phase16-cs-crm-wedge.ts` (`PHASE_11_12_PIVOT_BANNER`). Phase 11–12 stay as later banking vertical. |
+| — | CRM/SaaS human-actions research mapping | — | **Research input / Proposed mapping** | ELAH-WEDGE-RESEARCH-001 | [ELAH_CRM_SAAS_HUMAN_ACTIONS_RESEARCH.md](./ELAH_CRM_SAAS_HUMAN_ACTIONS_RESEARCH.md) — 249 actions, 9 domains, 28 critical; action ontology is separate from intent taxonomy. |
 | — | Founder executive summary | — | — | — | [ELAH_PHASE16_EXECUTIVE_SUMMARY.md](./ELAH_PHASE16_EXECUTIVE_SUMMARY.md) |
 | — | Site / newsletter / social replacement sentences | — | — | ELAH-WEDGE-COPY-001 | [ELAH_ICP_COPY.md](./ELAH_ICP_COPY.md) |
 
-Closed 16 `ElahCrmIntent` labels (Proposed 0.1): [ELAH_CS_CRM_TAXONOMY.md](./ELAH_CS_CRM_TAXONOMY.md). **Not** a 23rd banking label. Banking 22-label freeze stays in Phase 4.
+Closed 16 `ElahCrmIntent` labels (Proposed 0.1): [ELAH_CS_CRM_TAXONOMY.md](./ELAH_CS_CRM_TAXONOMY.md). **Not** a 23rd banking label. The research ontology's 249 normalized actions describe **what happened**; the 16 intents describe **why it appears aligned or misaligned**. Banking 22-label freeze stays in Phase 4.
 
 ---
 
 ## How to read
 
 1. **ICP + §banking-demo** — who buys this wedge; bank CISO-only outreach is the non-buyer; Jane stays as demo.
-2. **Taxonomy + freeze** — 16 CS/CRM labels; utterance → plan → tenant policy → `POST /v1/score` → execute only if policy already allows or the user confirmed.
-3. **Gold plan** — `cs_crm_gold` 0.1, seed `20260914`; synthetic + labeled simulator only; never mix into banking gold v1.0.
+2. **Research + taxonomy + freeze** — action ontology (`normalizedActionId`) stays separate from the 16-label intent taxonomy (`intentLabel`); utterance → plan → tenant policy → `POST /v1/score` → execute only if policy already allows or the user confirmed.
+3. **Gold plan** — `cs_crm_gold` 0.1, seed `20260914`; synthetic + labeled simulator only; action/context fields added without scores on the envelope; never mix into banking gold v1.0.
 4. **GTM** — buyer list (emails blank), interview script (no fake notes), copy deck (founder publishes), demo script (CRM first).
 5. **Engineering already on GitHub** — simulator, Neon, Vercel, `cs_crm_rules_v0` + fail-open, naming, analytics nav. This pack does not re-implement them.
 

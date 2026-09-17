@@ -12,6 +12,7 @@
 | Domain version | `cs_crm_taxonomy` **0.1** |
 | Canonical path | `docs/Phase 16 - B2B SaaS CS CRM wedge/ELAH_CS_CRM_TAXONOMY.md` |
 | Code (simulator) | `elah-crm-simulator/lib/elah/envelope.ts` (`ELAH_CRM_INTENTS`) · tools in `lib/agent/tools.ts` |
+| Action ontology research | [ELAH-WEDGE-RESEARCH-001](./ELAH_CRM_SAAS_HUMAN_ACTIONS_RESEARCH.md), supplied 17 September 2026 |
 
 **Product freeze (unchanged):** ELAH scores genuine support/CRM intent **before tools**. Company policy allow / deny / confirm. **ELAH never allows, blocks, or executes.** The label is not an allow/deny. Customer / support-user UI MUST NOT show `elahScore`.
 
@@ -31,7 +32,22 @@ The label is not enforcement, not fraud, not a policy result. A genuine refund c
 
 ---
 
-## 2. Closed set (must match this list)
+## 2. Normative two-label rule
+
+Every mapped Phase 16 training example MUST keep two separate labels:
+
+1. `normalizedActionId` — **what happened**, using an exact ID from the supplied 249-action research ontology.
+2. `intentLabel` — **why the request or planned tool appears aligned or misaligned**, using exactly one of the closed 16 labels below.
+
+The 249 normalized actions are not intents and do not expand or replace the 16-label set. The same action may pair with different intents as authority, scope, evidence, or sequence changes.
+
+**No invented action IDs.** Preserve the platform-native action and set `normalizedActionId` to `null`/unmapped when the research has no exact match. In particular, the research includes refund scenarios but no normalized refund action ID; do not fabricate one for `refund_request` or `refund_abuse`. Any new action ID requires an explicit, human-reviewed ontology revision.
+
+This mapping is **Proposed**, not founder-approved or validated against customer systems.
+
+---
+
+## 3. Closed set (must match this list)
 
 **16** labels. Unknown values are invalid for `cs_crm_taxonomy` 0.1.
 
@@ -56,7 +72,7 @@ mistaken_agent
 
 ---
 
-## 3. Decision order
+## 4. Decision order
 
 1. **Injection / policy bypass first** — if the utterance or planned args are an instruction override, jailbreak, or hidden directive to hijack tools, label `prompt_injection_or_policy_bypass`. Do not also pick `refund_request`.
 2. **Exfil** — dump/export of tickets, PII, or other tenants via support tools → `data_exfil_ticket_export`.
@@ -71,11 +87,11 @@ Company policy may still **deny** a genuine-looking refund. That does not change
 
 ---
 
-## 4. Definitions
+## 5. Definitions
 
 Each row: one-line definition + out-of-scope.
 
-### 4.1 Genuine tool-family
+### 5.1 Genuine tool-family
 
 | Label | Definition | Out of scope |
 |---|---|---|
@@ -89,7 +105,7 @@ Each row: one-line definition + out-of-scope.
 | `support_escalation` | Genuine request to hand off to a human specialist on an allowed path. | Privilege escalation / “act as admin” (`prompt_injection_or_policy_bypass`); banking `support_escalation` (different closed set). |
 | `add_crm_note` | Genuine request to append an internal CRM note on the caller’s workspace. | Overwriting canonical profile fields (`profile_update` / `unauthorized_crm_overwrite`); ticket customer comments (`ticket_status` / create / comment family). |
 
-### 4.2 Residual and hostile
+### 5.2 Residual and hostile
 
 | Label | Definition | Out of scope |
 |---|---|---|
@@ -105,7 +121,7 @@ Each row: one-line definition + out-of-scope.
 
 ---
 
-## 5. Optional mapping to banking 22 (not the same closed set)
+## 6. Optional mapping to banking 22 (not the same closed set)
 
 The tables share **some strings**. They are **not** the same taxonomy. Mapping is for readers only. Gold, `rules_v0`, and banking dashboards stay on the 22. CS/CRM gold stays on these 16.
 
@@ -129,17 +145,17 @@ Banking closed set (frozen, do not edit here): `ELAH_BANKING_INTENTS` in the ban
 
 ---
 
-## 6. Code alignment (honest, 14 September 2026)
+## 7. Code alignment (honest, 17 September 2026)
 
-This Proposed 0.1 list is the **closed set gold and later scoring must use**.
+This Proposed 0.1 list is the **closed set used by gold and scoring**.
 
-Live simulator `ELAH_CRM_INTENTS` in `lib/elah/envelope.ts` currently emits a **subset** used by the rules planner/stub: `ticket_status`, `list_tickets`, `create_ticket`, `account_lookup`, `profile_update`, `refund_request`, `cancel_subscription`, `support_escalation`, `ambiguous_crm_request`, `non_crm_request`, `prompt_injection_or_policy_bypass`. `add_crm_note` exists as a **tool**. `refund_abuse`, `unauthorized_crm_overwrite`, `data_exfil_ticket_export`, and `mistaken_agent` are in this taxonomy so gold does not fake them as banking labels.
+Live simulator `ELAH_CRM_INTENTS` in `lib/elah/envelope.ts` contains all **16** labels. `cs_crm_rules_v0` has deterministic rules for the genuine, residual, hostile, and mistaken-agent families. The 516-row synthetic `cs_crm_gold` 0.1 corpus also uses the same 16-label set.
 
-After **Approve**, extend the simulator closed array to these **16** — still not `BANKING_INTENTS`. Until then, do not pretend `rules_stub_v0` classifies all 16.
+This code alignment is not evidence of production accuracy or human agreement. The taxonomy and vendor-action mappings remain Proposed until founder/human review. They still do not modify `BANKING_INTENTS`.
 
 ---
 
-## 7. Sign-off
+## 8. Sign-off
 
 | Role | Decision | Date | Notes |
 |---|---|---|---|

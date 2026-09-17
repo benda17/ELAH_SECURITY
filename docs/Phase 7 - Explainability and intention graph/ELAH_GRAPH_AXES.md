@@ -78,6 +78,8 @@ A **genuine** refund **should** sit high on Y **and** high on X. Injection that 
 
 Company policy may still **deny** or **confirm** a high-Y genuine refund. That does not move the point and is not an ELAH block.
 
+The 17 September 2026 research field `actionImpact` is supporting evidence, not a replacement for Y. Its Low/Moderate/High/Critical category describes the normalized action's typical impact; Financial Risk remains the approved graph coordinate interpreted in event context. Do not add an impact axis or derive policy from either value.
+
 ---
 
 ## 5. Emotional Urgency (Z) — pressure in the request

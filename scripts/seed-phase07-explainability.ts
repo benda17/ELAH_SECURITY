@@ -54,7 +54,7 @@ async function main() {
       data: {
         title: PHASE7_MILESTONE.title,
         description:
-          "CS/CRM ops analysts first; banking graph remains the existing demo. Axes frozen HA/FR/EU. ELAH scores intent; it never allows, blocks, or executes.",
+          "CS/CRM ops analysts first; banking graph remains the existing demo. Axes frozen HA/FR/EU. Normalized action is separate evidence for what happened; intent explains alignment. ELAH never allows, blocks, or executes.",
         targetDate: target,
         status: "in_progress",
         completionPercentage: 0,
@@ -62,7 +62,7 @@ async function main() {
         owner: "Founder",
         order: PHASE7_MILESTONE.order,
         evidence:
-          "Live /banking/intent-matrix 3D cube. Phase 0 coordinate + explainability specs. Phase 7 pack folder docs/Phase 7 - Explainability and intention graph/. No understandability interviews. Not Done.",
+          "Live founder graphs plus Phase 7 docs. 17 Sep 2026 research-derived action overlay is implemented with metadata provenance, historical fallbacks, and refund explicitly unmapped. No understandability interviews or customer validation. Not Done.",
       },
     }));
 
@@ -146,7 +146,7 @@ async function main() {
       data: {
         exitCriteria: PHASE7_MILESTONE.exitCriteria,
         evidence:
-          "Live /banking/intent-matrix 3D cube (HA/FR/EU). Phase 0 coordinate + explainability specs. Phase 7 docs folder named exactly docs/Phase 7 - Explainability and intention graph/. Understandability card retargeted to CS/CRM ops analysts; no interviews on file. Do not mark milestone complete.",
+          "Live founder HA/FR/EU graphs and Phase 7 docs. Action evidence is a separate 17 Sep 2026 research overlay, not a fourth axis or accuracy claim; request_refund remains unmapped. No analyst interviews on file. Do not mark milestone complete.",
       },
     });
   }

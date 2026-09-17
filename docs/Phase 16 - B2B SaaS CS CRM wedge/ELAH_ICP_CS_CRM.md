@@ -78,6 +78,8 @@ This is **not** transaction monitoring, **not** “we block fraud,” **not** a 
 
 Unknown — do not quote: TAM, win rate, sales-cycle days, named inbound.
 
+The [CRM/SaaS human-actions research](./ELAH_CRM_SAAS_HUMAN_ACTIONS_RESEARCH.md) supplied 17 September 2026 broadens the action vocabulary for discovery (249 actions across 9 domains), but it does **not** validate this ICP, establish demand, or count as an interview. Use it to ask which actor authority, object/scope, sequence, external effect, result, and business outcome matter in a buyer's actual workflow.
+
 ---
 
 ## 5. Non-buyer for THIS wedge

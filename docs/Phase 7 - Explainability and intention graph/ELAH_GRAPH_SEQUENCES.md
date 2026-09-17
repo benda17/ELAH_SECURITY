@@ -55,6 +55,8 @@ Do not draw a path across users. Do not join UI and agent **twins** into one pol
 
 The path **explains sequence**. It does not mean “ELAH steered the agent” and it does not mean “ELAH allowed the next tool.”
 
+Each vertex may expose two separate labels in Layer C: normalized action ID/name for **what happened**, and the 16-label intent for **why it appears aligned or misaligned**. A path may therefore repeat one action with different intents, or one intent across different actions. Action class/impact may style or filter evidence, but neither becomes a time, action, or impact axis.
+
 Current implementation (17 September 2026): founder `/banking/crm` draws recent trajectories grouped by `conversationId`; the banking demo remains primarily a point cloud.
 
 ---
@@ -84,7 +86,7 @@ request point  ──dashed──▶  tool-plan point
 
 ELAH still runs **before** the tool. The edge is “what was asked” vs “what was about to run,” not “ELAH executed.”
 
-Do not attach CoT text to the edge. Caption MAY be `intentLabel` + `toolName` (allow-listed names only).
+Do not attach CoT text to the edge. Caption MAY be `intentLabel` + platform-native `toolName` + mapped action ID (allow-listed names only), with mapping status available in the panel.
 
 ---
 
@@ -113,8 +115,8 @@ Do not infer deviations from chain-of-thought or from unlabeled Zendesk. Do not 
 
 Sequences are **Layer B** of `ELAH-P7-VIS-001`:
 
-1. Layer A — points  
-2. Layer B — this document (polylines + request→tool edges + deviation strokes)  
+1. Layer A — points
+2. Layer B — this document (polylines + request→tool edges + deviation strokes)
 3. Layer C — evidence on the selected point (`ELAH-P7-PANEL-001`)
 
 Toggle Layer B off for a dense cloud. Default on when a single `conversationId` is in focus.

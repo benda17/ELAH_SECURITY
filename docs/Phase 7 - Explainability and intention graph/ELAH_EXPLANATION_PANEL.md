@@ -56,6 +56,18 @@ Join `ElahEvent` (envelope) to `ElahScoreSnapshot` on `eventId`. If no snapshot:
 | **Hook** | `policyHook.recommendation` | `none` / `watch` / `review` / `step_up_hint` only | `allow` / `deny` / `confirm` on the hook |
 | **Provenance** | `score.provenance` | §7 | Secrets; claiming CatBoost is live when `scorer` is rules |
 
+### 3.1 Separate action evidence (17 Sep 2026 research overlay)
+
+The selected-point panel has three visibly separate blocks:
+
+1. **Intent assessment — why aligned/misaligned:** existing 16-label `intentLabel`, score, confidence, reasons, and scorer.
+2. **Action evidence — what happened:** platform-native action/tool; `normalizedActionId`; normalized name; action class; typical impact; mapping status and reason.
+3. **Company policy — separate decision:** allow / deny / needs-confirmation from the tenant event.
+
+Metadata mapping takes precedence over the historical fallback and is labeled `metadata`. Reviewed tool fallback is labeled `fallback`. Missing taxonomy coverage is labeled `unmapped` with a reason. In particular, `request_refund` remains unmapped because the supplied 249-action PDF has no normalized refund action ID.
+
+Action impact copy MUST say **ontology impact** or **typical action impact**. Never render `Critical` as “ELAH blocked,” “deny,” or an enforcement result. Action class/impact remain panel fields or overlays, not graph axes.
+
 Abstain banner (required), CS wording:
 
 **Title:** `ELAH abstained`

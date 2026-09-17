@@ -132,6 +132,8 @@ Analyst-facing layers. **Not** the classifier-internal H / B / S 5-vectors (G8).
 
 Layer C MUST NOT render chain-of-thought, hidden activations, raw utterances, or PII.
 
+Research-derived normalized action ID/name/class/impact and mapping provenance belong in Layer C. An analyst MAY filter or decorate by action class/impact, but these are evidence overlays only: they do not move HA/FR/EU, create a fourth axis, encode `elahScore`, or imply ELAH blocked an action. Keep the 249-action label (**what happened**) visually distinct from the 16-intent label (**why aligned/misaligned**).
+
 Caption for the three-layer control:
 
 ```

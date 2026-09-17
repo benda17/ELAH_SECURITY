@@ -93,6 +93,9 @@ Run on **simulator / gold fixtures**, not live Zendesk. Record pass/fail per ite
 | F10 | No CoT keys | No `chainOfThought`, `reasoning`, `logprobs`, `activations` on the payload |
 | F11 | Alternatives | Alternative lines only from planner≠ELAH or listed negativeSignals; else “No structured alternative.” |
 | F12 | Provenance | Panel `scorer` / `modelVersion` match snapshot; rules show uncalibrated chip |
+| F13 | Two-label separation | Normalized action is labeled “what happened”; 16-label intent is labeled “why aligned/misaligned”; neither is presented as policy. |
+| F14 | Action mapping | Producer metadata wins; fallback provenance is visible; `request_refund` is unmapped with no fabricated research ID. |
+| F15 | Impact boundary | Action class/impact do not alter HA/FR/EU or appear as “ELAH blocked.” |
 
 ### 4.2 Required fixtures (CS/CRM simulator)
 
@@ -164,6 +167,7 @@ Agents never send the invite and never mark the Kanban card Done from imagined f
 - Raw-event fold: sanitized args only (`ELAH-P7-PANEL-001` §8).
 - Confluence upload: no live ticket exports (`README.md` upload rule 5).
 - Do not persist display jitter as if it were a personal coordinate.
+- Treat the supplied 17 Sep 2026 249-action report as research input only: not customer validation, analyst-test completion, IAA, or model accuracy.
 
 ---
 

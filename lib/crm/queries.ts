@@ -3,6 +3,7 @@ import {
   csCrmCoordinates,
   financialRiskLevel,
   isDeviationPoint,
+  resolveNormalizedActionEvidence,
   sanitizeMetadata,
 } from "@/lib/elah/cs-crm-coordinates";
 import { crmPrisma, isCrmDatabaseConfigured } from "./prisma";
@@ -864,6 +865,8 @@ export async function getCrmIntentMatrixPoints(limit = INTENT_MATRIX_POINT_LIMIT
       const coords = csCrmCoordinates(intentLabel);
       const reasonCodes = parseJsonArray(snap.reasonCodes);
       const meta = sanitizeMetadata(parseJsonObject(event?.metadata));
+      const toolName = snap.toolName ?? event?.toolName ?? null;
+      const actionEvidence = resolveNormalizedActionEvidence(toolName, meta);
       const conversationId = snap.conversationId ?? event?.conversationId ?? null;
       const policyDecision = event?.policyDecision ?? null;
       const deviation = isDeviationPoint({
@@ -883,8 +886,9 @@ export async function getCrmIntentMatrixPoints(limit = INTENT_MATRIX_POINT_LIMIT
         userId: snap.userId ?? event?.userId ?? "",
         timestamp: (event?.timestamp ?? snap.scoredAt).toISOString(),
         messageSnippet: snippet(event?.userMessage),
-        toolName: snap.toolName ?? event?.toolName ?? null,
+        toolName,
         policyDecision,
+        ...actionEvidence,
         conversationId,
         eventId: snap.eventId,
         reasonCodes,

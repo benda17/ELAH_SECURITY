@@ -61,6 +61,7 @@ Normative source: `docs/Phase 0 - Product Definition/ELAH_COORDINATE_SYSTEM.md` 
 | Risk colour | `ELAH-P7-VIS-001` (tokens already in `RISK_COLORS`) | Recolouring Y as “fraud” |
 | Trajectories / request→tool edges | `ELAH-P7-SEQ-001` | A time axis on the cube |
 | Evidence panel | `ELAH-P7-PANEL-001` | H/B/S dumped onto the plot |
+| Normalized action class / impact | 17 Sep 2026 research-derived evidence | A fourth action or impact axis |
 
 ---
 
@@ -74,6 +75,10 @@ Normative source: `docs/Phase 0 - Product Definition/ELAH_COORDINATE_SYSTEM.md` 
 Same API field names. Same `[0,1]³`. **Different** `intentLabel` enums. A dashboard MUST key colour/filter by `appId` / domain, not by pretending `refund_request` is `external_transfer`.
 
 Do not invent a 23rd banking label to “fit refunds on the bank cube.”
+
+### Two labels, neither an axis
+
+The supplied 17 September 2026 research ontology labels **what happened** (`normalizedActionId`); the 16-label CS/CRM taxonomy labels **why the request/tool appears aligned or misaligned** (`intentLabel`). Both may be visible on a selected point, but only intent maps through the approved HA/FR/EU atlas. Action class and impact are evidence fields/overlays only. The research does not validate buyers or model quality.
 
 ---
 

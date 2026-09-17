@@ -2,10 +2,10 @@
 
 | Field | Value |
 |---|---|
-| Date | 16 September 2026 |
+| Date | 17 September 2026 |
 | Audience | Founder (Confluence home for this phase) |
 | Status | Phase 7 design and protocols **Approved by Founder, 17 September 2026**. Founder **CRM System** page plots `ElahScoreSnapshot` rows via the display-only atlas. Understandability interviews: **zero** completed notes — human-test cards remain open. |
-| Evidence | This folder + founder `app/banking/crm/page.tsx` + `lib/elah/cs-crm-coordinates.ts` + Phase 0 G1–G12 |
+| Evidence | This folder + founder `app/banking/crm/page.tsx` + `lib/elah/cs-crm-coordinates.ts` + Phase 0 G1–G12 + supplied 249-action research note dated 17 Sep 2026 |
 
 **Product freeze (unchanged):** ELAH scores genuine support/CRM intent **before tools**. Company policy allow / deny / confirm. **ELAH never allows, blocks, or executes.** Scores live in `ElahScoreSnapshot`, not the event envelope. Customer / support-user UI MUST NOT show `elahScore`. Analyst (founder) UI MAY show score. Fail-open 250 ms. No fabricated customers, ARR, emails, interviews, or live Zendesk.
 
@@ -16,6 +16,8 @@
 Phase 7 is how a **CS/CRM ops analyst** sees scored support/CRM actions: one point in the frozen Phase 0 cube (Human Agency × Financial Risk × Emotional Urgency, unit cube `[0,1]³`), plus overlays, trajectories, and an evidence panel.
 
 It does **not** add a fourth axis. It does **not** train an embedding→cube model. It does **not** make ELAH allow, block, or execute. The banking graph remains an existing demo and a later vertical — not the first-buyer surface.
+
+The 17 September research adds a second, separate label to founder evidence: the normalized action says **what happened**; the existing 16-label CS/CRM intent says **why it appears aligned or misaligned**. Action class and impact stay off the axes. The research is a starting ontology, not customer validation, human-test completion, or model accuracy.
 
 Kanban card 20 originally said “banking analysts.” This pack **rewrites** that card as a CS/CRM analyst understandability **protocol**. There are **zero** completed interview notes.
 
@@ -35,6 +37,7 @@ Kanban card 20 originally said “banking analysts.” This pack **rewrites** th
 | Customer UI | MUST NOT show `elahScore`, coordinates, confidence, or reason codes. |
 | Holdout | Do **not** quote banking-gold / `rules_v0` as refund accuracy. Do **not** quote CS `cs_crm_rules_v0` holdout **1.00** as production (lexicon echo). This pack invents **no** new holdout metric. |
 | Interviews | Understandability protocol written. **Zero** completed notes. |
+| Action evidence | Founder points can show native tool plus normalized action ID/name/class/impact and mapping provenance. Metadata wins; reviewed tool fallbacks cover historical rows. `request_refund` remains explicitly unmapped because the source has no refund ID. |
 
 ---
 

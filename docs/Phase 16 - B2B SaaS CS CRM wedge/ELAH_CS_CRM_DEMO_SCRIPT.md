@@ -141,6 +141,8 @@ New message:
    - `genuineIntentScore` / `elahScore` if present; if `unavailable`, say **fail-open**.
    - `intentLabel` (expect refund family vs `profile_update` vs `prompt_injection_or_policy_bypass` — do not force a label the stub did not write).
    - `scorer`: `rules_stub_v0`.
+   - Ask the guest what evidence establishes **actor authority**, intended **object/scope**, and a plausible **sequence** before this tool.
+   - Ask what **business outcome** and external effect their reviewer would need to see.
 5. Repeat: “ELAH scored; the company decided.”
 
 Forbidden: any control that looks like “ELAH Allow” / “ELAH Block.”
@@ -171,6 +173,14 @@ Banking Jane demo: `ELAH_DEMO_SCRIPT.md` in Phase 13. Same freeze, **bank** poli
 ## 7. After the room
 
 Do not write a completed interview or a design partner into the buyer list unless it happened (date, who, firm, one true note). Do not email from this repository.
+
+If this is a research conversation, capture answers—not agreement—to:
+
+- Would separate `normalizedActionId` (**what happened**) and `intentLabel` (**why aligned/misaligned**) help their review workflow?
+- Which authority, scope, before/after, sequence, external-effect, result, and business-outcome fields are actually available?
+- Which simulator-native actions map cleanly to their system, and which should remain unmapped?
+
+The supplied action ontology is research input, not proof that these mappings are useful to a customer. Do not invent an action ID for refunds; the research has no normalized refund action ID.
 
 ---
 

@@ -39,9 +39,29 @@ Apply **in order**.
 5. Persist **only** the taxonomy/scorer point on `ElahScoreSnapshot` / `ScoreResponse.score.coordinates`.
 6. Renderer MAY apply `spreadIntentPoints` jitter. **MUST NOT** write jitter back (G7).
 
+Before display, the founder query MAY also resolve the separate normalized action evidence from sanitized event metadata, then a reviewed tool fallback. That action mapping never changes the coordinates: action answers **what happened**; `intentLabel` answers **why it appears aligned or misaligned**.
+
 Do **not** emit H/B/S 5-vectors (G8). Do **not** put `elahScore` on an axis (G9). Do **not** zero the point when `status = abstained` (G10). If scoring is unavailable, **no point**.
 
 UI vs agent **twins** (same action class, same amount bucket) MUST share coordinates within **0.05** on each axis so the demo can say “same intent position, different `source`.”
+
+### 2.1 Historical CRM tool fallback (research note, 17 Sep 2026)
+
+| Native tool | Normalized action | Class | Impact | Nuance |
+|---|---|---|---|---|
+| `list_tickets` | `SUP-25 view_queue` | Observe | Moderate | A ticket list/work queue, not a single ticket. |
+| `get_ticket` | `SUP-01 view_ticket` | Observe | Low | Single case/conversation read. |
+| `create_ticket` | `SUP-02 create_ticket` | Change | Moderate | Exact ticket create. |
+| `add_ticket_comment` | `SUP-03 reply_to_customer` | Change | Moderate | Defensible only for the simulator's customer-visible comment; an internal note would be `SUP-04`. |
+| `lookup_account` | `CRM-01 view_record` | Observe | Low | Account/company record read. |
+| `update_contact_email` | `CRM-07 edit_record_property` | Change | Moderate | Contact property update. |
+| `update_contact_phone` | `CRM-07 edit_record_property` | Change | Moderate | Contact property update. |
+| `request_refund` | **unmapped** | — | — | The PDF discusses refunds but contains no normalized refund row; do not invent an ID. |
+| `cancel_subscription` | `SMP-25 cancel_subscription` | Change | Critical | Exact subscription-cancel action; the source's primary context is SaaS/vendor subscription, so retain the native object/context. |
+| `escalate_to_human` | `SUP-18 escalate_ticket` | Change | High | Human handoff maps to ticket escalation. |
+| `add_crm_note` | `CRM-18 add_note` | Change | Moderate | CRM-record note, distinct from a ticket internal note. |
+
+Producer-supplied normalized metadata takes precedence and is marked `metadata`; this table is marked `fallback`; absent/unsupported mappings are `unmapped` with a reason. These are research-derived integration mappings, not model predictions or customer validation.
 
 ---
 

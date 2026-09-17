@@ -97,21 +97,25 @@ Do not open with “tell me about your SOC” or “how do you monitor wires.”
 **Policy vs intent**
 
 6. Where does **allow / deny / confirm** live today (Zendesk trigger, Salesforce validation, Stripe dashboard, custom)?
-7. When the bot is wrong, do you find out from **QA sampling**, a customer complaint, or a finance recon?
-8. Has prompt injection or “the ticket text told the bot to …” shown up in your world? If no, say so — do not lead them into a war story.
-9. If you had a **0–1 genuine-intent score before the tool**, who would see it? (QA, security, the agent, the customer — we will push back on customer.)
-10. What would make you **ignore** the score?
+7. For one real workflow described without customer data, what proves the actor's **authority**, the exact **object/scope**, and the approved business outcome?
+8. What before/after state and event **sequence** would make the same action expected—or concerning?
+9. Which external effects and results matter most: customer message, refund, export, access, deletion, success, rejection, or rollback?
+10. When the bot is wrong, do you find out from **QA sampling**, a customer complaint, or a finance recon?
+11. Has prompt injection or “the ticket text told the bot to …” shown up in your world? If no, say so — do not lead them into a war story.
+12. If you had a **0–1 genuine-intent score before the tool**, who would see it? (QA, security, the agent, the customer — we will push back on customer.)
+13. Would separating a normalized action (**what happened**) from an intent label (**why aligned/misaligned**) make investigation or training more useful? Which mappings would they reject or leave unmapped?
+14. What would make you **ignore** the score?
 
 **Buying (light)**
 
-11. Is pre-tool intent scoring a **budget line**, or would it sit under support tooling / AI ops / CRM ops?
-12. What would a **first install** actually be (demo/dev, one queue, not production)?
-13. Who else has to say yes (legal, security, engineering)?
+15. Is pre-tool intent scoring a **budget line**, or would it sit under support tooling / AI ops / CRM ops?
+16. What would a **first install** actually be (demo/dev, one queue, not production)?
+17. Who else has to say yes (legal, security, engineering)?
 
 **Close**
 
-14. Anything we should **not** build (ELAH as the refund switch, scores on the customer widget)?
-15. Anyone else in **support/CRM ops** we should ask — no need to intro today.
+18. Anything we should **not** build (ELAH as the refund switch, scores on the customer widget)?
+19. Anyone else in **support/CRM ops** we should ask — no need to intro today.
 
 ---
 
@@ -132,6 +136,14 @@ Stack — CRM:
 Stack — refunds/cancel:
 Assistant/macros that act: yes / no / planned
 Who owns allow/deny/confirm today:
+Actor/authority evidence available:
+Object and scope fields available:
+Before/after state available:
+Sequence evidence available:
+External effect and result:
+Expected business outcome:
+Action + intent two-label mapping useful? why/why not:
+Mappings rejected or left unmapped:
 False-refund or wrong-write story (their words, no PII):
 Where a score would sit:
 Would customer see a score? (we want no):
@@ -145,6 +157,8 @@ Contacted logged in CRM?: no until founder marks it
 ```
 
 **Forbidden in notes:** fabricated quotes; “they loved it”; NPS; ARR; attaching a Zendesk export; marking Phase 11 banking interviews done via this card.
+
+The 249-action ontology supplied 17 September 2026 is a research prompt, not interview evidence. Do not force a respondent's vendor action into a near-match or invent a normalized refund action ID; the source currently has none.
 
 ---
 

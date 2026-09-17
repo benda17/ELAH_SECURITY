@@ -19,6 +19,14 @@ export type IntentMatrixPoint = {
   messageSnippet: string;
   toolName: string | null;
   policyDecision: string | null;
+  /** Platform-native action and separate 249-action research-ontology evidence. */
+  platformAction?: string | null;
+  normalizedActionId?: string | null;
+  normalizedActionName?: string | null;
+  actionClass?: string | null;
+  actionImpact?: string | null;
+  actionMappingStatus?: "metadata" | "fallback" | "unmapped" | null;
+  actionMappingReason?: string | null;
   /** CS/CRM Phase 7 — optional; banking points omit these. */
   conversationId?: string | null;
   eventId?: string | null;

@@ -12,6 +12,7 @@
 | `datasetVersion` | `cs_crm_gold` **0.1** |
 | Seed | **20260914** |
 | Taxonomy | `cs_crm_taxonomy` 0.1 (16 labels) — [ELAH_CS_CRM_TAXONOMY.md](./ELAH_CS_CRM_TAXONOMY.md) |
+| Action ontology research | [ELAH-WEDGE-RESEARCH-001](./ELAH_CRM_SAAS_HUMAN_ACTIONS_RESEARCH.md), supplied 17 September 2026 |
 | Generator (canonical path) | `elah-crm-simulator/scripts/generate-phase16-gold.ts` |
 | Output (canonical path) | `elah-crm-simulator/data/phase16/v0.1/` |
 | Canonical path | `docs/Phase 16 - B2B SaaS CS CRM wedge/ELAH_CS_CRM_GOLD_PLAN.md` |
@@ -41,11 +42,25 @@ Reuse the Phase 4 training-record **shape** (envelope + labels + optional `goldS
 | `datasetVersion` | `cs_crm_gold` `0.1` (directory `v0.1`) |
 | `event.appId` | `elah-crm-demo` |
 | `event` | ElahEvent 1.0 shape; **no** `elahScore` on `event` |
+| `normalizedActionId` | Exact ID from the supplied 249-action ontology, or `null`/unmapped. Never invent an ID. |
+| `platformNativeAction` | Preserve the simulator/vendor tool or event name even when no normalized ID exists. |
 | `labels.intentLabel` | One of the **16** CS/CRM labels |
 | `goldScore` | Sibling of `event`, never copied onto the envelope |
 | Tools / `action.toolName` | CRM allow-list (tickets, refund, cancel, contact update, escalate, CRM note) — not transfers |
 
 Prisma `ElahTrainingEvent` / live `AgentEventLog` are **not** gold. Do not `prisma db push` for this cut.
+
+Each row or sequence must also carry privacy-preserving context needed to interpret the action:
+
+- actor and authority: role, tenant, relevant permission/approval;
+- object and scope: object type/hash, account boundary, selected count or fan-out;
+- before and after state: direction and magnitude of change;
+- intent evidence: ticket, approved request, customer message, report, alert, or work item;
+- sequence: ordered prior/subsequent events;
+- external effect: message, sharing, money, access, deletion, publishing, or downstream automation;
+- result: success, rejected, pending approval, failed, or rolled back.
+
+The refund tools have no normalized refund action ID in the supplied research. Preserve their native tool name and leave `normalizedActionId` unmapped/null unless a human-approved ontology revision adds one.
 
 ---
 
@@ -119,7 +134,17 @@ Seed for assignment: **20260914**. Changing the seed is a new `datasetVersion`, 
 
 ---
 
-## 6. Privacy
+## 6. Negative and counterfactual pairs
+
+For each high-impact action, generate paired examples that hold the final normalized action and tool verb constant while changing only relevant context. A positive twin should have plausible authority, narrow scope, supporting evidence, and a coherent sequence. Its negative/counterfactual twin should vary one controlled factor such as wrong tenant/account, missing approval, unusual magnitude, excessive scope, access change immediately before the action, or absent preceding evidence.
+
+Record a shared `twinGroupId`, the varied field, and the expected `intentLabel`. Do not teach that the action itself is malicious: the mismatch between action and context is the signal. Keep every twin group in one split.
+
+Refund scenarios may use this method at the native-tool layer, but must not invent a normalized refund action ID.
+
+---
+
+## 7. Privacy
 
 | Rule | Value |
 |---|---|
@@ -135,7 +160,7 @@ Legal counsel sign-off of a **real-customer** CS dataset is out of this plan (no
 
 ---
 
-## 7. Later cards (not this memo)
+## 8. Later cards (not this memo)
 
 | Work | This plan |
 |---|---|
@@ -146,13 +171,13 @@ Legal counsel sign-off of a **real-customer** CS dataset is out of this plan (no
 
 ---
 
-## 8. Manifest (when generated)
+## 9. Manifest (when generated)
 
 `data/phase16/v0.1/manifest.json` should record: `datasetVersion`, `taxonomyVersion` (`0.1`), `seed` (`20260914`), pack counts, split counts, `generatedAt`, file sha256s, changelog. A new cut is `v0.2/`, not an in-place edit.
 
 ---
 
-## 9. Sign-off
+## 10. Sign-off
 
 | Role | Decision | Date | Notes |
 |---|---|---|---|
