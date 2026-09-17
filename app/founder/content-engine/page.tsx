@@ -96,9 +96,9 @@ export default async function ContentEnginePage({
           <p className="panel-title">Content automation</p>
           <h1 className="text-2xl font-semibold">Content Engine</h1>
           <p className="mt-1 max-w-2xl text-sm text-ink-muted">
-            Generate, review, and publish LinkedIn + Facebook posts. X copies the same full post
-            (not a truncated tweet) and opens compose — no paid API. Write the weekly newsletter
-            below and publish it to the opt-in list.
+            Generate, review, and publish LinkedIn + Facebook posts. X creates a version capped at
+            280 characters and opens compose — no paid API. Write the weekly newsletter below and
+            publish it to the opt-in list.
           </p>
         </div>
         <div className="flex flex-wrap items-center gap-3">
@@ -144,8 +144,9 @@ export default async function ContentEnginePage({
         </p>
       )}
       <p className="rounded-lg border border-ink/20 bg-ink/5 px-3 py-2 text-sm text-ink">
-        X posting is copy-and-paste, same as LinkedIn. Each draft copies the full post (body +
-        hashtags) and opens compose on x.com. Landing-page thread:{" "}
+        X posting is copy-and-paste. Each draft is automatically shortened to at most 280
+        characters, including the ELAH link when shortening is needed, then X compose opens.
+        Landing-page thread:{" "}
         {landingThread.posted
           ? "already marked posted."
           : "use the button above — each click copies the next tweet."}

@@ -228,13 +228,13 @@ export default async function FounderSettingsPage({
         <div className="mb-4">
           <h2 className="text-sm font-semibold">X / Twitter (copy & paste)</h2>
           <p className="mt-1 text-xs text-ink-dim">
-            Same flow as LinkedIn. No developer keys and no paid posting API.
+            X-ready text is capped at 280 characters. No developer keys and no paid posting API.
           </p>
         </div>
         <ol className="list-decimal space-y-2 pl-5 text-xs text-ink-muted">
           <li>
-            Content Engine → <strong>Post to X</strong> copies the same full post as LinkedIn /
-            Facebook and opens{" "}
+            Content Engine → <strong>Post to X</strong> copies an automatically shortened,
+            280-character version and opens{" "}
             <a
               className="text-accent-cyan underline"
               href="https://x.com/compose/post"

@@ -32,17 +32,25 @@ export function companyPageAdminPostsUrl(organizationId: string): string {
   return `https://www.linkedin.com/company/${id}/admin/feed/posts/`;
 }
 
-const MAX_TWEET_CHARS = 280;
+export const MAX_X_POST_CHARS = 280;
 const LANDING = "https://www.elahsecurity.com";
 
-/** Logged-in compose UI. We copy the full post and let the founder paste — no paid API. */
+/** Logged-in compose UI. We copy an X-ready post and let the founder paste — no paid API. */
 export const TWITTER_COMPOSE_URL = "https://x.com/compose/post";
 
-function codePointLength(text: string): number {
-  return Array.from(text).length;
+/**
+ * Conservative approximation of X's weighted length:
+ * ASCII is one unit; non-ASCII (including emoji) is two. Literal URLs are
+ * counted at their source length, which is no less than X's shortened-link cost.
+ */
+export function xPostCharacterCount(text: string): number {
+  return Array.from(text).reduce(
+    (total, char) => total + ((char.codePointAt(0) ?? 0) <= 0x7f ? 1 : 2),
+    0,
+  );
 }
 
-/** Truncate to 280 chars — only for the paid X API path, not the compose paste. */
+/** Produce one deterministic X-ready post, capped at 280 Unicode code points. */
 export function toTweetText(body: string, hashtags: string[] = []): string {
   const tags = hashtags
     .map((t) => t.trim())
@@ -52,18 +60,24 @@ export function toTweetText(body: string, hashtags: string[] = []): string {
   if (tags.length > 0 && !tags.every((tag) => text.includes(tag))) {
     text = `${text}\n\n${tags.join(" ")}`;
   }
-  if (codePointLength(text) <= MAX_TWEET_CHARS) return text;
+  if (xPostCharacterCount(text) <= MAX_X_POST_CHARS) return text;
 
-  const suffix = `\n\n${LANDING}`;
-  const budget = MAX_TWEET_CHARS - codePointLength(suffix) - 1;
-  const chars = Array.from(text);
-  let cut = chars.slice(0, Math.max(0, budget)).join("");
+  const suffix = `…\n\n${LANDING}`;
+  const budget = MAX_X_POST_CHARS - xPostCharacterCount(suffix);
+  let used = 0;
+  let cut = "";
+  for (const char of Array.from(text)) {
+    const weight = (char.codePointAt(0) ?? 0) <= 0x7f ? 1 : 2;
+    if (used + weight > budget) break;
+    cut += char;
+    used += weight;
+  }
   const lastSpace = cut.lastIndexOf(" ");
-  if (lastSpace > budget * 0.55) cut = cut.slice(0, lastSpace);
-  return `${cut.trim()}…${suffix}`;
+  if (lastSpace > cut.length * 0.55) cut = cut.slice(0, lastSpace);
+  return `${cut.trim()}${suffix}`;
 }
 
-/** Same full post LinkedIn and Facebook publish — not a 280-character snippet. */
+/** Manual X compose receives the same capped text as the X API path. */
 export function buildTwitterClipboardText(body: string, hashtags: string[] = []): string {
-  return buildLinkedInClipboardText(body, hashtags);
+  return toTweetText(body, hashtags);
 }

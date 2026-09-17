@@ -5,7 +5,9 @@ import { useState } from "react";
 import {
   buildLinkedInClipboardText,
   buildTwitterClipboardText,
+  MAX_X_POST_CHARS,
   TWITTER_COMPOSE_URL,
+  xPostCharacterCount,
 } from "@/lib/founder/content-engine/format-post";
 import { LANDING_PAGE_TWEETS } from "@/lib/founder/content-engine/landing-copy";
 
@@ -450,6 +452,10 @@ export function DraftActions({
   const [text, setText] = useState(body);
   const [busy, setBusy] = useState(false);
   const [message, setMessage] = useState<string | null>(null);
+  const xClipboardText = buildTwitterClipboardText(text, hashtags);
+  const xCharacterCount = xPostCharacterCount(xClipboardText);
+  const xWasShortened =
+    xPostCharacterCount(buildLinkedInClipboardText(text, hashtags)) > MAX_X_POST_CHARS;
 
   async function persistEdits() {
     await fetch(`/api/founder/content-engine/drafts/${draftId}`, {
@@ -514,13 +520,12 @@ export function DraftActions({
     setMessage(null);
     try {
       await persistEdits();
-      const clipboard = buildTwitterClipboardText(text, hashtags);
-      await navigator.clipboard.writeText(clipboard);
+      await navigator.clipboard.writeText(xClipboardText);
       const win = window.open(TWITTER_COMPOSE_URL, "_blank", "noopener,noreferrer");
       setMessage(
         win
-          ? "Copied the full post. On X: paste → Post. Then click Mark as posted on X."
-          : "Copied the full post. Popup blocked — open x.com/compose/post, paste, then Mark as posted on X.",
+          ? `Copied an X-ready post (${xCharacterCount}/${MAX_X_POST_CHARS} characters). Paste → Post, then click Mark as posted on X.`
+          : `Copied an X-ready post (${xCharacterCount}/${MAX_X_POST_CHARS} characters). Popup blocked — open x.com/compose/post and paste.`,
       );
       router.refresh();
     } catch {
@@ -538,6 +543,10 @@ export function DraftActions({
         rows={4}
         className="w-full rounded-lg border border-surface-border bg-surface-subtle px-2 py-1.5 text-xs text-ink"
       />
+      <p className="text-[11px] text-ink-dim">
+        X copy: {xCharacterCount}/{MAX_X_POST_CHARS} characters
+        {xWasShortened ? " · automatically shortened with a link to ELAH" : ""}
+      </p>
       <div className="flex flex-wrap gap-2">
         {showLinkedInActions && (
           <>
@@ -580,7 +589,7 @@ export function DraftActions({
               disabled={busy}
               onClick={postToX}
               className="min-h-11 rounded border border-ink/30 bg-ink/5 px-3 py-2 text-xs font-semibold text-ink disabled:opacity-40"
-              title="Copy the same full post as LinkedIn/Facebook and open X compose"
+              title={`Copy an X-ready post capped at ${MAX_X_POST_CHARS} characters and open X compose`}
             >
               Post to X
             </button>
