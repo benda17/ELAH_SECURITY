@@ -11,7 +11,9 @@
     "db:generate:crm": "node scripts/generate-crm-client.js",
     "db:push": "prisma db push",
     "roadmap:seed": "tsx scripts/seed-roadmap.ts",
+    "roadmap:seed:phase07": "tsx scripts/seed-phase07-explainability.ts",
     "roadmap:seed:phase16": "tsx scripts/seed-phase16-cs-crm-wedge.ts",
+    "roadmap:enrich:thin": "tsx scripts/enrich-thin-task-descriptions.ts",
     "test:roadmap": "tsx tests/roadmap-metrics.test.ts",
     "dev:clean": "rm -rf .next && next dev -p 3001",
     "postinstall": "prisma generate && node scripts/generate-crm-client.js"

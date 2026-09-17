@@ -1,3 +1,10 @@
+import type { IntentMatrixPoint } from "@/lib/intent-matrix-points";
+import {
+  csCrmCoordinates,
+  financialRiskLevel,
+  isDeviationPoint,
+  sanitizeMetadata,
+} from "@/lib/elah/cs-crm-coordinates";
 import { crmPrisma, isCrmDatabaseConfigured } from "./prisma";
 
 const SECURITY_EVENT_TYPES = [
@@ -770,5 +777,132 @@ export async function getCrmToolCallEvents(limit = 80) {
   } catch (err) {
     console.error("[crm-analytics] tool-calls", err);
     return [];
+  }
+}
+
+const INTENT_MATRIX_POINT_LIMIT = 800;
+
+function snippet(text: string | null | undefined, max = 160) {
+  if (!text) return "";
+  const trimmed = text.replace(/\s+/g, " ").trim();
+  return trimmed.length > max ? `${trimmed.slice(0, max)}…` : trimmed;
+}
+
+function actionStatusFromSnapshot(input: {
+  unavailable: boolean;
+  recommendation: string | null;
+}) {
+  if (input.unavailable) return "unavailable";
+  if (input.recommendation === "abstain") return "abstain";
+  if (input.recommendation === "review") return "review";
+  if (input.recommendation === "proceed") return "scored";
+  return "scored";
+}
+
+/**
+ * Map CRM ElahScoreSnapshot + AgentEventLog into intention-graph points.
+ * Coordinates come from the CS/CRM atlas in code — not from Neon columns.
+ */
+export async function getCrmIntentMatrixPoints(limit = INTENT_MATRIX_POINT_LIMIT): Promise<{
+  points: IntentMatrixPoint[];
+  snapshotCount: number;
+  uniqueIntents: number;
+}> {
+  const empty = { points: [] as IntentMatrixPoint[], snapshotCount: 0, uniqueIntents: 0 };
+  if (!isCrmDatabaseConfigured()) return empty;
+  try {
+    const snapshots = await crmPrisma.elahScoreSnapshot.findMany({
+      orderBy: { scoredAt: "desc" },
+      take: limit,
+      select: {
+        id: true,
+        eventId: true,
+        scoredAt: true,
+        genuineIntentScore: true,
+        confidence: true,
+        intentLabel: true,
+        recommendation: true,
+        reasonCodes: true,
+        scorer: true,
+        unavailable: true,
+        unavailableReason: true,
+        userId: true,
+        conversationId: true,
+        toolName: true,
+      },
+    });
+    if (snapshots.length === 0) return empty;
+
+    const eventIds = snapshots.map((s) => s.eventId).filter(Boolean);
+    const events =
+      eventIds.length > 0
+        ? await crmPrisma.agentEventLog.findMany({
+            where: { eventId: { in: eventIds } },
+            select: {
+              eventId: true,
+              eventType: true,
+              conversationId: true,
+              userId: true,
+              userMessage: true,
+              toolName: true,
+              policyDecision: true,
+              detectedIntent: true,
+              metadata: true,
+              timestamp: true,
+            },
+          })
+        : [];
+    const byEvent = new Map<string, (typeof events)[number]>();
+    for (const e of events) {
+      if (e.eventId && !byEvent.has(e.eventId)) byEvent.set(e.eventId, e);
+    }
+
+    const points: IntentMatrixPoint[] = snapshots.map((snap) => {
+      const event = byEvent.get(snap.eventId);
+      const intentLabel =
+        snap.intentLabel || event?.detectedIntent || "ambiguous_crm_request";
+      const coords = csCrmCoordinates(intentLabel);
+      const reasonCodes = parseJsonArray(snap.reasonCodes);
+      const meta = sanitizeMetadata(parseJsonObject(event?.metadata));
+      const conversationId = snap.conversationId ?? event?.conversationId ?? null;
+      const policyDecision = event?.policyDecision ?? null;
+      const deviation = isDeviationPoint({
+        intentLabel,
+        policyDecision,
+        eventType: event?.eventType,
+      });
+      return {
+        id: snap.id,
+        x: coords.humanAgency,
+        y: coords.financialRisk,
+        z: coords.emotionalUrgency,
+        riskLevel: financialRiskLevel(coords.financialRisk),
+        actionStatus: actionStatusFromSnapshot(snap),
+        intentId: intentLabel,
+        intentLabel,
+        userId: snap.userId ?? event?.userId ?? "",
+        timestamp: (event?.timestamp ?? snap.scoredAt).toISOString(),
+        messageSnippet: snippet(event?.userMessage),
+        toolName: snap.toolName ?? event?.toolName ?? null,
+        policyDecision,
+        conversationId,
+        eventId: snap.eventId,
+        reasonCodes,
+        scorer: snap.scorer || "cs_crm_rules_v0",
+        confidence: snap.confidence,
+        genuineIntentScore: snap.genuineIntentScore,
+        recommendation: snap.recommendation,
+        unavailable: snap.unavailable,
+        unavailableReason: snap.unavailableReason,
+        metadataSanitized: meta,
+        deviation,
+      };
+    });
+
+    const uniqueIntents = new Set(points.map((p) => p.intentId)).size;
+    return { points, snapshotCount: snapshots.length, uniqueIntents };
+  } catch (err) {
+    console.error("[crm-analytics] intent-matrix", err);
+    return empty;
   }
 }

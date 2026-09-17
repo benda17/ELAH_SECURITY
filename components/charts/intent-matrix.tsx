@@ -21,12 +21,20 @@ import {
   RISK_COLORS,
   spreadIntentPoints,
 } from "@/lib/intent-matrix-points";
+import { pointDisplayOpacity } from "@/lib/elah/cs-crm-coordinates";
 
 export type { IntentMatrixPoint };
 
-export function IntentMatrixScatter({ data }: { data: IntentMatrixPoint[] }) {
+export function IntentMatrixScatter({
+  data,
+  onSelect,
+}: {
+  data: IntentMatrixPoint[];
+  onSelect?: (p: IntentMatrixPoint | null) => void;
+}) {
   const spread = useMemo(() => spreadIntentPoints(data), [data]);
   const fillOpacity = data.length > 400 ? 0.35 : data.length > 100 ? 0.55 : 0.75;
+  const useConfidence = data.some((p) => p.confidence != null || p.unavailable || p.deviation);
 
   return (
     <ResponsiveContainer width="100%" height={560}>
@@ -91,12 +99,34 @@ export function IntentMatrixScatter({ data }: { data: IntentMatrixPoint[] }) {
             );
           }}
         />
-        <Scatter data={spread} fill="#22d3ee" fillOpacity={fillOpacity}>
+        <Scatter
+          data={spread}
+          fill="#22d3ee"
+          fillOpacity={fillOpacity}
+          onClick={(state) => {
+            const p = (state as { payload?: IntentMatrixPoint })?.payload;
+            if (p) onSelect?.(p);
+          }}
+        >
           {spread.map((entry) => (
             <Cell
               key={entry.id}
-              fill={RISK_COLORS[entry.riskLevel] ?? "#94a3b8"}
-              fillOpacity={fillOpacity}
+              fill={
+                entry.deviation
+                  ? "#fb7185"
+                  : RISK_COLORS[entry.riskLevel] ?? "#94a3b8"
+              }
+              fillOpacity={useConfidence ? pointDisplayOpacity(entry) : fillOpacity}
+              stroke={
+                entry.unavailable || entry.recommendation === "abstain"
+                  ? "#94a3b8"
+                  : undefined
+              }
+              strokeDasharray={
+                entry.unavailable || entry.recommendation === "abstain"
+                  ? "3 2"
+                  : undefined
+              }
             />
           ))}
         </Scatter>

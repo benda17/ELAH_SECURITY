@@ -24,6 +24,8 @@ import {
   AssistantSecurityReasonsChart,
   AssistantSecurityRiskScoreChart,
 } from "@/components/charts/assistant-security-risks";
+import { IntentMatrixExplainer } from "@/components/intent-matrix-explainer";
+import { CsCrmIntentMatrixView } from "@/components/cs-crm-intent-matrix-view";
 import {
   assistantEventTone,
   formatAgentEventLabel,
@@ -47,6 +49,7 @@ import {
   getCrmStatsOverview,
   getCrmTopTools,
   getCrmWeekdayActivity,
+  getCrmIntentMatrixPoints,
 } from "@/lib/crm/queries";
 import { cn } from "@/lib/utils";
 
@@ -82,6 +85,7 @@ export default async function BankingCrmPage() {
     scoreSnapshotBands,
     convStatus,
     recommendations,
+    intentMatrix,
   ] = await Promise.all([
     getCrmStatsOverview(),
     getCrmEventsByDay(21),
@@ -100,6 +104,7 @@ export default async function BankingCrmPage() {
     getCrmScoreSnapshotBands(),
     getCrmConversationStatus(),
     getCrmRecommendations(),
+    getCrmIntentMatrixPoints(),
   ]);
 
   const recAsPolicy = recommendations.map((r) => ({
@@ -135,9 +140,9 @@ export default async function BankingCrmPage() {
               CRM activity
             </h1>
             <p className="mt-1 max-w-2xl text-sm text-ink-muted">
-              Read-only view of the CRM demo SQLite database — portal commands, assistant
-              tools, company policy, and ELAH score snapshots. Scores are not fields of the
-              event envelope.
+              CS/CRM first — ops analyst view. Read-only CRM demo database: portal
+              commands, assistant tools, company policy, and ELAH score snapshots.
+              Scores are not fields of the event envelope. ELAH never allow/block/execute.
             </p>
           </div>
         </div>
@@ -228,6 +233,51 @@ export default async function BankingCrmPage() {
           icon={<ShieldAlert className="size-4" />}
           tone={stats.securityEvents > 0 ? "danger" : "default"}
         />
+      </section>
+
+      <SectionLabel>Intention graph · CS/CRM first</SectionLabel>
+      <section className="panel">
+        <div className="mb-4 flex flex-wrap items-end justify-between gap-3">
+          <div>
+            <div className="panel-title">Action points · trajectories · evidence</div>
+            <p className="mt-1 max-w-3xl text-xs text-ink-muted">
+              Display-only atlas (Phase 7). Live scorer{" "}
+              <code className="text-ink">cs_crm_rules_v0</code>. Opacity is confidence;
+              hollow is unavailable/abstain; rose marks injection, company policy deny,
+              refund abuse, or ticket export. Lines are the last conversations. Company
+              policy colours are not ELAH.
+            </p>
+          </div>
+          {intentMatrix.points.length > 0 ? (
+            <p className="text-xs text-ink-muted">
+              <span className="font-semibold tabular-nums text-accent-cyan">
+                {intentMatrix.points.length.toLocaleString()}
+              </span>{" "}
+              snapshots ·{" "}
+              <span className="font-semibold tabular-nums text-ink">
+                {intentMatrix.uniqueIntents}
+              </span>{" "}
+              intents
+            </p>
+          ) : null}
+        </div>
+        {intentMatrix.points.length ? (
+          <CsCrmIntentMatrixView data={intentMatrix.points} />
+        ) : (
+          <div className="flex h-[280px] items-center justify-center rounded-xl border border-dashed border-surface-border bg-surface-subtle/20 text-sm text-ink-muted">
+            {configured
+              ? "No CRM score snapshots to plot yet."
+              : "CRM database is not configured. Empty graph — not an error."}
+          </div>
+        )}
+        <div className="mt-6 border-t border-surface-border pt-5">
+          <IntentMatrixExplainer
+            domain="cs-crm"
+            totalMessages={intentMatrix.snapshotCount}
+            displayedPoints={intentMatrix.points.length}
+            uniqueIntentTypes={intentMatrix.uniqueIntents}
+          />
+        </div>
       </section>
 
       <SectionLabel>Workspace population</SectionLabel>

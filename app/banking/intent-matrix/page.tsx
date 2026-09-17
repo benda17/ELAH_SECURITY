@@ -78,7 +78,8 @@ export default async function IntentMatrixPage() {
             <div>
               <h2 className="text-sm font-semibold">3D Intent Space</h2>
               <p className="mt-1 text-xs text-ink-muted">
-                Toggle 2D projection or interactive 3D space · each dot = one classified message
+                Banking demo / later vertical · toggle 2D projection or interactive 3D space
+                · each dot = one classified message
               </p>
             </div>
             {overview.totalEventCount > 0 && (

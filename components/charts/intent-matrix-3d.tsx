@@ -6,9 +6,12 @@ import { Edges, Line, OrbitControls, Points, PointMaterial } from "@react-three/
 import * as THREE from "three";
 import {
   type IntentMatrixPoint,
+  type IntentTrajectory,
+  buildTrajectories,
   riskColorHex,
   spreadIntentPoints,
 } from "@/lib/intent-matrix-points";
+import { pointDisplayOpacity } from "@/lib/elah/cs-crm-coordinates";
 
 function AxisLines() {
   return (
@@ -21,6 +24,64 @@ function AxisLines() {
         <meshBasicMaterial visible={false} />
         <Edges color="#334155" threshold={15} />
       </mesh>
+    </group>
+  );
+}
+
+function OverlayMarkers({
+  points,
+  selectedId,
+  onSelect,
+}: {
+  points: IntentMatrixPoint[];
+  selectedId?: string | null;
+  onSelect: (p: IntentMatrixPoint | null) => void;
+}) {
+  return (
+    <group>
+      {points.map((p) => {
+        const abstain = Boolean(p.unavailable) || p.recommendation === "abstain";
+        const opacity = pointDisplayOpacity(p);
+        const color = p.deviation ? "#fb7185" : riskColorHex(p.riskLevel);
+        const selected = selectedId === p.id;
+        const radius = selected ? 0.02 : p.deviation ? 0.016 : 0.011;
+        return (
+          <mesh
+            key={p.id}
+            position={[p.x, p.y, p.z]}
+            onClick={(e) => {
+              e.stopPropagation();
+              onSelect(p);
+            }}
+          >
+            <sphereGeometry args={[radius, 10, 10]} />
+            <meshBasicMaterial
+              color={color}
+              transparent
+              opacity={opacity}
+              wireframe={abstain}
+              depthWrite={false}
+            />
+          </mesh>
+        );
+      })}
+    </group>
+  );
+}
+
+function TrajectoryLines({ trajectories }: { trajectories: IntentTrajectory[] }) {
+  return (
+    <group>
+      {trajectories.map((t) => (
+        <Line
+          key={t.conversationId}
+          points={t.coords}
+          color="#22d3ee"
+          lineWidth={1}
+          transparent
+          opacity={0.28}
+        />
+      ))}
     </group>
   );
 }
@@ -80,9 +141,15 @@ function PointCloud({
 
 function Scene({
   points,
+  trajectories,
+  overlay,
+  selectedId,
   onSelect,
 }: {
   points: IntentMatrixPoint[];
+  trajectories: IntentTrajectory[];
+  overlay: boolean;
+  selectedId?: string | null;
   onSelect: (p: IntentMatrixPoint | null) => void;
 }) {
   return (
@@ -90,7 +157,12 @@ function Scene({
       <ambientLight intensity={0.65} />
       <directionalLight position={[2, 3, 4]} intensity={0.85} />
       <AxisLines />
-      <PointCloud points={points} onSelect={onSelect} />
+      {trajectories.length > 0 ? <TrajectoryLines trajectories={trajectories} /> : null}
+      {overlay ? (
+        <OverlayMarkers points={points} selectedId={selectedId} onSelect={onSelect} />
+      ) : (
+        <PointCloud points={points} onSelect={onSelect} />
+      )}
       <OrbitControls
         makeDefault
         target={[0.5, 0.5, 0.5]}
@@ -102,10 +174,42 @@ function Scene({
   );
 }
 
-export function IntentMatrixScatter3D({ data }: { data: IntentMatrixPoint[] }) {
+/** Sphere meshes are expensive; keep overlay clickable without hundreds of draw calls. */
+const MAX_OVERLAY_MARKERS = 250;
+
+export function IntentMatrixScatter3D({
+  data,
+  overlay = false,
+  showTrajectories = false,
+  selectedId = null,
+  onSelect,
+  hideDetailCard = false,
+}: {
+  data: IntentMatrixPoint[];
+  overlay?: boolean;
+  showTrajectories?: boolean;
+  selectedId?: string | null;
+  onSelect?: (p: IntentMatrixPoint | null) => void;
+  hideDetailCard?: boolean;
+}) {
   const spread = useMemo(() => spreadIntentPoints(data), [data]);
-  const [selected, setSelected] = useState<IntentMatrixPoint | null>(null);
+  const overlayPoints = useMemo(() => {
+    if (!overlay || spread.length <= MAX_OVERLAY_MARKERS) return spread;
+    const deviations = spread.filter((p) => p.deviation);
+    const rest = spread.filter((p) => !p.deviation);
+    const room = Math.max(0, MAX_OVERLAY_MARKERS - deviations.length);
+    return [...deviations, ...rest.slice(0, room)];
+  }, [overlay, spread]);
+  const trajectories = useMemo(
+    () => (showTrajectories ? buildTrajectories(spread) : []),
+    [showTrajectories, spread],
+  );
+  const [internalSelected, setInternalSelected] = useState<IntentMatrixPoint | null>(null);
   const [webglError, setWebglError] = useState(false);
+  const selected = onSelect
+    ? (spread.find((p) => p.id === selectedId) ?? null)
+    : internalSelected;
+  const handleSelect = onSelect ?? setInternalSelected;
 
   if (webglError) {
     return (
@@ -120,7 +224,7 @@ export function IntentMatrixScatter3D({ data }: { data: IntentMatrixPoint[] }) {
       <div className="h-[560px] overflow-hidden rounded-xl border border-surface-border bg-[#0a0f18]">
         <Canvas
           camera={{ position: [1.6, 1.4, 1.8], fov: 50, near: 0.01, far: 100 }}
-          onPointerMissed={() => setSelected(null)}
+          onPointerMissed={() => handleSelect(null)}
           onCreated={({ gl }) => {
             gl.domElement.addEventListener("webglcontextlost", () => setWebglError(true), {
               once: true,
@@ -129,11 +233,17 @@ export function IntentMatrixScatter3D({ data }: { data: IntentMatrixPoint[] }) {
           gl={{ antialias: true, alpha: false, powerPreference: "high-performance" }}
         >
           <color attach="background" args={["#0a0f18"]} />
-          <Scene points={spread} onSelect={setSelected} />
+          <Scene
+            points={overlay ? overlayPoints : spread}
+            trajectories={trajectories}
+            overlay={overlay}
+            selectedId={selected?.id ?? selectedId}
+            onSelect={handleSelect}
+          />
         </Canvas>
       </div>
 
-      {selected && (
+      {selected && !hideDetailCard ? (
         <div className="absolute bottom-3 left-3 right-3 max-w-sm rounded-lg border border-surface-border bg-surface-raised/95 p-3 text-xs shadow-xl backdrop-blur">
           <p className="font-semibold text-ink">{selected.intentLabel}</p>
           <p className="mt-1 text-ink-muted">{selected.messageSnippet}</p>
@@ -148,7 +258,7 @@ export function IntentMatrixScatter3D({ data }: { data: IntentMatrixPoint[] }) {
             {new Date(selected.timestamp).toLocaleString()}
           </p>
         </div>
-      )}
+      ) : null}
 
       <div className="mt-2 flex flex-wrap gap-3 text-[10px] text-ink-dim">
         <span className="flex items-center gap-1">
@@ -161,6 +271,14 @@ export function IntentMatrixScatter3D({ data }: { data: IntentMatrixPoint[] }) {
           <span className="inline-block size-2 rounded-full bg-accent-rose" /> z — Urgency
         </span>
         <span>Color: low → critical (green → red)</span>
+        {overlay ? (
+          <>
+            <span>Opacity: confidence</span>
+            <span>Hollow: unavailable / abstain</span>
+            <span>Ring-size / rose: injection · deny · refund abuse · exfil</span>
+          </>
+        ) : null}
+        {showTrajectories ? <span>Lines: last conversations</span> : null}
       </div>
     </div>
   );

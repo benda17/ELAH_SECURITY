@@ -2,6 +2,7 @@
  * Roadmap phase definitions — every task from the founder operating brief.
  * Status is assigned at seed time via evidence map in seed/index.ts.
  */
+import { PHASE7_NAME } from "./phase07";
 import { PHASE16_NAME, PHASE16_TASKS } from "./phase16";
 
 export interface PhaseSpec {
@@ -253,7 +254,7 @@ export const PHASE_SPECS: PhaseSpec[] = [
     ],
   },
   {
-    phase: "Phase 7 — Explainability and intention graph",
+    phase: PHASE7_NAME,
     workstream: "Model",
     category: "Explainability",
     tasks: [
@@ -276,7 +277,7 @@ export const PHASE_SPECS: PhaseSpec[] = [
       "Add an event explanation panel.",
       "Add model-version information.",
       "Add raw-event inspection for authorized users.",
-      "Test whether explanations are understandable to banking analysts.",
+      "Test whether explanations are understandable to CS/CRM ops analysts.",
       "Test whether explanations remain faithful to model behavior.",
       "Avoid exposing private model reasoning or unsupported chain-of-thought.",
       "Use concise evidence-based explanations instead.",

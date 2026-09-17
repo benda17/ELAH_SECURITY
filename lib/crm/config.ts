@@ -1,5 +1,12 @@
 export function isCrmDatabaseConfigured() {
-  return Boolean(process.env.CRM_DATABASE_URL?.trim());
+  const url = process.env.CRM_DATABASE_URL?.trim();
+  if (!url) return false;
+  try {
+    assertCrmDatabaseUrlSafe();
+    return true;
+  } catch {
+    return false;
+  }
 }
 
 export function isCrmPostgresUrl(url: string | undefined = process.env.CRM_DATABASE_URL) {
