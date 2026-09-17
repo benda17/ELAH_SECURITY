@@ -62,7 +62,7 @@ async function main() {
         owner: "Founder",
         order: PHASE7_MILESTONE.order,
         evidence:
-          "Live founder graphs plus Phase 7 docs. 17 Sep 2026 research-derived action overlay is implemented with metadata provenance, historical fallbacks, and refund explicitly unmapped. No understandability interviews or customer validation. Not Done.",
+          "17 Sep 2026 re-audit: 19/23 cards Done, three In Progress, one Backlog. Live founder graph implements points, trajectories, deviations, and evidence. No understandability interviews or customer validation. Milestone remains open.",
       },
     }));
 
@@ -146,7 +146,7 @@ async function main() {
       data: {
         exitCriteria: PHASE7_MILESTONE.exitCriteria,
         evidence:
-          "Live founder HA/FR/EU graphs and Phase 7 docs. Action evidence is a separate 17 Sep 2026 research overlay, not a fourth axis or accuracy claim; request_refund remains unmapped. No analyst interviews on file. Do not mark milestone complete.",
+          "17 Sep 2026 re-audit: 19/23 cards Done, three In Progress, one Backlog. Action evidence remains separate from HA/FR/EU; request_refund remains unmapped. No analyst interviews on file. Milestone remains open.",
       },
     });
   }

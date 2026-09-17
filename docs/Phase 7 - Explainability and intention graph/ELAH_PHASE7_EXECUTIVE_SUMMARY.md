@@ -4,7 +4,7 @@
 |---|---|
 | Date | 17 September 2026 |
 | Audience | Founder (Confluence home for this phase) |
-| Status | Phase 7 design and protocols **Approved by Founder, 17 September 2026**. Founder **CRM System** page plots `ElahScoreSnapshot` rows via the display-only atlas. Understandability interviews: **zero** completed notes — human-test cards remain open. |
+| Status | Re-audited 17 September 2026: **19/23 cards Done**, three In Progress, one Backlog. Founder **CRM System** implements the cube, trajectories, deviation markers, and graph-linked explanation panel. Understandability interviews: **zero** completed notes. |
 | Evidence | This folder + founder `app/banking/crm/page.tsx` + `lib/elah/cs-crm-coordinates.ts` + Phase 0 G1–G12 + supplied 249-action research note dated 17 Sep 2026 |
 
 **Product freeze (unchanged):** ELAH scores genuine support/CRM intent **before tools**. Company policy allow / deny / confirm. **ELAH never allows, blocks, or executes.** Scores live in `ElahScoreSnapshot`, not the event envelope. Customer / support-user UI MUST NOT show `elahScore`. Analyst (founder) UI MAY show score. Fail-open 250 ms. No fabricated customers, ARR, emails, interviews, or live Zendesk.
@@ -45,7 +45,8 @@ Kanban card 20 originally said “banking analysts.” This pack **rewrites** th
 
 1. Click-test founder **CRM System** (`/banking/crm`) after production deployment: cube, click a dot, evidence panel. Customer CRM UI must still hide `elahScore`.
 2. Do not add a fourth axis, a learned cube model, or customer-visible scores in order to “finish” a Kanban card.
-3. Run the approved CS/CRM understandability protocol with a real analyst; do not ask agents to invent quotes. Do not mark faithfulness/understandability cards Done without those notes.
+3. Run the approved CS/CRM understandability protocol with a real analyst; do not ask agents to invent quotes.
+4. Complete matched/weak/negative signal-list coverage, decide whether closed-label top-k alternatives warrant an output-contract change, and run end-to-end scorer signal replay.
 
 ---
 
