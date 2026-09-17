@@ -62,7 +62,7 @@ async function main() {
         owner: "Founder",
         order: PHASE7_MILESTONE.order,
         evidence:
-          "17 Sep 2026 re-audit: 19/23 cards Done, three In Progress, one Backlog. Live founder graph implements points, trajectories, deviations, and evidence. No understandability interviews or customer validation. Milestone remains open.",
+          "17 Sep 2026 re-audit: 18/23 cards Done, four In Progress, one Backlog. Live founder graph implements points, trajectories, deviations, and core evidence; signal-backed summaries remain incomplete. No understandability interviews or customer validation. Milestone remains open.",
       },
     }));
 
@@ -146,7 +146,7 @@ async function main() {
       data: {
         exitCriteria: PHASE7_MILESTONE.exitCriteria,
         evidence:
-          "17 Sep 2026 re-audit: 19/23 cards Done, three In Progress, one Backlog. Action evidence remains separate from HA/FR/EU; request_refund remains unmapped. No analyst interviews on file. Milestone remains open.",
+          "17 Sep 2026 re-audit: 18/23 cards Done, four In Progress, one Backlog. Action evidence remains separate from HA/FR/EU; signal-backed summaries remain incomplete; request_refund remains unmapped. No analyst interviews on file. Milestone remains open.",
       },
     });
   }
