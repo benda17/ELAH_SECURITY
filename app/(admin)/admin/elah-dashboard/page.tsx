@@ -6,7 +6,6 @@ import { parseAnalystFilters } from "@/lib/elah/analyst/filters";
 import { requireAnalystPermission } from "@/lib/elah/analyst/rbac";
 import { getDashboardSnapshot } from "@/lib/elah/analyst/snapshot";
 import { getThresholdsState } from "@/lib/elah/analyst/thresholds";
-import { loadDashboardExtras } from "@/components/elah-analyst/dashboard/extras-server";
 import { withDefaultPreset } from "@/components/elah-analyst/dashboard/helpers";
 import { DashboardLive } from "@/components/elah-analyst/dashboard/dashboard-live";
 import {
@@ -29,11 +28,11 @@ export default async function ElahDashboardPage({
 
   const filters = withDefaultPreset(parseAnalystFilters(searchParams));
   const now = new Date();
-  const [snapshot, thresholdsState, extras] = await Promise.all([
+  const [snapshot, thresholdsState] = await Promise.all([
     getDashboardSnapshot(filters, { now }),
     getThresholdsState(),
-    loadDashboardExtras(filters, { now }),
   ]);
+  const { extras } = snapshot;
 
   await writeAuditLog({
     actionType: "elah_dashboard_viewed",
@@ -68,7 +67,6 @@ export default async function ElahDashboardPage({
 
       <DashboardLive
         initialSnapshot={snapshot}
-        initialExtras={extras}
         canConfigure={can(user.role, "analyst:configure_thresholds")}
         thresholdMeta={{
           isDefault: thresholdsState.isDefault,

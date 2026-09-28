@@ -4,6 +4,10 @@ import { toExportRecord, type AnalystExportRecord } from "./export";
 import type { AnalystEventFilters } from "./filters";
 import { queryAnalystEvents } from "./query";
 import { computeDashboardStats, type DashboardStats } from "./stats";
+import {
+  computeDashboardExtras,
+  type DashboardExtras,
+} from "@/components/elah-analyst/dashboard/helpers";
 
 export interface DashboardSnapshot {
   generatedAt: string;
@@ -13,6 +17,8 @@ export interface DashboardSnapshot {
   thresholds: ElahDisplayThresholds;
   range: { from: string | null; to: string | null };
   stats: DashboardStats;
+  /** Score/confidence points, quality failures, and model-version counts from the same scan. */
+  extras: DashboardExtras;
   /** Newest rows (flattened, no utterances), for a live feed. */
   latest: AnalystExportRecord[];
   /** More matches may exist beyond the scan (see `AnalystQueryResult.truncated`). */
@@ -44,6 +50,7 @@ export async function getDashboardSnapshot(
     thresholds: result.thresholds,
     range: result.range,
     stats,
+    extras: computeDashboardExtras(result.rows, now),
     latest: result.rows.slice(0, LATEST_COUNT).map(toExportRecord),
     truncated: result.truncated,
   };

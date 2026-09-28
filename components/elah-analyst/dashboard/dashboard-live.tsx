@@ -7,7 +7,6 @@ import { Button } from "@/components/ui/button";
 import { Empty } from "@/components/ui/empty";
 import { cn } from "@/lib/utils";
 import type { DashboardSnapshot } from "@/lib/elah/analyst/snapshot";
-import { fetchDashboardExtrasAction } from "./actions";
 import { Breakdowns } from "./breakdowns";
 import { ConfidenceCard, ScoreDistributionCard } from "./distribution-cards";
 import { KpiCards } from "./kpi-cards";
@@ -19,7 +18,6 @@ import {
   DASHBOARD_POLL_MS,
   formatUtcTime,
   riskIndicators,
-  type DashboardExtras,
 } from "./helpers";
 
 type Health = "ok" | "refreshing" | "error";
@@ -31,26 +29,24 @@ function snapshotError(status: number): string {
 }
 
 /**
- * Near-real-time dashboard body. Polls the snapshot API (and the extras
- * action for distributions) every 15s while visible and not paused.
+ * Near-real-time dashboard body. Polls the snapshot API every 15s while
+ * visible and not paused.
  */
 export function DashboardLive({
   initialSnapshot,
-  initialExtras,
   thresholdMeta,
   canConfigure,
   emptyAction,
   pollMs = DASHBOARD_POLL_MS,
 }: {
   initialSnapshot: DashboardSnapshot;
-  initialExtras: DashboardExtras;
   thresholdMeta: ThresholdMeta;
   canConfigure: boolean;
   emptyAction?: React.ReactNode;
   pollMs?: number;
 }) {
   const [snapshot, setSnapshot] = useState(initialSnapshot);
-  const [extras, setExtras] = useState(initialExtras);
+  const extras = snapshot.extras;
   const [paused, setPaused] = useState(false);
   const [hidden, setHidden] = useState(false);
   const [health, setHealth] = useState<Health>("ok");
@@ -65,21 +61,17 @@ export function DashboardLive({
     setSnapshot((current) =>
       initialSnapshot.generatedAt > current.generatedAt ? initialSnapshot : current,
     );
-    setExtras((current) => (initialExtras.generatedAt > current.generatedAt ? initialExtras : current));
-  }, [initialSnapshot, initialExtras]);
+  }, [initialSnapshot]);
 
   const refresh = useCallback(
     async (signal?: AbortSignal) => {
       setHealth("refreshing");
       try {
-        const [res, extrasResult] = await Promise.all([
-          fetch(`/api/admin/elah/analyst/snapshot${query ? `?${query}` : ""}`, {
-            cache: "no-store",
-            headers: { accept: "application/json" },
-            signal,
-          }),
-          fetchDashboardExtrasAction(query),
-        ]);
+        const res = await fetch(`/api/admin/elah/analyst/snapshot${query ? `?${query}` : ""}`, {
+          cache: "no-store",
+          headers: { accept: "application/json" },
+          signal,
+        });
         if (signal?.aborted) return;
         if (!res.ok) throw new Error(snapshotError(res.status));
         const body = (await res.json()) as { ok?: boolean; snapshot?: DashboardSnapshot };
@@ -89,15 +81,8 @@ export function DashboardLive({
         const fresh = next.latest.filter((r) => !seenIdsRef.current.has(String(r.eventId))).length;
         for (const r of next.latest) seenIdsRef.current.add(String(r.eventId));
         setSnapshot(next);
-        if (extrasResult.ok) setExtras(extrasResult.extras);
-
-        if (!extrasResult.ok) {
-          setError(`${extrasResult.error} Counts and charts above are current; distributions may be stale.`);
-          setHealth("error");
-        } else {
-          setError(null);
-          setHealth("ok");
-        }
+        setError(null);
+        setHealth("ok");
         if (fresh > 0) {
           setAnnouncement(`${fresh} new event${fresh === 1 ? "" : "s"} since the last update.`);
         }
