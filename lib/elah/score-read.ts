@@ -46,6 +46,8 @@ export type ElahScoredSnapshot = {
   requestId: string | null;
   scoredAt: string | null;
   provenanceScorer: string | null;
+  /** `score.provenance.modelVersion`; null for rules_v0 (not a trained model). */
+  provenanceModelVersion: string | null;
 };
 
 export type ElahUnavailableSnapshot = {
@@ -201,6 +203,8 @@ export function parseScoreSnapshot(
       asString(envelope.scoredAt) ?? asString(metadata.scoredAt) ?? null,
     provenanceScorer:
       asString(provenance?.scorer) ?? asString(metadata.scorer) ?? "rules_v0",
+    provenanceModelVersion:
+      asString(provenance?.modelVersion) ?? asString(metadata.modelVersion) ?? null,
   };
 }
 

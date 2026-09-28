@@ -168,9 +168,7 @@ export function compileScenarioToTrainingRecord(
       ...overrides.event?.actor,
     },
     action: {
-      toolName,
       page: defaultPage(template),
-      args,
       amount,
       currency: amount != null ? (template.currency ?? "ILS") : null,
       amountBucket: template.amountBucket ?? amountBucketFromAmount(amount),

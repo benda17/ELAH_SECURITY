@@ -14,57 +14,25 @@ import {
   truncateUserAgent,
 } from "./event-context";
 import { checkElahEvent, findDuplicateEventIds, type QualityResult } from "./quality";
+import {
+  ELAH_ACTION_TYPES,
+  ELAH_TOOL_NAMES,
+  type ElahActionType,
+  type ElahToolName,
+} from "./event-vocab";
+import { ELAH_ANALYST_ACTION_PREFIX, isAnalystActionType } from "./analyst/constants";
 
 export const ELAH_EVENT_SCHEMA_VERSION = "1.0";
 export const ELAH_APP_ID = "elah-banking-demo";
 
 const UTTERANCE_CAP = 2000;
 
-export const ELAH_ACTION_TYPES = [
-  "login",
-  "login_failed",
-  "logout",
-  "password_reset",
-  "internal_transfer",
-  "external_transfer",
-  "bill_payment",
-  "card_freeze",
-  "card_unfreeze",
-  "statement_download",
-  "account_balance_read",
-  "transactions_read",
-  "transaction_lookup",
-  "spending_summary",
-  "recipients_read",
-  "cards_read",
-  "support_case_created",
-  "document_download",
-  "document_bulk_download",
-  "profile_update",
-  "card_request",
-  "loan_application",
-  "prompt_injection",
-] as const;
-
-export type ElahActionType = (typeof ELAH_ACTION_TYPES)[number];
-
-export const ELAH_TOOL_NAMES = [
-  "get_account_balance",
-  "get_recent_transactions",
-  "get_transaction_by_id",
-  "get_spending_summary",
-  "get_monthly_statement",
-  "get_saved_recipients",
-  "get_cards",
-  "create_internal_transfer",
-  "create_external_transfer",
-  "pay_bill",
-  "freeze_card",
-  "unfreeze_card",
-  "create_support_case",
-] as const;
-
-export type ElahToolName = (typeof ELAH_TOOL_NAMES)[number];
+export {
+  ELAH_ACTION_TYPES,
+  ELAH_TOOL_NAMES,
+  type ElahActionType,
+  type ElahToolName,
+};
 
 const ACTION_TYPE_SET = new Set<string>(ELAH_ACTION_TYPES);
 const TOOL_NAME_SET = new Set<string>(ELAH_TOOL_NAMES);
@@ -463,7 +431,13 @@ function resolveCanonicalAction(
   createdByAgent: boolean | null | undefined,
   toolName: ElahToolName | null,
 ): ElahActionType | null {
-  if (DO_NOT_MAP.has(liveType) || isPageViewActionType(liveType)) return null;
+  if (
+    DO_NOT_MAP.has(liveType) ||
+    isPageViewActionType(liveType) ||
+    isAnalystActionType(liveType)
+  ) {
+    return null;
+  }
   if (liveType === "transfer_submitted" || liveType === "transfer_blocked") {
     if (
       (createdByAgent || source === "agent") &&
@@ -964,6 +938,10 @@ export async function listIngestibleEvents(filters: {
   source?: "ui" | "agent" | "system";
   quality?: "ok" | "fail";
   eventId?: string;
+  /** Inclusive lower bound on AuditLog.timestamp (DB-side). */
+  from?: Date;
+  /** Inclusive upper bound on AuditLog.timestamp (DB-side). */
+  to?: Date;
   take?: number;
 }): Promise<Array<{ event: ElahEvent; quality: QualityResult; auditLogId: string }>> {
   const take = filters.take ?? 100;
@@ -976,6 +954,15 @@ export async function listIngestibleEvents(filters: {
       ...(filters.sessionId ? { sessionId: filters.sessionId } : {}),
       ...(filters.source ? { source: filters.source } : {}),
       ...(filters.eventId ? { eventId: filters.eventId } : {}),
+      ...(filters.from || filters.to
+        ? {
+            timestamp: {
+              ...(filters.from ? { gte: filters.from } : {}),
+              ...(filters.to ? { lte: filters.to } : {}),
+            },
+          }
+        : {}),
+      NOT: { actionType: { startsWith: ELAH_ANALYST_ACTION_PREFIX } },
     },
     orderBy: { timestamp: "desc" },
     take: dbTake,
