@@ -1,10 +1,12 @@
 # ELAH Label Taxonomy — Banking Intent Labels
 
+> **Canonical copy (Phase 4):** [`docs/Phase 4 - Dataset and labeling system/ELAH_LABEL_TAXONOMY.md`](./Phase%204%20-%20Dataset%20and%20labeling%20system/ELAH_LABEL_TAXONOMY.md) (`ELAH-SPEC-LABEL-TAXONOMY-001`). This root file is kept so existing links still resolve. The closed 22-value set below is unchanged.
+
 | Field | Value |
 |---|---|
 | Document ID | ELAH-SPEC-LABEL-TAXONOMY-001 |
 | Version | 1.0 |
-| Status | Proposed for sign-off |
+| Status | **Approved** (see Phase 4 canonical copy) |
 | Date | 17 August 2026 |
 | Classification | Internal — ELAH Security |
 | Owner | Founder |
@@ -271,7 +273,7 @@ This task is complete when:
 
 | Role | Name | Date | Decision |
 |---|---|---|---|
-| Product / Founder |  |  | Approve / Approve with comments / Reject |
+| Product / Founder | Founder | 26 August 2026 | **Approve** |
 | Data |  |  |  |
 | Model |  |  |  |
 | Security |  |  |  |

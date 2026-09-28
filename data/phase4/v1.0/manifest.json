@@ -1,0 +1,139 @@
+{
+  "datasetVersion": "v1.0",
+  "taxonomyVersion": "1.0",
+  "seed": 20260826,
+  "counts": {
+    "packs": {
+      "legitimate": 260,
+      "suspicious": 32,
+      "malicious": 32,
+      "ambiguous": 22,
+      "multi_step": 33,
+      "prompt_injection": 22,
+      "indirect_injection": 16,
+      "compromised_tool": 12,
+      "excessive_permission": 16,
+      "mistaken_user": 16,
+      "conflicting_instruction": 14,
+      "authorization_boundary": 16,
+      "data_exfiltration": 16,
+      "high_value_transfer": 22,
+      "unusual_device": 14,
+      "unusual_location": 14,
+      "behavior_drift": 14
+    },
+    "multi_step_sequences": 16,
+    "total": 571,
+    "splits": {
+      "train": 393,
+      "val": 78,
+      "holdout": 100
+    }
+  },
+  "generatedAt": "2026-08-26T00:00:00.000Z",
+  "files": [
+    {
+      "path": "data/phase4/v1.0/packs/legitimate.jsonl",
+      "sha256": "e38e5261049504071eec9a83d1ff8339db0c42419d198f270d4ccd92e863ddf6",
+      "records": 260
+    },
+    {
+      "path": "data/phase4/v1.0/packs/suspicious.jsonl",
+      "sha256": "8b48f49216fe9fdd1c390d4a39546e8f196fa0bed987d68832280fe89fd63468",
+      "records": 32
+    },
+    {
+      "path": "data/phase4/v1.0/packs/malicious.jsonl",
+      "sha256": "14343e27bec6d63d146feeed27482489c16fe26eb33aaf055e78f96fcdddf703",
+      "records": 32
+    },
+    {
+      "path": "data/phase4/v1.0/packs/ambiguous.jsonl",
+      "sha256": "4f61555bb2b9c5262205b3910661f1eb28d0f293bf907dbfa75dc825b084231d",
+      "records": 22
+    },
+    {
+      "path": "data/phase4/v1.0/packs/multi_step.jsonl",
+      "sha256": "687992414dfda06b4f7254c18ed285c071769a2f7bf9156a418c08a1548bd446",
+      "records": 33
+    },
+    {
+      "path": "data/phase4/v1.0/packs/prompt_injection.jsonl",
+      "sha256": "0c7150491187a3196427323b60e5675e62b03c05a709d5e362479528f21118f0",
+      "records": 22
+    },
+    {
+      "path": "data/phase4/v1.0/packs/indirect_injection.jsonl",
+      "sha256": "ba9ace7acc7ae4b0f2899a89551585d9a48c0e6429bb2a9dafca730a1a5d5c6c",
+      "records": 16
+    },
+    {
+      "path": "data/phase4/v1.0/packs/compromised_tool.jsonl",
+      "sha256": "391a5e7711eca1d1d67c372987c6aca13d9dc4328a47cdc9f07baf99cac94646",
+      "records": 12
+    },
+    {
+      "path": "data/phase4/v1.0/packs/excessive_permission.jsonl",
+      "sha256": "aa5710ae3ad62da2fa64e5f207d8f9b3cc2664c26e2c8a7b3459f81f56f30bd1",
+      "records": 16
+    },
+    {
+      "path": "data/phase4/v1.0/packs/mistaken_user.jsonl",
+      "sha256": "9070b189d3627932252bc2fc03a88a0ae16b5e84d4daab306735fcc0e0a674de",
+      "records": 16
+    },
+    {
+      "path": "data/phase4/v1.0/packs/conflicting_instruction.jsonl",
+      "sha256": "9f4f313c6c9336c72097ce9a1740ee29ae54fad3ad56a74ab714e30a3d2335fa",
+      "records": 14
+    },
+    {
+      "path": "data/phase4/v1.0/packs/authorization_boundary.jsonl",
+      "sha256": "c949a1b77877e9e9c8387725d9f8e10ca1c001926780d18a6c27f4aace4fc0b7",
+      "records": 16
+    },
+    {
+      "path": "data/phase4/v1.0/packs/data_exfiltration.jsonl",
+      "sha256": "f1b9f6f617ac3e0c8251d19819b87bed763b040b728d50aac62d88a21799d744",
+      "records": 16
+    },
+    {
+      "path": "data/phase4/v1.0/packs/high_value_transfer.jsonl",
+      "sha256": "c2086705d79fe80454a672ffcb12269535f74c2b906e0f6f154fe71977146486",
+      "records": 22
+    },
+    {
+      "path": "data/phase4/v1.0/packs/unusual_device.jsonl",
+      "sha256": "012ca2cdac2887d11c6ea94d8a808f3adf8222a71dab7b93fc16815b265c163f",
+      "records": 14
+    },
+    {
+      "path": "data/phase4/v1.0/packs/unusual_location.jsonl",
+      "sha256": "decc3a6060d7b30cd6210aada81d7f06e5e951360ce53fd5cc6156824f3d487b",
+      "records": 14
+    },
+    {
+      "path": "data/phase4/v1.0/packs/behavior_drift.jsonl",
+      "sha256": "0a3e18781924015b8ee94b5759aa003701b24f5e6d2a3722d91b74bc23395728",
+      "records": 14
+    },
+    {
+      "path": "data/phase4/v1.0/splits/train.jsonl",
+      "sha256": "d035e387377894f2a8e12a94f5ed187e9b38652518356fa1548f1179e8e24c02",
+      "records": 393
+    },
+    {
+      "path": "data/phase4/v1.0/splits/val.jsonl",
+      "sha256": "eb64c544404aee4097b516ab93abe104f0452a28f348fbacc250cda1581c40f2",
+      "records": 78
+    },
+    {
+      "path": "data/phase4/v1.0/splits/holdout.jsonl",
+      "sha256": "97171bb3116c46bb2a3fb6e9d9931d3b60ddb02d23a4c694679d5c99cb6311bc",
+      "records": 100
+    }
+  ],
+  "changelog": [
+    "initial synthetic cut 26 Aug 2026"
+  ]
+}

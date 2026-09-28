@@ -6,6 +6,8 @@ import {
   AlertOctagon,
   MessagesSquare,
   ScanSearch,
+  Tags,
+  Gauge,
 } from "lucide-react";
 import { requireSecurity } from "@/lib/auth/guards";
 import { ClientSidebar } from "@/components/layout/client-sidebar";
@@ -33,6 +35,16 @@ export default async function AdminLayout({
       href: "/admin/elah-events",
       label: "ELAH events",
       icon: <ScanSearch className="size-4" />,
+    },
+    {
+      href: "/admin/elah-labeling",
+      label: "ELAH labeling",
+      icon: <Tags className="size-4" />,
+    },
+    {
+      href: "/admin/elah-baseline",
+      label: "ELAH baseline",
+      icon: <Gauge className="size-4" />,
     },
     {
       href: "/admin/assistant-logs",

@@ -1,0 +1,43 @@
+{
+  "version": "1.0",
+  "computedAt": "2026-08-26T07:57:53.415Z",
+  "source": "data/phase4/iaa-overlap.json",
+  "n": 30,
+  "percentAgreement": 0.8333333333333334,
+  "kappa": 0.8249708284714119,
+  "disagreementCount": 5,
+  "disagreements": [
+    {
+      "index": 5,
+      "scenarioId": "overlap_006",
+      "annotatorA": "external_transfer",
+      "annotatorB": "bill_payment"
+    },
+    {
+      "index": 11,
+      "scenarioId": "overlap_012",
+      "annotatorA": "fraud_report",
+      "annotatorB": "dispute_chargeback"
+    },
+    {
+      "index": 17,
+      "scenarioId": "overlap_018",
+      "annotatorA": "loan_inquiry",
+      "annotatorB": "loan_application"
+    },
+    {
+      "index": 23,
+      "scenarioId": "overlap_024",
+      "annotatorA": "ambiguous_banking_request",
+      "annotatorB": "non_banking_request"
+    },
+    {
+      "index": 29,
+      "scenarioId": "overlap_030",
+      "annotatorA": "prompt_injection_or_policy_bypass",
+      "annotatorB": "support_escalation"
+    }
+  ],
+  "liveHumanKappa": "BLOCKED",
+  "note": "Fixture IAA only. Live human kappa is BLOCKED until founder + second reviewer label the same 30 overlap ids, then re-run this script."
+}

@@ -394,13 +394,40 @@ function scoreStatusBadge(snapshot: ElahScoreSnapshot) {
   return <Badge variant="info">scored</Badge>;
 }
 
+function isUncalibratedScorer(snapshot: ElahScoreSnapshot | null): boolean {
+  if (!snapshot || snapshot.kind !== "scored") return true;
+  const scorer = snapshot.provenanceScorer;
+  return !scorer || scorer === "rules_v0" || scorer === "intent_matrix";
+}
+
+function recommendationVariant(
+  recommendation: string | null,
+): "default" | "info" | "warning" {
+  if (recommendation === "watch") return "info";
+  if (recommendation === "review" || recommendation === "step_up_hint") {
+    return "warning";
+  }
+  return "default";
+}
+
 function ElahScoreCard({ snapshot }: { snapshot: ElahScoreSnapshot | null }) {
+  const uncalibrated = isUncalibratedScorer(snapshot);
+  const abstained =
+    snapshot?.kind === "scored" && snapshot.status === "abstained";
+
   return (
     <Card>
       <CardHeader
         title="ELAH score (rules_v0)"
         description="Intention reading only. This is not an allow, deny, confirm, or execute decision. Bank policy remains the authority. ELAH never allows, blocks, or executes."
-        action={snapshot ? scoreStatusBadge(snapshot) : undefined}
+        action={
+          <div className="flex flex-wrap items-center justify-end gap-2">
+            {uncalibrated ? (
+              <Badge variant="warning">Uncalibrated (rules_v0)</Badge>
+            ) : null}
+            {snapshot ? scoreStatusBadge(snapshot) : null}
+          </div>
+        }
       />
       {!snapshot ? (
         <p className="text-sm text-ink-muted">
@@ -419,7 +446,23 @@ function ElahScoreCard({ snapshot }: { snapshot: ElahScoreSnapshot | null }) {
         </div>
       ) : (
         <div className="space-y-4">
-          <div className="grid grid-cols-2 gap-3 text-sm md:grid-cols-4">
+          {abstained ? (
+            <div className="rounded-lg border border-accent-amber/30 bg-accent-amber/10 px-4 py-3">
+              <p className="text-sm font-medium text-ink">
+                Numeric score is non-decisive
+              </p>
+              <p className="mt-1 text-sm text-ink-muted">
+                ELAH abstained. Confidence is too low to treat this intention
+                reading as decisive. Bank policy still governs whether the tool
+                runs. ELAH never allows, blocks, or executes.
+              </p>
+            </div>
+          ) : null}
+          <div
+            className={`grid grid-cols-2 gap-3 text-sm md:grid-cols-4 ${
+              abstained ? "opacity-60" : ""
+            }`}
+          >
             <KV k="Status" v={snapshot.status} />
             <KV k="elahScore" v={formatScoreNumber(snapshot.elahScore)} />
             <KV k="confidence" v={formatScoreNumber(snapshot.confidence)} />
@@ -429,6 +472,12 @@ function ElahScoreCard({ snapshot }: { snapshot: ElahScoreSnapshot | null }) {
             <KV k="scoredAt" v={snapshot.scoredAt ?? "—"} />
             <KV k="scorer" v={snapshot.provenanceScorer ?? "rules_v0"} />
           </div>
+          {uncalibrated ? (
+            <p className="text-xs text-ink-subtle">
+              Uncalibrated (rules_v0). Treat confidence as strength of evidence,
+              not a calibrated probability.
+            </p>
+          ) : null}
           <div className="grid grid-cols-2 gap-3 text-sm md:grid-cols-3">
             <KV
               k="humanAgency"
@@ -462,19 +511,45 @@ function ElahScoreCard({ snapshot }: { snapshot: ElahScoreSnapshot | null }) {
               items={snapshot.explanation.negativeSignals}
             />
           </div>
-          <div className="grid grid-cols-2 gap-3 text-sm md:grid-cols-3">
-            <KV
-              k="policyHook"
-              v={snapshot.policyHook.recommendation ?? "—"}
-            />
-            <KV
-              k="policyHook reasons"
-              v={
-                snapshot.policyHook.reasons.length > 0
-                  ? snapshot.policyHook.reasons.join("; ")
-                  : "—"
-              }
-            />
+          <div className="space-y-3 rounded-lg border border-line bg-bg-panel/40 px-4 py-3">
+            <div>
+              <div className="text-[10px] uppercase tracking-widest text-ink-subtle">
+                policyHook recommendation
+              </div>
+              <p className="mt-1 text-xs text-ink-muted">
+                Analyst attention hint only. Not an allow, deny, confirm, or
+                execute decision.
+              </p>
+              <div className="mt-2">
+                {snapshot.policyHook.recommendation ? (
+                  <Badge
+                    variant={recommendationVariant(
+                      snapshot.policyHook.recommendation,
+                    )}
+                  >
+                    {snapshot.policyHook.recommendation}
+                  </Badge>
+                ) : (
+                  <span className="text-sm text-ink-muted">—</span>
+                )}
+              </div>
+            </div>
+            <div>
+              <div className="text-[10px] uppercase tracking-widest text-ink-subtle">
+                policyHook reason codes
+              </div>
+              {snapshot.policyHook.reasons.length === 0 ? (
+                <p className="mt-1 text-sm text-ink-muted">None</p>
+              ) : (
+                <div className="mt-1 flex flex-wrap gap-1.5">
+                  {snapshot.policyHook.reasons.map((reason) => (
+                    <Badge key={reason} variant="default">
+                      {reason}
+                    </Badge>
+                  ))}
+                </div>
+              )}
+            </div>
           </div>
         </div>
       )}
