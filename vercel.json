@@ -1,5 +1,6 @@
 {
   "buildCommand": "npx prisma generate && node scripts/generate-crm-client.js && npm run build",
+  "ignoreCommand": "node scripts/vercel-ignore-build.js",
   "crons": [
     {
       "path": "/api/cron/generate-linkedin-draft",
