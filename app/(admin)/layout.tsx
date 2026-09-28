@@ -8,6 +8,7 @@ import {
   ScanSearch,
   Tags,
   Gauge,
+  LayoutDashboard,
 } from "lucide-react";
 import { requireSecurity } from "@/lib/auth/guards";
 import { ClientSidebar } from "@/components/layout/client-sidebar";
@@ -30,6 +31,11 @@ export default async function AdminLayout({
       href: "/admin/action-logs",
       label: "Action logs",
       icon: <ListChecks className="size-4" />,
+    },
+    {
+      href: "/admin/elah-dashboard",
+      label: "ELAH dashboard",
+      icon: <LayoutDashboard className="size-4" />,
     },
     {
       href: "/admin/elah-events",
