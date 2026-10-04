@@ -3,9 +3,9 @@
 | Field | Value |
 |---|---|
 | Document ID | ELAH-MDL-ARCH-001 |
-| Version | **1.1** |
-| Status | **Approved** — first trained head is **CatBoost**; offline `catboost_v0` exists (30 Aug 2026); live scorer remains `rules_v0` |
-| Date | 30 August 2026 |
+| Version | **1.2** |
+| Status | **Approved** — first trained head is **CatBoost**; offline `catboost_v0` exists; in-process p95 holds; live scorer remains `rules_v0` |
+| Date | 28 September 2026 |
 | Classification | Internal — ELAH Security |
 | Owner | Founder |
 | Related task | `task-6-define-the-initial-model-architecture` |
@@ -93,7 +93,7 @@ It maps the feature vector to:
 
 It is **not** an LLM on the customer path. It is **not** a small language model over raw utterance/tool text as the live scorer (see `ELAH-MDL-CMP-001`). Choosing CatBoost does **not** add allow / deny / confirm / execute.
 
-Offline weights exist (`catboost_v0`, blinded holdout accuracy **0.90**, FP **0**, FN **0** — `ELAH-MDL-RUN-001`). Live `modelVersion` remains **null**. Latency is unmeasured, so this document still does not authorize cutover.
+Offline weights exist (`catboost_v0`, blinded holdout accuracy **0.90**, FP **0**, FN **0** — `ELAH-MDL-RUN-001`). Live `modelVersion` remains **null**. In-process extract+predict p95 is **2.16 ms** (`ELAH-MDL-LAT-001`). Colocated HTTP p95 is still unmeasured. This document still does **not** authorize cutover.
 
 ### 4.3 Optional hybrid serving
 
@@ -149,7 +149,7 @@ Until one of those triggers, Phase 6 does **not** extract a separate ELAH deploy
 
 ## 5. Promotion bar (when a model may replace live `rules_v0`)
 
-A later **integration** task MAY cut over only if **all** of the following hold. Offline CatBoost has beaten items 2–4 on synthetic holdout v1.0. Items 1 (protocol) held for that run. Item 5 (p95) is **unmeasured**. Item 6 (immutability) held. Fail any item → keep `scorer = rules_v0`.
+A later **integration** task MAY cut over only if **all** of the following hold **and** the founder gives an **explicit yes**. Offline CatBoost has beaten items 2–4 on synthetic holdout v1.0. Items 1 (protocol) and 6 (immutability) held. Item 5 **in-process** p95 holds (`ELAH-MDL-LAT-001` 2.16 ms); **colocated HTTP** p95 is still unmeasured. Fail any item → keep `scorer = rules_v0`.
 
 1. Blinded holdout v1.0 (`n=100`) is scored without gold `detectedIntent` (same protocol as Phase 5).
 2. Intent accuracy and macro-F1 beat `rules_v0` on that holdout. Live `rules_v0` numbers are in `data/phase5/v1.0/eval-report.json` and `ELAH-BASE-EVAL-001`; they are the **baseline**, not a model claim.

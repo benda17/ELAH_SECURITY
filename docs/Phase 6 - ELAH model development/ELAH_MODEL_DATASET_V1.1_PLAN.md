@@ -9,7 +9,7 @@
 | Classification | Internal — ELAH Security |
 | Owner | Founder |
 | Related task | `task-6-train-on-simulator-data` |
-| Founder decision | 31 August 2026: plan a **new** `datasetVersion` **v1.1** from labeled simulator events; do **not** rewrite gold v1.0; do **not** mix unlabeled simulator-log JSONL into v1.0; do **not** train a new model until a real v1.1 cut exists |
+| Founder decision | 31 August 2026: plan a **new** `datasetVersion` **v1.1** from labeled simulator events; do **not** rewrite gold v1.0; do **not** mix unlabeled simulator-log JSONL into v1.0; do **not** train a new model until a real v1.1 cut exists. **28 September 2026:** Kanban card stays **backlog** — still no v1.1 cut. |
 | Depends on | `ELAH-DATA-VER-001`, `ELAH-DATA-NORM-001`, `ELAH-DATA-TRAIN-001`, `ELAH-DATA-UI-001`, `ELAH-SPEC-LABEL-TAXONOMY-001`, `ELAH-MDL-DATA-001` |
 | Pointer | [ELAH_MODEL_DATASET_VERSIONS.md](./ELAH_MODEL_DATASET_VERSIONS.md) (`ELAH-MDL-DATA-001`) — v1.0 remains the only citable train cut today |
 

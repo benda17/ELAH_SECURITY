@@ -1,0 +1,14 @@
+---
+description: Spawn one agent per numbered item when the user lists multiple tasks
+alwaysApply: true
+---
+
+# Numbered tasks → multiple agents
+
+When the user gives **more than one task using numbering** (`1.` `2.` `3.` or `1)` `2)` `3)`), launch **one Task subagent per numbered item in the same turn**. Do not do all numbered items yourself in one serial pass.
+
+- Run the agents concurrently unless a later item truly depends on an earlier item's output.
+- Give each agent a complete prompt (they cannot see this chat).
+- After they return, synthesize one answer. Do not dump raw agent transcripts.
+
+Example: `1. Fix X. 2. Add Y.` → two Task calls in one message, then a combined result.

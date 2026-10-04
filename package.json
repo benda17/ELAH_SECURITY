@@ -27,6 +27,8 @@
     "test:phase5-baseline": "vitest run tests/elah/baseline-features.test.ts tests/elah/baseline-normalize.test.ts tests/elah/baseline-score.test.ts tests/elah/baseline-fixtures.test.ts tests/elah/baseline-metrics.test.ts tests/elah/baseline-evaluate.test.ts tests/elah/mock-scorer.test.ts",
     "test:phase1-events": "vitest run tests/events",
     "test:phase9-analyst": "vitest run tests/elah/analyst-filters.test.ts tests/elah/analyst-bands.test.ts tests/elah/analyst-rbac.test.ts tests/elah/analyst-export.test.ts tests/elah/analyst-stats.test.ts tests/elah/analyst-annotations.test.ts tests/elah/analyst-ingest-exclusion.test.ts tests/elah/analyst-query.test.ts",
+    "test:phase10-eval": "vitest run tests/elah/phase10-score-consistency.test.ts tests/elah/phase10-threshold-separation.test.ts tests/elah/phase10-data-loss.test.ts tests/elah/phase10-customer-ui.test.ts tests/elah/phase10-load.test.ts tests/elah/client-failopen.test.ts tests/elah/trust-boundary.test.ts tests/elah/score-contract.test.ts tests/elah/analyst-rbac.test.ts",
+    "phase10:load": "tsx --require ./scripts/lib/preload-server-only.cjs scripts/phase10-load-bench.ts",
     "seed:intent-matrix": "tsx --require ./scripts/lib/preload-server-only.cjs scripts/seed-intent-matrix.ts",
     "clean:injection-data": "tsx scripts/clean-injection-data.ts",
     "test": "vitest run",

@@ -4,8 +4,8 @@
 |---|---|
 | Document ID | ELAH-MDL-HYB-001 |
 | Version | **1.0** |
-| Status | **Proposed** — founder **31 August 2026**: **PREPARE** hybrid (`rules_v0` first, CatBoost overlay) **IF** in-process p95 **≤ 200 ms**. Gate **open** (`ELAH-MDL-LAT-001` p95 2.16 ms). **Do not** cut over `POST /v1/score`. |
-| Date | 31 August 2026 |
+| Status | **Proposed / Kanban backlog** — founder **31 August 2026**: **PREPARE** hybrid (`rules_v0` first, CatBoost overlay) **IF** in-process p95 **≤ 200 ms**. Gate **open** (`ELAH-MDL-LAT-001` p95 2.16 ms). **Do not** cut over `POST /v1/score`. This memo is **not** Done for `task-6-integrate-the-best-model-into-the-elah-service`. |
+| Date | 28 September 2026 (audit; prepare decision 31 August 2026) |
 | Classification | Internal — ELAH Security |
 | Owner | Founder |
 | Related task | `task-6-integrate-the-best-model-into-the-elah-service` |

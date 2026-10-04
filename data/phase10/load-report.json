@@ -1,0 +1,15 @@
+{
+  "schemaVersion": "1.0",
+  "kind": "in_process_extract_predict",
+  "notHttp": true,
+  "notProductionRps": true,
+  "scorer": "rules_v0",
+  "iterations": 400,
+  "p50Ms": 0.004,
+  "p95Ms": 0.0066,
+  "eventsPerSec": 139581.5,
+  "clientFailOpenMs": 250,
+  "serverP95BudgetMs": 200,
+  "generatedAt": "2026-09-28T18:00:18.258Z",
+  "environment": "darwin arm64"
+}

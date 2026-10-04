@@ -3,9 +3,9 @@
 | Field | Value |
 |---|---|
 | Document ID | ELAH-MDL-CMP-001 |
-| Version | **1.1** |
-| Status | **Approved** — first trained scorer is **CatBoost**; offline `catboost_v0` measured on holdout; live scorer remains `rules_v0` |
-| Date | 30 August 2026 |
+| Version | **1.2** |
+| Status | **Approved** — first trained scorer is **CatBoost**; offline `catboost_v0` measured on holdout and in-process latency; live scorer remains `rules_v0` |
+| Date | 28 September 2026 |
 | Classification | Internal — ELAH Security |
 | Owner | Founder |
 | Related task | `task-6-compare-rules-classical-machine-learning-small-l` |
@@ -14,7 +14,7 @@
 
 **Product freeze (unchanged):** ELAH scores genuine banking intent **before tool execution**. Bank policy allow / deny / confirm. **ELAH never allows, blocks, or executes.** Scores are **not** fields of `ElahEvent`. Jane / customer UI MUST NOT show `elahScore`. No ATM, beneficiary-write, or `device_change` product. Closed 22-label taxonomy (`lib/elah/types.ts`). `rules_v0` is **uncalibrated** and is **not** a trained model. No fabricated customers, pilots, or trained-model metrics.
 
-**This comparison records a founder selection plus one offline CatBoost run.** Live numbers remain `rules_v0` only. CatBoost holdout is **offline**, not a live scorer. SLM and hybrid serving latency stay **unmeasured**. Selecting CatBoost is not a cutover.
+**This comparison records a founder selection plus one offline CatBoost run.** Live numbers remain `rules_v0` only. CatBoost holdout and in-process latency are **offline**, not a live scorer. SLM and hybrid **HTTP** serving latency stay **unmeasured**. Selecting CatBoost is not a cutover.
 
 ---
 
@@ -54,7 +54,7 @@ Source: `data/phase5/v1.0/eval-report.json` (`schemaVersion` 1.0, `generatedAt` 
 | ECE | **0.153** (uncalibrated) |
 | In-process p50 / p95 | **0.004 / 0.006 ms** (Apple M2, 10 iterations; informational vs 80 / 200 ms) |
 
-Approaches C and D have **no** holdout accuracy. CatBoost (B) has **offline** holdout numbers (`ELAH-MDL-RUN-001`). Latency for B/C/D remains **unmeasured**. Do not invent live CatBoost latency.
+Approaches C and D have **no** holdout accuracy. CatBoost (B) has **offline** holdout numbers (`ELAH-MDL-RUN-001`) and **in-process** latency (`ELAH-MDL-LAT-001`). SLM and hybrid HTTP latency remain **unmeasured**. Do not invent live CatBoost HTTP latency.
 
 ---
 
@@ -67,7 +67,7 @@ Axes: accuracy (blinded 22-way + injection hooks), latency vs 80 / 200 / 250, ex
 | Approach | Blinded holdout | Notes |
 |---|---|---|
 | A `rules_v0` | Accuracy **0.79**, macro-F1 **~0.59**, FP **0**, FN **1** (`azb-0005`), injection recall **0.59** | Measured. Uncalibrated. Synthetic gold. Not a trained-model metric |
-| B CatBoost on Phase 5 features | Accuracy **0.90**, macro-F1 **~0.89**, FP **0**, FN **0**, injection recall **1.0** (22/22 synthetic) | **Offline** blinded holdout n=100. Not live. Do not market as production 100%. ECE unmeasured |
+| B CatBoost on Phase 5 features | Accuracy **0.90**, macro-F1 **~0.89**, FP **0**, FN **0**, injection recall **1.0** (22/22 synthetic) | **Offline** blinded holdout n=100. Not live. Do not market as production 100%. Uncalibrated ECE **0.042** |
 | C SLM on utterance / tool text | **Unmeasured** | No eval on holdout v1.0. Must not be quoted as better or worse |
 | D hybrid rules-then-model | **Unmeasured** | Accuracy would be A, or A-then-B overlay, only after B exists and is measured |
 
@@ -78,7 +78,7 @@ Promotion still requires beating A on blinded holdout without rewriting gold v1.
 | Approach | vs p50 ≤ 80 ms / p95 ≤ 200 ms / fail-open 250 ms |
 |---|---|
 | A `rules_v0` | In-process p50 / p95 **0.004 / 0.006 ms** (Apple M2; informational). Well inside the ceiling. Not a network SLO |
-| B CatBoost on Phase 5 features | **Unmeasured.** Expected class of work is a vector + boosted-tree forward pass on CPU, colocated. Still must be measured before cutover. If it cannot hold p95 → do not raise timeout; use D |
+| B CatBoost on Phase 5 features | In-process extract+predict p50 / p95 **0.176 / 2.16 ms** (darwin; `ELAH-MDL-LAT-001`). **Not** HTTP. p95 ≤ 200 ms holds in-process. Still must not cut over without founder yes. If a later HTTP measurement missed p95 → do not raise timeout; use D |
 | C SLM on utterance / tool text | **Unmeasured.** Treat as **high latency risk** on the customer path. Reject as live scorer unless a later measurement shows it finishes inside **250 ms** (and holds p95). Abstain or skip if it cannot; never wait |
 | D hybrid rules-then-model | **Unmeasured** as a combined path. Design intent: A always returns inside the budget; B overlays only with remaining time. Does not raise 250 ms |
 
@@ -117,7 +117,7 @@ None of these costs are a reason to add allow / deny to ELAH.
 
 **First trained scorer: CatBoost** on Phase 5 features (approach B). Gradient-boosted trees. Fits ELAH because events are mostly structured and categorical (action type, tool name, user tier, policy state, risk tags, intent labels, agent behavior, context signals). Same `ElahEvent` 1.0, same encoder (`lib/elah/baseline/features.ts`), closed 22-way head, ScoreResponse 1.0 only (`elahScore`, label, confidence, coordinates, explanation, provenance). Not an LLM on the customer path. ELAH still never allows, blocks, confirms, or executes.
 
-**Serving pattern if B cannot hold p95:** hybrid rules-then-model (approach D). Score `rules_v0` first; overlay CatBoost only with remaining budget; abstain or skip the overlay; **do not raise 250 ms**.
+**Serving pattern if B cannot hold p95:** hybrid rules-then-model (approach D). In-process B p95 **holds** (2.16 ms). Hybrid remains **prepare-only**. Score `rules_v0` first; overlay CatBoost only with remaining budget; abstain or skip the overlay; **do not raise 250 ms**. Do not cut over without founder yes.
 
 **Reject** a small language model on the customer path (approach C) unless a later measurement shows it meets the **250 ms** fail-open (and p95). It is **not measured**; treat it as high latency risk. Off-path research is out of scope for this comparison.
 
@@ -129,7 +129,7 @@ A linear / logistic head is **not** the selected first scorer.
 
 ## 6. Non-goals
 
-- Inventing F1, accuracy, ECE, or latency for B / C / D
+- Inventing live HTTP latency for B, or any F1 / accuracy / ECE / latency for C / D
 - Quoting hint-echo accuracy as the Phase 5 bar
 - Raising p50 / p95 / 250 ms
 - Training a model in this document
@@ -158,7 +158,7 @@ A linear / logistic head is **not** the selected first scorer.
 | Engineering |  |  |  |
 | Security |  |  |  |
 
-**Approval statement:** I agree ELAH scores genuine banking intent **before tool execution**; that bank policy allow / deny / confirm; that **ELAH never allows, blocks, or executes**; that scores are **not** fields of `ElahEvent`; that Jane / customer UI MUST NOT show `elahScore`; that there is no ATM, beneficiary-write, or `device_change` product; that the taxonomy stays the closed 22 labels; that `rules_v0` is **uncalibrated** and is **not** a trained model; that only `rules_v0` has measured holdout numbers (accuracy **0.79**, macro-F1 **~0.59**, FP **0**, FN **1** on `azb-0005`, injection recall **0.59**, ECE **0.153**, in-process p50/p95 **0.004 / 0.006 ms**); that all other approaches are **unmeasured**; that the first trained scorer is **CatBoost** on Phase 5 features, with hybrid rules-then-model if p95 cannot be held; that an SLM is rejected on the customer path unless it meets **250 ms**; and that **selecting CatBoost is not a trained model.**
+**Approval statement:** I agree ELAH scores genuine banking intent **before tool execution**; that bank policy allow / deny / confirm; that **ELAH never allows, blocks, or executes**; that scores are **not** fields of `ElahEvent`; that Jane / customer UI MUST NOT show `elahScore`; that there is no ATM, beneficiary-write, or `device_change` product; that the taxonomy stays the closed 22 labels; that `rules_v0` is **uncalibrated** and is **not** a trained model; that live `rules_v0` holdout numbers remain accuracy **0.79**, macro-F1 **~0.59**, FP **0**, FN **1** on `azb-0005`, injection recall **0.59**, ECE **0.153**, in-process p50/p95 **0.004 / 0.006 ms**; that offline CatBoost holdout is accuracy **0.90**, FP **0**, FN **0**, uncalibrated ECE **0.042**, in-process p95 **2.16 ms** and is **not** live; that SLM and hybrid HTTP latency stay **unmeasured**; that the first trained scorer is **CatBoost** on Phase 5 features; that an SLM is rejected on the customer path unless it meets **250 ms**; and that **selecting CatBoost is not a live cutover.**
 
 ---
 

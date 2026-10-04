@@ -3,13 +3,13 @@
 | Field | Value |
 |---|---|
 | Document ID | ELAH-MDL-LIMIT-001 |
-| Version | **1.1** |
-| Status | **Updated** — offline `catboost_v0` exists; live scorer still `rules_v0` |
-| Date | 30 August 2026 |
+| Version | **1.2** |
+| Status | **Updated** — offline ECE and in-process latency cited; live scorer still `rules_v0` |
+| Date | 28 September 2026 |
 | Classification | Internal — ELAH Security |
 | Owner | Founder |
 | Related task | `task-6-document-known-limitations` |
-| Depends on | `ELAH-BASE-LIMIT-001`, `ELAH-BASE-EVAL-001`, `ELAH-DATA-IAA-PACKET-001`, `ELAH-SPEC-CONFIDENCE-001`, `ELAH-MDL-ABS-001`, `ELAH-MDL-RUN-001`, `ELAH-MDL-ERR-001` |
+| Depends on | `ELAH-BASE-LIMIT-001`, `ELAH-BASE-EVAL-001`, `ELAH-DATA-IAA-PACKET-001`, `ELAH-SPEC-CONFIDENCE-001`, `ELAH-MDL-ABS-001`, `ELAH-MDL-RUN-001`, `ELAH-MDL-ERR-001`, `ELAH-MDL-CONF-001`, `ELAH-MDL-CAL-001`, `ELAH-MDL-LAT-001` |
 | Holdout bar | `data/phase5/v1.0/eval-report.json` (`rules_v0`, blinded, n=100) |
 | Offline CatBoost | `elah-model/artifacts/catboost_v0/metrics.json` |
 | Does not own | Live integration; new `ScoreResponse` fields; Jane UI; product-freeze gaps |
@@ -20,7 +20,7 @@
 
 ## 1. Purpose
 
-State what Phase 6 **cannot** claim on 30 August 2026, including now that an offline CatBoost artifact exists.
+State what Phase 6 **cannot** claim on 28 September 2026, including now that an offline CatBoost artifact exists and offline ECE / in-process latency have been measured.
 
 This memo is the limitation set for **CatBoost** model work **plus** the inherited Phase 5 baseline. It does not contradict `ELAH_BASELINE_LIMITATIONS.md` (`ELAH-BASE-LIMIT-001`). Read that document as in force.
 
@@ -30,7 +30,7 @@ Honest gap list. Not a pitch.
 
 ## 2. Offline CatBoost exists; it is not live
 
-**As of 30 August 2026 there is an offline CatBoost artifact (`catboost_v0`). There is still no live trained scorer.**
+**As of 28 September 2026 there is an offline CatBoost artifact (`catboost_v0`). There is still no live trained scorer.**
 
 What exists:
 
@@ -44,11 +44,11 @@ What exists:
 What does **not** exist:
 
 - `provenance.scorer = "model"` (or `"hybrid"`) on the live `/v1/score` path
-- Measured CatBoost latency on the customer path (p50 / p95 / 250 ms)
-- Measured ECE / calibration for CatBoost
-- A calibration note that would retire the Uncalibrated (rules) qualifier for `rules_v0`
+- Colocated HTTP CatBoost p50 / p95 on the customer path (in-process p95 **is** measured; see `ELAH-MDL-LAT-001`)
+- A live calibrator; Platt is offline only (`ELAH-MDL-CAL-001`) and does **not** retire the Uncalibrated (rules) badge on `rules_v0`
 - Live two-person Cohen’s κ on the overlap packet (§5)
 - Training on unlabeled simulator logs (intentionally not mixed into v1.0)
+- A labeled simulator gold cut **v1.1** (plan only; `ELAH-MDL-DATA-V11-001`)
 
 Do not quote CatBoost holdout as live model performance. Do not imply cutover. Do not market injection recall 1.0 (22/22 synthetic) as production 100%.
 
@@ -62,7 +62,7 @@ Do not quote CatBoost holdout as live model performance. Do not imply cutover. D
 |---|---|
 | **Single-event scoring** | One `ElahEvent`. No velocity, retry loops, session hops, or live “unusual for this person” profile. |
 | **Synthetic gold** | Holdout is `phase4_gen_v1` (seed `20260826`). Generator annotator ids are not two independent humans. |
-| **Uncalibrated `rules_v0`** | Live confidence is still uncalibrated. CatBoost ECE was **not** measured. |
+| **Uncalibrated `rules_v0`** | Live confidence is still uncalibrated. Offline CatBoost ECE is **0.042** uncalibrated and **0.032** after Platt — not live. |
 | **No profile store** | No device inventory, home location, beneficiary graph, or historical amount distribution. |
 | **Independent twins** | UI vs agent twins are distinct `eventId`s. Do not average twins into one `elahScore`. |
 | **Product-freeze gaps** | Not bugs. Stay out of scope (§7). |
@@ -82,12 +82,12 @@ Source (rules): `data/phase5/v1.0/eval-report.json`. Source (CatBoost): `artifac
 | Legitimate-as-injection FP | **0** | **0** |
 | Injection-as-P0-money-move FN | **1** (`azb-0005`) | **0** |
 | Injection recall | **0.59** | **1.0** (22/22 synthetic — do not quote as production) |
-| ECE | **0.153** (uncalibrated) | **Not measured** |
-| Live latency | In-process p50/p95 **0.004 / 0.006 ms** | **Not measured** |
+| ECE | **0.153** (uncalibrated) | **0.042** uncalibrated; Platt **0.032** (offline only) |
+| Latency | In-process p50/p95 **0.004 / 0.006 ms** | In-process extract+predict p50/p95 **0.176 / 2.16 ms** (darwin; **not** HTTP) |
 
-Offline, CatBoost beats accuracy / FP / FN. **Live promotion still fails §5 of `ELAH-MDL-ARCH-001`** until latency is measured and the model is integrated on purpose.
+Offline, CatBoost beats accuracy / FP / FN. In-process p95 ≤ 200 ms **holds**. **Live promotion still fails** until an **explicit founder yes**, colocated HTTP p95, and the integrate card ship. `POST /v1/score` stays `rules_v0`.
 
-Do not quote **1.00** as a marketing figure. Do not round accuracy to a marketing 80% or 90% without the synthetic caveat. Do not present missing ECE as “calibrated.”
+Do not quote **1.00** as a marketing figure. Do not round accuracy to a marketing 80% or 90% without the synthetic caveat. Do not present offline Platt as live calibration.
 
 Weak labels (`ELAH-MDL-ERR-001`): `dispute_chargeback` support 4 recall 0; `fraud_report` / `fee_or_overdraft_question` support 1 recall 0; `internal_transfer` recall 0.57; `bill_payment` recall 0.50.
 
@@ -106,13 +106,13 @@ Phase 4 shipped a protocol and a 30-id overlap packet (`ELAH-DATA-IAA-PACKET-001
 | Cheat | Why it is not a win |
 |---|---|
 | Beat FP by calling all wires injection | Legitimate-as-injection FP would stay low while banking intent is destroyed. |
-| Beat ECE by lying about calibration | This run did not measure ECE. Do not invent it. |
+| Beat ECE by lying about calibration | Offline ECE is measured. Do not invent a live-calibrated badge. |
 | Beat accuracy by echoing `detectedIntent` | This run stripped the hint (`stripDetectedIntent: true`). |
 | Beat FN by labeling every P0 tool as injection | Same class of cheat as the FP trick, opposite direction. |
 
-### 6.2 Latency is unmeasured
+### 6.2 Customer-path HTTP latency is unmeasured
 
-CatBoost is **4.15 MiB** and CPU-class, but customer-path p50/p95 is **unmeasured**. The client ceiling is **250 ms** then fail-open. If inference would miss 250 ms: **fail-open / skip**. Never invent a score. Never wait. Never block the tool. See `ELAH-MDL-ABS-001`.
+CatBoost is **4.15 MiB** and CPU-class. In-process extract+predict p50/p95 is **0.176 / 2.16 ms** on this Mac (`ELAH-MDL-LAT-001`). That is **not** colocated HTTP p95 and **not** a live `/v1/score` SLO. The client ceiling is **250 ms** then fail-open. If inference would miss 250 ms: **fail-open / skip**. Never invent a score. Never wait. Never block the tool. See `ELAH-MDL-ABS-001`.
 
 ### 6.3 Abstention is not enforcement
 
@@ -154,6 +154,9 @@ These are **not** Phase 6 feature requests.
 | [ELAH_MODEL_TRAINING_RUN.md](./ELAH_MODEL_TRAINING_RUN.md) | Offline fit record |
 | [ELAH_MODEL_ERROR_ANALYSIS.md](./ELAH_MODEL_ERROR_ANALYSIS.md) | Per-label misses |
 | [ELAH_MODEL_CARD.md](./ELAH_MODEL_CARD.md) | Live rules + offline CatBoost |
+| [ELAH_MODEL_CONFIDENCE.md](./ELAH_MODEL_CONFIDENCE.md) | Uncalibrated ECE 0.042 |
+| [ELAH_MODEL_CALIBRATION.md](./ELAH_MODEL_CALIBRATION.md) | Platt offline only |
+| [ELAH_MODEL_LATENCY.md](./ELAH_MODEL_LATENCY.md) | In-process p95; not HTTP |
 
 ---
 
@@ -165,7 +168,7 @@ These are **not** Phase 6 feature requests.
 | Engineering |  |  |  |
 | Security |  |  |  |
 
-**Approval statement:** I agree that as of 30 August 2026 offline `catboost_v0` exists and is not live; that this memo inherits `ELAH-BASE-LIMIT-001`; that the blinded rules bar remains accuracy 0.79 / FP 0 / FN 1 and CatBoost beat it offline (0.90 / 0 / 0) without measuring latency or ECE; that live two-person Cohen’s κ is not a result; that product-freeze gaps stay out of scope; and that ELAH still never allows, blocks, or executes.
+**Approval statement:** I agree that as of 28 September 2026 offline `catboost_v0` exists and is not live; that this memo inherits `ELAH-BASE-LIMIT-001`; that the blinded rules bar remains accuracy 0.79 / FP 0 / FN 1 and CatBoost beat it offline (0.90 / 0 / 0); that uncalibrated holdout ECE is **0.042** and in-process p95 is **2.16 ms** (not HTTP); that live two-person Cohen’s κ is not a result; that product-freeze gaps stay out of scope; and that ELAH still never allows, blocks, or executes.
 
 ---
 

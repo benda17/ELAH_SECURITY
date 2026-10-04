@@ -3,13 +3,13 @@
 | Field | Value |
 |---|---|
 | Document ID | ELAH-MDL-CARD-001 |
-| Version | **1.1** |
-| Status | **Updated** — Section B filled from offline `catboost_v0` (30 August 2026). Live scorer remains `rules_v0`. |
-| Date | 30 August 2026 |
+| Version | **1.2** |
+| Status | **Updated** — Section B filled from offline `catboost_v0`; ECE and in-process latency cited 31 Aug 2026. Live scorer remains `rules_v0`. |
+| Date | 28 September 2026 |
 | Classification | Internal — ELAH Security |
 | Owner | Founder |
 | Related task | `task-6-create-model-cards` |
-| Depends on | `ELAH-BASE-EVAL-001`, `ELAH-BASE-LIMIT-001`, `ELAH-DATA-VER-001`, `ELAH-MDL-DATA-001`, `ELAH-MDL-RUN-001` |
+| Depends on | `ELAH-BASE-EVAL-001`, `ELAH-BASE-LIMIT-001`, `ELAH-DATA-VER-001`, `ELAH-MDL-DATA-001`, `ELAH-MDL-RUN-001`, `ELAH-MDL-CONF-001`, `ELAH-MDL-CAL-001`, `ELAH-MDL-LAT-001` |
 | Gold | `data/phase4/v1.0/manifest.json` (copied at `elah-model/data/gold/v1.0/`) |
 | Eval (rules) | `data/phase5/v1.0/eval-report.json` |
 | Eval (CatBoost, offline) | `elah-model/artifacts/catboost_v0/metrics.json` |
@@ -119,15 +119,15 @@ Trained 30 August 2026 in `/Users/benda/elah-model`. **Not wired** to `POST /v1/
 | Legitimate-as-injection FP | **0** |
 | Injection→P0-money FN | **0** |
 | Injection recall | **1.0** (22/22 on this **synthetic** slice — do not quote as production 100%) |
-| ECE | **Not measured** on this run |
-| Latency (p50 / p95) | **Not measured** — model is offline |
+| ECE | **0.042** uncalibrated holdout; Platt **0.032** (offline calibrator only — `ELAH-MDL-CONF-001`, `ELAH-MDL-CAL-001`) |
+| Latency (p50 / p95) | In-process extract+predict **0.176 / 2.16 ms** (darwin; **not** HTTP — `ELAH-MDL-LAT-001`) |
 | Size | **4,347,408** bytes (`artifacts/catboost_v0/model.cbm`) |
 | Date trained | **2026-08-30T18:27:08Z** |
-| Beat holdout bar (0.79 / FP 0 / FN 1)? | **Offline yes** (accuracy / FP / FN). **Live cutover no** — latency unmeasured, not integrated |
+| Beat holdout bar (0.79 / FP 0 / FN 1)? | **Offline yes** (accuracy / FP / FN). **Live cutover no** — no founder yes; HTTP p95 unmeasured; not integrated |
 
 Weak labels on this holdout (see `ELAH-MDL-ERR-001`): `dispute_chargeback` (support 4, recall 0), `fraud_report` and `fee_or_overdraft_question` (support 1, recall 0), `internal_transfer` recall 0.57, `bill_payment` recall 0.50.
 
-The bar to beat remains Section A.4. Beating FP by scoring all wires as injection is not a win. Beating ECE without remaining honest about calibration is not a win. This run did not measure ECE.
+The bar to beat remains Section A.4. Beating FP by scoring all wires as injection is not a win. Beating ECE without remaining honest about calibration is not a win. Offline Platt does **not** calibrate live `rules_v0`.
 
 ---
 
@@ -139,7 +139,7 @@ The bar to beat remains Section A.4. Beating FP by scoring all wires as injectio
 | Engineering |  |  |  |
 | Security |  |  |  |
 
-**Approval statement:** I agree the live scorer is uncalibrated `rules_v0` (not a trained model); that holdout metrics for rules are blinded n=100 from `data/phase5/v1.0/eval-report.json` only (accuracy 0.79, macro-F1 ~0.59, FP 0, FN 1 `azb-0005`); that Section B records offline `catboost_v0` on gold v1.0 (accuracy 0.90, FP 0, FN 0) and is **not** live; that Jane never sees `elahScore`; and that ELAH never allows, blocks, or executes.
+**Approval statement:** I agree the live scorer is uncalibrated `rules_v0` (not a trained model); that holdout metrics for rules are blinded n=100 from `data/phase5/v1.0/eval-report.json` only (accuracy 0.79, macro-F1 ~0.59, FP 0, FN 1 `azb-0005`); that Section B records offline `catboost_v0` on gold v1.0 (accuracy 0.90, FP 0, FN 0, uncalibrated ECE 0.042, in-process p95 2.16 ms) and is **not** live; that Jane never sees `elahScore`; and that ELAH never allows, blocks, or executes.
 
 ---
 

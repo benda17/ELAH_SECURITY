@@ -1,0 +1,7 @@
+{
+  "plugins": {
+    "atlassian-twg-cli": {
+      "enabled": true
+    }
+  }
+}
