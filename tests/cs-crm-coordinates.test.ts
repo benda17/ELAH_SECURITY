@@ -6,6 +6,7 @@ import {
   csCrmCoordinates,
   financialRiskLevel,
   isDeviationPoint,
+  parseElahExplanation,
   pointDisplayOpacity,
   resolveNormalizedActionEvidence,
   round3,
@@ -167,5 +168,65 @@ const points: IntentMatrixPoint[] = [
 const traj = buildTrajectories(points, 20);
 assert.equal(traj.length, 1);
 assert.equal(traj[0]?.coords.length, 2);
+
+// metadata.elahExplanation → point fields (same path as getCrmIntentMatrixPoints)
+const withExplanation = sanitizeMetadata({
+  elahExplanation: {
+    matchedSignals: ["refund_or_credit_verb", "planned_tool:request_refund"],
+    weakSignals: ["short_message"],
+    negativeSignals: [],
+    summary: "Refund lexicon with a planned refund tool.",
+    alternativeLabels: ["refund_abuse", "ambiguous_crm_request"],
+  },
+  toolName: "request_refund",
+});
+const parsedExplanation = parseElahExplanation(withExplanation);
+assert.deepEqual(parsedExplanation, {
+  explanationSummary: "Refund lexicon with a planned refund tool.",
+  matchedSignals: ["refund_or_credit_verb", "planned_tool:request_refund"],
+  weakSignals: ["short_message"],
+  negativeSignals: [],
+  alternativeLabels: ["refund_abuse", "ambiguous_crm_request"],
+});
+const explainedPoint: IntentMatrixPoint = {
+  id: "3",
+  x: 0.7,
+  y: 0.74,
+  z: 0.36,
+  riskLevel: "high",
+  actionStatus: "scored",
+  intentId: "refund_request",
+  intentLabel: "refund_request",
+  userId: "u1",
+  timestamp: "2026-09-23T12:00:00.000Z",
+  messageSnippet: "please refund",
+  toolName: "request_refund",
+  policyDecision: "needs_confirmation",
+  metadataSanitized: withExplanation,
+  ...parsedExplanation,
+};
+assert.equal(explainedPoint.explanationSummary, "Refund lexicon with a planned refund tool.");
+assert.deepEqual(explainedPoint.matchedSignals, [
+  "refund_or_credit_verb",
+  "planned_tool:request_refund",
+]);
+assert.deepEqual(explainedPoint.weakSignals, ["short_message"]);
+assert.deepEqual(explainedPoint.negativeSignals, []);
+assert.deepEqual(explainedPoint.alternativeLabels, [
+  "refund_abuse",
+  "ambiguous_crm_request",
+]);
+
+// Missing elahExplanation must not invent tokens
+const historicalMeta = sanitizeMetadata({ toolName: "list_tickets", actorName: "Bea" });
+const missingExplanation = parseElahExplanation(historicalMeta);
+assert.deepEqual(missingExplanation, {});
+assert.equal(missingExplanation.matchedSignals, undefined);
+assert.equal(missingExplanation.weakSignals, undefined);
+assert.equal(missingExplanation.negativeSignals, undefined);
+assert.equal(missingExplanation.explanationSummary, undefined);
+assert.equal(missingExplanation.alternativeLabels, undefined);
+assert.deepEqual(parseElahExplanation({}), {});
+assert.deepEqual(parseElahExplanation(null), {});
 
 console.log("cs-crm-coordinates tests passed");

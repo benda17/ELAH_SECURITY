@@ -580,6 +580,147 @@ export const PHASE16_TASKS: Phase16TaskSpec[] = [
       "scripts/seed-phase16-cs-crm-wedge.ts",
     ],
   },
+  {
+    title: "Define CS/CRM evaluation bar vs banking rules_v0",
+    workstream: "Data",
+    category: "Evaluation",
+    status: "in_review",
+    priority: "high",
+    isCriticalPath: true,
+    progressPercentage: 45,
+    estimatedEffort: "2d",
+    description: card(
+      "Write a CS/CRM evaluation bar that is not the banking-gold / rules_v0 holdout. Banking 0.79 (seed 20260826, 100-row holdout) stays banking evidence. cs_crm_rules_v0 synthetic 1.00 is lexicon-echo against the same generator — not a production model and not comparable to 0.79. A later CRM scorer (ECHM / naive Bayes) is measured on cs_crm_gold only, labeled synthetic, never as customer accuracy or refund accuracy.",
+      "Gold plan already forbids quoting 1.00 as production. Evaluator exists at elah-crm-simulator/scripts/evaluate-phase16-baseline.ts. Design-partner note records ECHM team-written holdout 72/96 (0.750) as synthetic. No dedicated eval-bar memo yet. Founder Approve still required.",
+      "One short memo: metrics (intent accuracy, injection recall, refund-abuse recall, FP on genuine refunds), datasetVersion cs_crm_gold, scorer names, and an explicit do-not-quote table (banking 0.79; rules 1.00; ECHM 0.750). Do not mix banking gold v1.0. Do not claim a customer SLA.",
+      "Eval-bar memo + do-not-quote table signed Proposed.",
+      "Quoting banking holdout as refund accuracy; quoting 1.00 as a trained model; a production CS accuracy claim.",
+    ),
+    successCriteria:
+      "- Banking rules_v0 numbers stay labeled banking-gold only.\n- CS/CRM metrics name datasetVersion + scorer; synthetic flag intact.\n- rules_v0 CRM 1.00 is documented as lexicon-echo, not the bar to beat in production.\n- No customer or refund-accuracy claim.",
+    deliverables:
+      "docs/Phase 16 - B2B SaaS CS CRM wedge/ELAH_CS_CRM_EVAL_BAR.md (ELAH-WEDGE-EVAL-001) plus pointers to evaluate-phase16-baseline.ts and ELAH_DESIGN_PARTNER_SCORE.md.",
+    notes:
+      "In review: comparison language lives in the gold plan and design-partner note. Card stays in_review until a dedicated eval-bar memo exists and founder Approves. Do not mark Done without that memo.",
+    links: [
+      "docs/Phase 16 - B2B SaaS CS CRM wedge/ELAH_CS_CRM_GOLD_PLAN.md",
+      "elah-crm-simulator/scripts/evaluate-phase16-baseline.ts",
+      "elah-crm-simulator/docs/ELAH_DESIGN_PARTNER_SCORE.md",
+      "docs/Phase 5 - Baseline scoring system",
+    ],
+  },
+  {
+    title: "Forbid live ticket PII in CS/CRM gold",
+    workstream: "Data",
+    category: "Privacy",
+    status: "in_review",
+    priority: "high",
+    isCriticalPath: true,
+    progressPercentage: 60,
+    estimatedEffort: "1d",
+    description: card(
+      "Make the privacy rule a first-class Phase 16 card: CS/CRM gold and scoring envelopes are synthetic or labeled-simulator only. No live Zendesk/Salesforce/Intercom ticket bodies, no production CRM dumps, no real emails/phones in JSONL or /v1/score. Design-partner traffic uses hashed actor ids and demo envelopes.",
+      "Gold plan §7 already forbids live tickets and production CRM export. Design-partner scoring note says do not send raw PII to a shared scoring endpoint. 10k seed:traffic rows stay unlabeled volume, not gold. No counsel sign-off of a real-customer CS dataset (there are no real customers).",
+      "Keep the forbidden-source table honest. Do not promote unlabeled traffic or hosted DB dumps into cs_crm_gold. Do not paste live ticket text into Confluence. Optional: a one-page privacy addendum if §7 is too buried for GTM.",
+      "Kanban-visible privacy rule + gold plan §7 (and optional ELAH-WEDGE-PRIV-001).",
+      "Live customer tickets as gold; committing hosted dumps; sending production PII to /v1/score.",
+    ),
+    successCriteria:
+      "- Forbidden sources named: live tickets, production CRM export, unlabeled traffic pack, banking utterances relabeled as refunds.\n- Gold and design-partner paths use synthetic/demo envelopes only.\n- Customer/support UI still never shows elahScore.\n- No fabricated ‘we anonymized a customer export’ claim.",
+    deliverables:
+      "Section 7 of ELAH_CS_CRM_GOLD_PLAN.md (ELAH-WEDGE-GOLD-001) + elah-crm-simulator/docs/ELAH_DESIGN_PARTNER_SCORE.md ‘What must not be sent’. Optional privacy addendum.",
+    notes:
+      "In review: the rule is written. Not Done — no separate counsel review, and the 10k traffic pack must stay out of gold. Sibling of the gold-plan card, not a second gold dataset.",
+    links: [
+      "docs/Phase 16 - B2B SaaS CS CRM wedge/ELAH_CS_CRM_GOLD_PLAN.md",
+      "elah-crm-simulator/docs/ELAH_DESIGN_PARTNER_SCORE.md",
+      "docs/Phase 4 - Dataset and labeling system/ELAH_DATASET_PRIVACY.md",
+    ],
+  },
+  {
+    title: "Ship CS/CRM ops analyst view in CRM Simulation",
+    workstream: "Dashboard",
+    category: "Analyst",
+    status: "in_review",
+    priority: "high",
+    isCriticalPath: false,
+    progressPercentage: 80,
+    estimatedEffort: "3d",
+    description: card(
+      "Give a CS/CRM ops analyst (security.admin), not a bank CISO, a demo surface: scored ticket/refund/CRM events with snapshot + explanation evidence. Support-user / customer chat never shows elahScore. Company policy allow/deny/confirm stays on the event; ELAH never allows, blocks, or executes. Phase 7 owns the HA/FR/EU cube; this card owns CRM Simulation /admin/events.",
+      "CRM simulator /admin/events and event detail already show envelope vs ElahScoreSnapshot, ontology (what), intent (why), explanation signals. Founder /banking/crm is a sibling analytics nav, not this card. Phase 7 understandability protocol remains a separate backlog (zero analyst sessions).",
+      "Click-through as security.admin@elah.demo on hosted CRM: event list → snapshot → explanation; then the same flow as basic.customer@elah.demo with no score in chat. Do not clone Phase 7 graph cards. Do not show scores on /support.",
+      "Hosted CS ops analyst path with snapshot + explanation; customer chat without a score.",
+      "Bank-CISO dashboard as the first reader; customer-visible elahScore; rewriting Phase 7 cards into this one.",
+    ),
+    successCriteria:
+      "- Analyst login sees snapshot + explanation for a refund and a CRM write.\n- Customer/support UI has no elahScore.\n- Copy names CS/CRM ops, not bank CISO.\n- Phase 7 cube remains the graph work; this card is the CRM Simulation analyst chrome.",
+    deliverables:
+      "elah-crm-simulator app/(admin)/admin/events/* + components/elah-analyst/*. Founder /banking/crm stays the Phase 16 analytics sibling card.",
+    notes:
+      "In review: analyst chrome exists. Not Done until a written founder click-through of analyst-vs-customer on https://elahcrmsystem.vercel.app. Do not invent understandability interview notes (Phase 7).",
+    links: [
+      "elah-crm-simulator/app/(admin)/admin/events/[eventId]/page.tsx",
+      "elah-crm-simulator/components/elah-analyst/explanation-panel.tsx",
+      "docs/Phase 7 - Explainability and intention graph/ELAH_EXPLANATION_PANEL.md",
+      "https://elahcrmsystem.vercel.app",
+    ],
+  },
+  {
+    title: "Write CS/CRM design-partner scoring note",
+    workstream: "Engineering",
+    category: "Integration",
+    status: "in_review",
+    priority: "medium",
+    isCriticalPath: false,
+    progressPercentage: 70,
+    estimatedEffort: "1d",
+    description: card(
+      "A short integration note for a future CS/CRM design partner: how to call POST /v1/score, fail-open 250 ms, advisory recommendation only, tenant policy still allow/deny/confirm, ELAH never allows/blocks/executes, do not send live ticket PII. Not a customer claim, SLA, or committed pilot.",
+      "Note already exists at elah-crm-simulator/docs/ELAH_DESIGN_PARTNER_SCORE.md (ECHM default, rules/NB only if ELAH_SCORER is set, no silent fallback). No partner has been sent this. Agents do not email it.",
+      "Keep the note honest when scorers change. Founder may paste it; agents do not send. Do not invent a named design partner or a production SLA.",
+      "Integration note a founder can hand to a CS/CRM ops lead.",
+      "Sending the note; claiming a partner; quoting synthetic holdout as their accuracy.",
+    ),
+    successCriteria:
+      "- Path, timeout, fail-open, and freeze are written.\n- Live ticket PII forbidden on the wire.\n- No named partner, no SLA, no agent-sent mail.",
+    deliverables:
+      "elah-crm-simulator/docs/ELAH_DESIGN_PARTNER_SCORE.md.",
+    notes:
+      "In review: the file exists. Card stays in_review until founder reads it. Not a Phase 12 banking pilot clone.",
+    links: [
+      "elah-crm-simulator/docs/ELAH_DESIGN_PARTNER_SCORE.md",
+      "docs/Phase 16 - B2B SaaS CS CRM wedge/ELAH_CS_CRM_FREEZE.md",
+    ],
+  },
+  {
+    title: "Human-label CS/CRM gold with IAA",
+    workstream: "Data",
+    category: "Dataset",
+    status: "backlog",
+    priority: "medium",
+    isCriticalPath: false,
+    progressPercentage: 0,
+    estimatedEffort: "8d",
+    description: card(
+      "After the gold plan: two humans label a CS/CRM slice against cs_crm_taxonomy 0.1 (intent) plus exact-or-unmapped normalizedActionId (what happened). Report IAA. Synthetic/simulator rows only. Do not promote the 10k unlabeled traffic pack. Do not edit banking gold v1.0.",
+      "Plan + 516-row synthetic cut exist (seed 20260914). No human labels, no IAA, no mapping review recorded. Research PDF is not IAA evidence.",
+      "Pick a small dual-label slice (intent + action mapping). Keep twin groups in one split. Refund tools stay unmapped at the ontology layer. Do not invent interview quotes or live tickets.",
+      "Human-labeled slice + IAA note on cs_crm_gold (new patch version if the 0.1 generator cut stays frozen).",
+      "Live Zendesk as gold; overwriting banking v1.0; quoting rules 1.00 as IAA.",
+    ),
+    successCriteria:
+      "- Two annotators on a named slice; IAA reported.\n- Action IDs not invented; refund remains unmapped unless a reviewed ontology revision exists.\n- Still no live customer tickets.\n- Banking gold v1.0 untouched.",
+    deliverables:
+      "IAA note + labeled slice under elah-crm-simulator/data/phase16/ (new patch directory if needed). Pointer from ELAH_CS_CRM_GOLD_PLAN.md.",
+    notes:
+      "Backlog. Gold-plan card tracks the plan + synthetic cut; this card tracks human evidence that does not exist yet. Do not mark Done without IAA numbers.",
+    links: [
+      "docs/Phase 16 - B2B SaaS CS CRM wedge/ELAH_CS_CRM_GOLD_PLAN.md",
+      "docs/Phase 16 - B2B SaaS CS CRM wedge/ELAH_CS_CRM_TAXONOMY.md",
+      "elah-crm-simulator/scripts/generate-phase16-gold.ts",
+    ],
+  },
 ];
 
 export function phase16TaskId(title: string): string {

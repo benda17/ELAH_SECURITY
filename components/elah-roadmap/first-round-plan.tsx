@@ -40,6 +40,10 @@ export function FirstRoundPlan() {
         <h2 className="text-xl font-semibold tracking-tight text-ink">
           First Round Plan
         </h2>
+        <p className="mt-1 text-xs font-medium uppercase tracking-wider text-accent-gold">
+          {FIRST_ROUND_PLAN.askStatus} · {FIRST_ROUND_PLAN.askApprovedOn} · not
+          closed
+        </p>
         <p className="mt-3 max-w-3xl text-sm leading-relaxed text-ink-muted">
           {FIRST_ROUND_PLAN.description}
         </p>

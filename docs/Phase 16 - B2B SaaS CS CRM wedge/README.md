@@ -10,7 +10,7 @@ Demo venue: **ELAH CRM Simulation**. GitHub [`benda17/ELAH_SECURITY-CRM-System`]
 
 Canonical demo users: `basic.customer@elah.demo` (customer), `security.admin@elah.demo` (analyst). Password `DemoPass123!`.
 
-This pack maps all **19** Phase 16 Kanban cards.
+This pack maps Phase 16 Kanban cards (19 original + later gap cards in `lib/roadmap/seed/phase16.ts`).
 
 ---
 
@@ -52,6 +52,11 @@ Upload path for Kanban links: `docs/Phase 16 - B2B SaaS CS CRM wedge/<file>`.
 | 17 | Seed CRM demo users and command logs | `task-16-seed-crm-demo-users-and-command-logs` | **done** (14 Sep 2026) | — | GitHub `prisma/seed.ts` + `scripts/seed-crm-traffic.ts`. Hosted Neon `elah_crm`: 30 customers + 10k synthetic command logs. Local SQLite has its own pack. |
 | 18 | Point founder dashboard at live CRM Vercel URL | `task-16-point-founder-dashboard-at-live-crm-vercel-url` | **done** (16 Sep 2026) | — | Encrypted `CRM_APP_URL=https://elahcrmsystem.vercel.app` on founder production. |
 | 19 | Record GTM pivot on Phase 11–12 Kanban cards | `task-16-record-gtm-pivot-on-phase-11-12-kanban-cards` | **done** | — | `lib/roadmap/seed/phase16.ts` + `scripts/seed-phase16-cs-crm-wedge.ts` (`PHASE_11_12_PIVOT_BANNER`). Phase 11–12 stay as later banking vertical. |
+| 20 | Define CS/CRM evaluation bar vs banking rules_v0 | `task-16-define-cs-crm-evaluation-bar-vs-banking-rules-v0` | **in_review** | ELAH-WEDGE-EVAL-001 | Eval bar is not banking-gold 0.79 and not lexicon-echo 1.00. Pointers: gold plan, `evaluate-phase16-baseline.ts`, `ELAH_DESIGN_PARTNER_SCORE.md`. Memo still to write. |
+| 21 | Forbid live ticket PII in CS/CRM gold | `task-16-forbid-live-ticket-pii-in-cs-crm-gold` | **in_review** | ELAH-WEDGE-GOLD-001 §7 | No live tickets / production CRM dumps in gold or `/v1/score`. |
+| 22 | Ship CS/CRM ops analyst view in CRM Simulation | `task-16-ship-cs-crm-ops-analyst-view-in-crm-simulation` | **in_review** | — | CRM `/admin/events` (security.admin). Phase 7 owns the cube. Customer chat has no `elahScore`. |
+| 23 | Write CS/CRM design-partner scoring note | `task-16-write-cs-crm-design-partner-scoring-note` | **in_review** | — | [elah-crm-simulator/docs/ELAH_DESIGN_PARTNER_SCORE.md](https://github.com/benda17/ELAH_SECURITY-CRM-System). Agents do not send it. |
+| 24 | Human-label CS/CRM gold with IAA | `task-16-human-label-cs-crm-gold-with-iaa` | **backlog** | ELAH-WEDGE-GOLD-001 | Synthetic/simulator only. No IAA yet. Do not promote the 10k traffic pack. |
 | — | CRM/SaaS human-actions research mapping | — | **Research input / Proposed mapping** | ELAH-WEDGE-RESEARCH-001 | [ELAH_CRM_SAAS_HUMAN_ACTIONS_RESEARCH.md](./ELAH_CRM_SAAS_HUMAN_ACTIONS_RESEARCH.md) — 249 actions, 9 domains, 28 critical; action ontology is separate from intent taxonomy. |
 | — | Founder executive summary | — | — | — | [ELAH_PHASE16_EXECUTIVE_SUMMARY.md](./ELAH_PHASE16_EXECUTIVE_SUMMARY.md) |
 | — | Site / newsletter / social replacement sentences | — | — | ELAH-WEDGE-COPY-001 | [ELAH_ICP_COPY.md](./ELAH_ICP_COPY.md) |

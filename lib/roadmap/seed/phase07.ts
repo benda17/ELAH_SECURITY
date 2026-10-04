@@ -323,10 +323,10 @@ export const PHASE07_TASKS: Phase07TaskSpec[] = [
   spec({
     id: "task-7-display-model-evidence",
     title: "Display model evidence.",
-    status: "in_progress",
+    status: "done",
     priority: "high",
     isCriticalPath: true,
-    progressPercentage: 75,
+    progressPercentage: 100,
     estimatedEffort: "3d",
     syncStatus: true,
     body: `Surface ScoreResponse explanation.matchedSignals / weakSignals / negativeSignals on the analyst graph or side panel. CS/CRM ops analysts should see evidence tokens, not embeddings or chain-of-thought. ${FREEZE_BODY}`,
@@ -336,7 +336,7 @@ export const PHASE07_TASKS: Phase07TaskSpec[] = [
     successCriteria:
       "- Evidence fields named from ScoreResponse 1.0.\n- No CoT / hidden activations.\n- Provenance (rules vs model) visible to analysts.\n- Customer UI excluded.",
     deliverables: `${PHASE7_DOC_DIR}/ELAH_EXPLANATION_PANEL.md; components/cs-crm-explanation-panel.tsx action-evidence block.`,
-    notes: "In progress: score, confidence, reason codes, scorer, action provenance, and policy are visible. Matched/weak/negative signal-list coverage remains incomplete.",
+    notes: "Done: cs_crm_rules_v0 writes matched, weak, and negative tokens onto event metadata, and the selected-point panel shows them. Rows scored before 23 Sep 2026 stay empty until scored again.",
     links: [
       "docs/Phase 0 - Product Definition/ELAH_EXPLAINABILITY.md",
       "docs/Phase 5 - Baseline scoring system/ELAH_BASELINE_DASHBOARD.md",
@@ -390,10 +390,10 @@ export const PHASE07_TASKS: Phase07TaskSpec[] = [
   spec({
     id: "task-7-display-alternative-interpretations",
     title: "Display alternative interpretations.",
-    status: "in_progress",
+    status: "done",
     priority: "medium",
     isCriticalPath: false,
-    progressPercentage: 60,
+    progressPercentage: 100,
     estimatedEffort: "2d",
     syncStatus: true,
     body: `When confidence is not high, show the next-best closed labels (e.g. genuine refund vs refund abuse vs injection) so a CS/CRM ops analyst can disagree. ${FREEZE_BODY} Alternatives are labels from the closed set, not a story.`,
@@ -403,7 +403,7 @@ export const PHASE07_TASKS: Phase07TaskSpec[] = [
     successCriteria:
       "- Alternatives stay in the closed label set.\n- Optional until output-contract change is Approved.\n- No CoT stories.",
     deliverables: `${PHASE7_DOC_DIR}/ELAH_EXPLANATION_PANEL.md; components/cs-crm-explanation-panel.tsx`,
-    notes: "In progress: deterministic nearby interpretations are shown from reason-code cues. Closed-label top-k output still requires an approved ScoreResponse contract change.",
+    notes: "Done: the scorer stores up to two other closed labels in event metadata. They are not a ScoreResponse field. Older rows fall back to reason-code notes.",
     links: ["docs/Phase 0 - Product Definition/ELAH_OUTPUT_CONTRACT.md"],
   }),
   spec({
@@ -498,10 +498,10 @@ export const PHASE07_TASKS: Phase07TaskSpec[] = [
   spec({
     id: "task-7-test-whether-explanations-remain-faithful-to-mod",
     title: "Test whether explanations remain faithful to model behavior.",
-    status: "in_progress",
+    status: "done",
     priority: "high",
     isCriticalPath: true,
-    progressPercentage: 35,
+    progressPercentage: 100,
     estimatedEffort: "5d",
     syncStatus: true,
     body: `Faithfulness: evidence tokens must be reconstructable from the scorer that actually ran (rules_v0 or cs_crm_rules_v0 today; catboost_v0 only if wired). ${FREEZE_BODY} Do not test a model that is not on the path.`,
@@ -511,7 +511,7 @@ export const PHASE07_TASKS: Phase07TaskSpec[] = [
     successCriteria:
       "- Method named; live scorer named.\n- Offline model not treated as live.\n- No CoT as a faithfulness target.\n- No live customer events.",
     deliverables: `${PHASE7_DOC_DIR}/ELAH_FAITHFULNESS_AND_PRIVACY.md; tests/cs-crm-coordinates.test.ts action mapping checks.`,
-    notes: "In progress: protocol and focused mapping tests exist. End-to-end signal replay against the live scorers has not been completed.",
+    notes: "Done for cs_crm_rules_v0: replaying the same event rebuilds the same explanation. Offline naive Bayes stays unwired. No analyst session.",
     links: [
       "docs/Phase 6 - ELAH model development/ELAH_MODEL_CARD.md",
       "docs/Phase 5 - Baseline scoring system/ELAH_RULES_BASELINE.md",
@@ -542,10 +542,10 @@ export const PHASE07_TASKS: Phase07TaskSpec[] = [
   spec({
     id: "task-7-use-concise-evidence-based-explanations-instead",
     title: "Use concise evidence-based explanations instead.",
-    status: "in_progress",
+    status: "done",
     priority: "high",
     isCriticalPath: true,
-    progressPercentage: 65,
+    progressPercentage: 100,
     estimatedEffort: "3d",
     syncStatus: true,
     body: `Explanations are short, reproducible sentences from matched/weak/negative signals (≤240 chars if a summary exists). CS/CRM ops analysts should read tokens they could verify on the event. ${FREEZE_BODY} Style is evidence, not narrative.`,
@@ -555,7 +555,7 @@ export const PHASE07_TASKS: Phase07TaskSpec[] = [
     successCriteria:
       "- Summary length and reproducibility stated.\n- PII forbidden in summaries.\n- Examples for CS/CRM tools included.\n- No CoT.",
     deliverables: `${PHASE7_DOC_DIR}/ELAH_FAITHFULNESS_AND_PRIVACY.md`,
-    notes: "In progress: approved style guidance and concise panel copy exist; signal-backed reproducible summaries remain unimplemented.",
+    notes: "Done: new scores include a summary of at most 240 characters with no utterance or email, and the panel shows it.",
     links: [
       "docs/Phase 0 - Product Definition/ELAH_EXPLAINABILITY.md",
       "docs/Phase 5 - Baseline scoring system/ELAH_RULES_BASELINE.md",

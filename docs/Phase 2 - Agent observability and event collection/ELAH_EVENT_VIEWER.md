@@ -104,7 +104,23 @@ Use this checklist in a live demo, not a screenshot:
 
 ## 7. Sign-off
 
-I agree the security-admin ElahEvent viewer is list + detail + filters as specified; that page views and admin ops logs are not ElahEvents; that scores are not displayed; and that ELAH never allows, blocks, or executes.
+I agree the security-admin ElahEvent viewer is list + detail + filters as specified; that page views and admin ops logs are not ElahEvents; that scores are not fields of the envelope; and that ELAH never allows, blocks, or executes.
+
+---
+
+## 8. Phase 3 score card
+
+Detail (`/admin/elah-events/[eventId]`) now shows a separate **ELAH score (rules_v0)** card. It loads the latest `AgentEventLog` row for that `eventId` with `eventType` `elah_scored` or `elah_scoring_unavailable` and parses `metadata` JSON (`lib/elah/score-read.ts`).
+
+| Snapshot | Card shows |
+|---|---|
+| `elah_scored` | `status` (scored \| abstained), `elahScore`, confidence, uncertainty, `intentLabel`, coordinates, explanation signals, `policyHook`, `requestId`, `scoredAt` |
+| `elah_scoring_unavailable` | status unavailable + reason (`requestId`, HTTP/error when present) |
+| No row | **Not scored (Phase 3 snapshot missing)** |
+
+Copy on the card: this is **not** an allow / deny / execute. Bank policy remains the authority.
+
+The list MAY show a compact scored / abstained / unavailable badge. **`envelopeForDisplay` still strips `elahScore`.** Customer UI and Jane’s `/assistant` do not show the score.
 
 ---
 

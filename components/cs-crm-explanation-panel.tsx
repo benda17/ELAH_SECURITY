@@ -18,6 +18,29 @@ function recCopy(recommendation: string | null | undefined, unavailable?: boolea
   return "Advisory only. ELAH never allow/block/execute.";
 }
 
+function TokenList({ label, tokens }: { label: string; tokens?: string[] }) {
+  const list = tokens ?? [];
+  return (
+    <div>
+      <p className="text-ink-dim">{label}</p>
+      {list.length ? (
+        <ul className="mt-1 flex flex-wrap gap-1">
+          {list.map((token) => (
+            <li
+              key={token}
+              className="rounded border border-surface-border bg-surface-raised px-1.5 py-0.5 font-mono text-[10px] text-ink"
+            >
+              {token}
+            </li>
+          ))}
+        </ul>
+      ) : (
+        <p className="mt-0.5 text-ink-muted">None on this snapshot.</p>
+      )}
+    </div>
+  );
+}
+
 export function CsCrmExplanationPanel({
   selected,
 }: {
@@ -39,6 +62,9 @@ export function CsCrmExplanationPanel({
   const alternatives = alternativeInterpretations(reasons);
   const meta = selected.metadataSanitized ?? {};
   const policy = selected.policyDecision;
+  const evidenceBody =
+    selected.explanationSummary ?? recCopy(selected.recommendation, selected.unavailable);
+  const hasAltLabels = selected.alternativeLabels !== undefined;
 
   return (
     <div className="rounded-xl border border-surface-border bg-surface-subtle/40 p-4 text-xs leading-relaxed">
@@ -68,6 +94,43 @@ export function CsCrmExplanationPanel({
           <dd className="text-ink">{recCopy(selected.recommendation, selected.unavailable)}</dd>
         </div>
       </dl>
+
+      <section className="mt-3 rounded-lg border border-surface-border bg-surface-raised/50 p-3">
+        <p className="text-[10px] font-semibold uppercase tracking-[0.14em] text-ink-dim">
+          Model evidence
+        </p>
+        <p className="mt-2 text-ink">{evidenceBody}</p>
+        <div className="mt-3 grid gap-3">
+          <TokenList label="Matched signals" tokens={selected.matchedSignals} />
+          <TokenList label="Weak signals" tokens={selected.weakSignals} />
+          <TokenList label="Negative signals" tokens={selected.negativeSignals} />
+        </div>
+        <div className="mt-3">
+          <p className="text-ink-dim">Alternative labels</p>
+          {hasAltLabels ? (
+            selected.alternativeLabels!.length ? (
+              <ul className="mt-1 flex flex-wrap gap-1">
+                {selected.alternativeLabels!.map((label) => (
+                  <li
+                    key={label}
+                    className="rounded border border-surface-border bg-surface-raised px-1.5 py-0.5 font-mono text-[10px] text-ink"
+                  >
+                    {label}
+                  </li>
+                ))}
+              </ul>
+            ) : (
+              <p className="mt-0.5 text-ink-muted">None on this snapshot.</p>
+            )
+          ) : (
+            <ul className="mt-1 list-disc space-y-1 pl-4 text-ink-muted">
+              {alternatives.map((note) => (
+                <li key={note}>{note}</li>
+              ))}
+            </ul>
+          )}
+        </div>
+      </section>
 
       <section className="mt-3 rounded-lg border border-surface-border bg-surface-raised/50 p-3">
         <p className="text-[10px] font-semibold uppercase tracking-[0.14em] text-ink-dim">
@@ -150,15 +213,6 @@ export function CsCrmExplanationPanel({
         ) : (
           <p className="mt-0.5 text-ink-muted">None on this snapshot.</p>
         )}
-      </div>
-
-      <div className="mt-3">
-        <p className="text-ink-dim">Alternative interpretations</p>
-        <ul className="mt-1 list-disc space-y-1 pl-4 text-ink-muted">
-          {alternatives.map((note) => (
-            <li key={note}>{note}</li>
-          ))}
-        </ul>
       </div>
 
       <div className="mt-3 border-t border-surface-border pt-3">

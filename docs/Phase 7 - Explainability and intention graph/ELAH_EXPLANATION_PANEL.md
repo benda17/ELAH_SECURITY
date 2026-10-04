@@ -88,6 +88,8 @@ Uncalibrated chip when `provenance.scorer` is `rules_v0`, `cs_crm_rules_v0`, `ru
 
 **Evidence** is the structured explanation object plus reason codes. That is the whole of “model evidence” for v0.1.
 
+**Implementation note (founder CS/CRM panel):** `CsCrmExplanationPanel` reads `AgentEventLog.metadata.elahExplanation` from sanitized matrix-point metadata (`parseElahExplanation`). Shows optional summary (else advisory copy), matched / weak / negative closed-token lists, and `alternativeLabels` when present. Historical rows without the key show “None on this snapshot.” and do not invent tokens. No CoT; no “ELAH blocked/allowed.”
+
 | Show | Do not show |
 |---|---|
 | `matchedSignals` / `weakSignals` / `negativeSignals` | Token attributions, attention maps, tree dumps, logits |

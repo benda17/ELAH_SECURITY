@@ -10,7 +10,7 @@ Demo venue (CS/CRM): **ELAH CRM Simulation**. GitHub [`benda17/ELAH_SECURITY-CRM
 
 Canonical demo users: `basic.customer@elah.demo` (customer / support-user), `security.admin@elah.demo` (analyst). Password `DemoPass123!`.
 
-This pack maps all **23** Phase 7 Kanban cards. Re-audit on 17 September 2026: **18 Done, 4 In Progress, 1 Backlog, 0 In Review**.
+This pack maps all **23** Phase 7 Kanban cards. Re-audit on 23 September 2026: **22 Done, 0 In Progress, 1 Backlog, 0 In Review**. The remaining card is the CS/CRM analyst understandability session.
 
 ---
 
@@ -46,17 +46,17 @@ Upload path for Kanban links: `docs/Phase 7 - Explainability and intention graph
 | 10 | Display action trajectories | `task-7-display-action-trajectories` | **Done — implemented and tested** | ELAH-P7-SEQ-001 | [ELAH_GRAPH_SEQUENCES.md](./ELAH_GRAPH_SEQUENCES.md) §trajectories |
 | 11 | Display user-request-to-agent-action relationships | `task-7-display-user-request-to-agent-action-relationshi` | **Done — selected-point relationship implemented** | ELAH-P7-SEQ-001 | [ELAH_GRAPH_SEQUENCES.md](./ELAH_GRAPH_SEQUENCES.md) §request-to-tool |
 | 12 | Display deviations from expected behavior | `task-7-display-deviations-from-expected-behavior` | **Done — deviation markers implemented** | ELAH-P7-SEQ-001 | [ELAH_GRAPH_SEQUENCES.md](./ELAH_GRAPH_SEQUENCES.md) §deviations; no invented rate |
-| 13 | Display model evidence | `task-7-display-model-evidence` | **In progress — core evidence live; signal lists incomplete** | ELAH-P7-PANEL-001 | [ELAH_EXPLANATION_PANEL.md](./ELAH_EXPLANATION_PANEL.md) §evidence |
+| 13 | Display model evidence | `task-7-display-model-evidence` | **Done — signal lists on new scores** | ELAH-P7-PANEL-001 | [ELAH_EXPLANATION_PANEL.md](./ELAH_EXPLANATION_PANEL.md) §evidence |
 | 14 | Display contributing factors | `task-7-display-contributing-factors` | **Done — reason-code factors implemented** | ELAH-P7-PANEL-001 | [ELAH_EXPLANATION_PANEL.md](./ELAH_EXPLANATION_PANEL.md) §contributing |
 | 15 | Display reason codes | `task-7-display-reason-codes` | **Done — graph-linked chips implemented** | ELAH-P7-PANEL-001 | [ELAH_EXPLANATION_PANEL.md](./ELAH_EXPLANATION_PANEL.md) §reason-codes |
-| 16 | Display alternative interpretations | `task-7-display-alternative-interpretations` | **In progress — deterministic notes live; closed-label top-k not approved** | ELAH-P7-PANEL-001 | [ELAH_EXPLANATION_PANEL.md](./ELAH_EXPLANATION_PANEL.md) §alternatives — no CoT ranking |
+| 16 | Display alternative interpretations | `task-7-display-alternative-interpretations` | **Done — closed labels in event metadata, not ScoreResponse** | ELAH-P7-PANEL-001 | [ELAH_EXPLANATION_PANEL.md](./ELAH_EXPLANATION_PANEL.md) §alternatives — no CoT ranking |
 | 17 | Add an event explanation panel | `task-7-add-an-event-explanation-panel` | **Done — implemented and build-verified** | ELAH-P7-PANEL-001 | [ELAH_EXPLANATION_PANEL.md](./ELAH_EXPLANATION_PANEL.md) |
 | 18 | Add model-version information | `task-7-add-model-version-information` | **Done — scorer provenance implemented** | ELAH-P7-PANEL-001 | [ELAH_EXPLANATION_PANEL.md](./ELAH_EXPLANATION_PANEL.md) §provenance |
 | 19 | Add raw-event inspection for authorized users | `task-7-add-raw-event-inspection-for-authorized-users` | **Done for founder/admin scope** | ELAH-P7-PANEL-001 | [ELAH_EXPLANATION_PANEL.md](./ELAH_EXPLANATION_PANEL.md) §raw-event — sanitized, founder/analyst only |
 | 20 | Test whether explanations are understandable to CS/CRM ops analysts | `task-7-test-whether-explanations-are-understandable-to-` | **Backlog — protocol ready; no session started** | ELAH-P7-FAITH-001 | [ELAH_FAITHFULNESS_AND_PRIVACY.md](./ELAH_FAITHFULNESS_AND_PRIVACY.md) §understandability — **no fabricated interview notes** |
-| 21 | Test whether explanations remain faithful to model behavior | `task-7-test-whether-explanations-remain-faithful-to-mod` | **In progress — protocol/mapping tests exist; signal replay incomplete** | ELAH-P7-FAITH-001 | [ELAH_FAITHFULNESS_AND_PRIVACY.md](./ELAH_FAITHFULNESS_AND_PRIVACY.md) §faithfulness |
+| 21 | Test whether explanations remain faithful to model behavior | `task-7-test-whether-explanations-remain-faithful-to-mod` | **Done — cs_crm_rules_v0 replay** | ELAH-P7-FAITH-001 | [ELAH_FAITHFULNESS_AND_PRIVACY.md](./ELAH_FAITHFULNESS_AND_PRIVACY.md) §faithfulness |
 | 22 | Avoid exposing private model reasoning or unsupported chain-of-thought | `task-7-avoid-exposing-private-model-reasoning-or-unsupp` | **Done — approved guidance and structured UI implemented** | ELAH-P7-FAITH-001 | [ELAH_FAITHFULNESS_AND_PRIVACY.md](./ELAH_FAITHFULNESS_AND_PRIVACY.md) §no-cot |
-| 23 | Use concise evidence-based explanations instead | `task-7-use-concise-evidence-based-explanations-instead` | **In progress — concise UI live; signal-backed summary incomplete** | ELAH-P7-FAITH-001 | [ELAH_FAITHFULNESS_AND_PRIVACY.md](./ELAH_FAITHFULNESS_AND_PRIVACY.md) §concise |
+| 23 | Use concise evidence-based explanations instead | `task-7-use-concise-evidence-based-explanations-instead` | **Done — summaries of at most 240 characters on new scores** | ELAH-P7-FAITH-001 | [ELAH_FAITHFULNESS_AND_PRIVACY.md](./ELAH_FAITHFULNESS_AND_PRIVACY.md) §concise |
 | — | Founder executive summary | — | — | — | [ELAH_PHASE7_EXECUTIVE_SUMMARY.md](./ELAH_PHASE7_EXECUTIVE_SUMMARY.md) |
 
 Closed 16 `ElahCrmIntent` labels (Proposed 0.1): [ELAH_CS_CRM_TAXONOMY.md](../Phase%2016%20-%20B2B%20SaaS%20CS%20CRM%20wedge/ELAH_CS_CRM_TAXONOMY.md). **Not** a 23rd banking label. Banking 22-label freeze stays in Phase 4. Frozen cube: [ELAH_COORDINATE_SYSTEM.md](../Phase%200%20-%20Product%20Definition/ELAH_COORDINATE_SYSTEM.md) (G1–G12).

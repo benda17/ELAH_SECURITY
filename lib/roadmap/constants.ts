@@ -117,6 +117,8 @@ export const CRITICAL_PATH_FRAGMENTS = [
   "Score genuine intent before support tools",
   "Plan gold dataset for support events",
   "Wire mock ELAH score into CRM simulator",
+  "Define CS/CRM evaluation bar vs banking rules_v0",
+  "Forbid live ticket PII in CS/CRM gold",
 ];
 
 export const READINESS_WORKSTREAM_MAP: Record<string, keyof import("./types").RoadmapMetrics["readiness"]> = {

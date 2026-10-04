@@ -39,6 +39,12 @@ export type IntentMatrixPoint = {
   unavailableReason?: string | null;
   metadataSanitized?: Record<string, unknown> | null;
   deviation?: boolean;
+  /** From metadata.elahExplanation when the producer stored it; omit on historical rows. */
+  explanationSummary?: string;
+  matchedSignals?: string[];
+  weakSignals?: string[];
+  negativeSignals?: string[];
+  alternativeLabels?: string[];
 };
 
 export type IntentTrajectory = {

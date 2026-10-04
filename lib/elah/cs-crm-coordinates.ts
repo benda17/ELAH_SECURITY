@@ -392,3 +392,45 @@ export function sanitizeMetadata(raw: Record<string, unknown>): Record<string, u
   }
   return out;
 }
+
+/** Producer-stored model evidence on AgentEventLog.metadata.elahExplanation. */
+export type ParsedElahExplanation = {
+  explanationSummary?: string;
+  matchedSignals?: string[];
+  weakSignals?: string[];
+  negativeSignals?: string[];
+  alternativeLabels?: string[];
+};
+
+function closedStringList(value: unknown): string[] | undefined {
+  if (!Array.isArray(value)) return undefined;
+  return value.filter((v): v is string => typeof v === "string" && v.trim().length > 0);
+}
+
+/**
+ * Read explanation tokens from sanitized event metadata.
+ * Absent `elahExplanation` → empty object (no invented signals).
+ */
+export function parseElahExplanation(
+  metadata: Record<string, unknown> | null | undefined,
+): ParsedElahExplanation {
+  if (!metadata) return {};
+  const raw = metadata.elahExplanation;
+  if (!raw || typeof raw !== "object" || Array.isArray(raw)) return {};
+  const expl = raw as Record<string, unknown>;
+  const out: ParsedElahExplanation = {};
+
+  if (typeof expl.summary === "string" && expl.summary.trim()) {
+    out.explanationSummary = expl.summary.trim();
+  }
+  const matched = closedStringList(expl.matchedSignals);
+  if (matched !== undefined) out.matchedSignals = matched;
+  const weak = closedStringList(expl.weakSignals);
+  if (weak !== undefined) out.weakSignals = weak;
+  const negative = closedStringList(expl.negativeSignals);
+  if (negative !== undefined) out.negativeSignals = negative;
+  const alternatives = closedStringList(expl.alternativeLabels);
+  if (alternatives !== undefined) out.alternativeLabels = alternatives;
+
+  return out;
+}

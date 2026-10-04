@@ -3,6 +3,7 @@ import {
   csCrmCoordinates,
   financialRiskLevel,
   isDeviationPoint,
+  parseElahExplanation,
   resolveNormalizedActionEvidence,
   sanitizeMetadata,
 } from "@/lib/elah/cs-crm-coordinates";
@@ -865,6 +866,7 @@ export async function getCrmIntentMatrixPoints(limit = INTENT_MATRIX_POINT_LIMIT
       const coords = csCrmCoordinates(intentLabel);
       const reasonCodes = parseJsonArray(snap.reasonCodes);
       const meta = sanitizeMetadata(parseJsonObject(event?.metadata));
+      const explanation = parseElahExplanation(meta);
       const toolName = snap.toolName ?? event?.toolName ?? null;
       const actionEvidence = resolveNormalizedActionEvidence(toolName, meta);
       const conversationId = snap.conversationId ?? event?.conversationId ?? null;
@@ -900,6 +902,7 @@ export async function getCrmIntentMatrixPoints(limit = INTENT_MATRIX_POINT_LIMIT
         unavailableReason: snap.unavailableReason,
         metadataSanitized: meta,
         deviation,
+        ...explanation,
       };
     });
 

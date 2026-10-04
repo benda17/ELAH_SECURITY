@@ -182,6 +182,28 @@ async function main() {
     data: { dependencyIds: JSON.stringify([simId]) },
   });
 
+  const goldId = phase16TaskId("Plan gold dataset for support events");
+  const evalBarId = phase16TaskId("Define CS/CRM evaluation bar vs banking rules_v0");
+  const piiId = phase16TaskId("Forbid live ticket PII in CS/CRM gold");
+  const iaaId = phase16TaskId("Human-label CS/CRM gold with IAA");
+  const analystId = phase16TaskId("Ship CS/CRM ops analyst view in CRM Simulation");
+  await prisma.roadmapTask.update({
+    where: { id: evalBarId },
+    data: { dependencyIds: JSON.stringify([goldId]) },
+  });
+  await prisma.roadmapTask.update({
+    where: { id: piiId },
+    data: { dependencyIds: JSON.stringify([goldId]) },
+  });
+  await prisma.roadmapTask.update({
+    where: { id: iaaId },
+    data: { dependencyIds: JSON.stringify([goldId]) },
+  });
+  await prisma.roadmapTask.update({
+    where: { id: analystId },
+    data: { dependencyIds: JSON.stringify([wireId]) },
+  });
+
   const annotated = await annotatePhase11And12(prisma);
 
   if (existingMilestone) {

@@ -1,0 +1,16 @@
+bucket,q1_usd,q2_usd,q3_usd,q4_usd,year1_usd,status
+revenue_product_license_saas,0,0,0,0,0,plan_assumption
+revenue_professional_services,0,0,0,0,0,plan_assumption
+revenue_pilot_fees,0,0,0,0,0,plan_assumption
+total_revenue,0,0,0,0,0,plan_assumption
+backend_ai_expert,50000,40000,40000,30000,160000,assumption_phasing_dashboard_total
+dataset_creation_labeling_data_science,10000,25000,25000,10000,70000,assumption_phasing_dashboard_total
+cloud_compute_databases_tools,8000,12000,15000,15000,50000,assumption_phasing_dashboard_total
+legal_company_setup_contracts,15000,5000,3000,2000,25000,assumption_phasing_dashboard_total
+security_compliance_review,0,5000,15000,10000,30000,assumption_phasing_dashboard_total
+product_dashboard_polish,3000,7000,7000,3000,20000,assumption_phasing_dashboard_total
+customer_discovery_pilots_travel,5000,7000,8000,10000,30000,assumption_phasing_dashboard_total
+buffer,0,0,5000,10000,15000,assumption_phasing_dashboard_total
+total_spend,91000,101000,118000,90000,400000,proposed
+opening_cash,400000,309000,208000,90000,,assumption_if_round_closes_in_full
+closing_cash,309000,208000,90000,0,,assumption_if_buffer_fully_used

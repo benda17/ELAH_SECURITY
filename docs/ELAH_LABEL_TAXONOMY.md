@@ -1,5 +1,7 @@
 # ELAH Label Taxonomy — Banking Intent Labels
 
+> **Canonical copy (Phase 4):** [`docs/Phase 4 - Dataset and labeling system/ELAH_LABEL_TAXONOMY.md`](./Phase%204%20-%20Dataset%20and%20labeling%20system/ELAH_LABEL_TAXONOMY.md) (`ELAH-SPEC-LABEL-TAXONOMY-001`). This root file is kept so existing links still resolve. The closed 22-value set below is unchanged.
+
 | Field | Value |
 |---|---|
 | Document ID | ELAH-SPEC-LABEL-TAXONOMY-001 |
