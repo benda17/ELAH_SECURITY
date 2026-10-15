@@ -270,6 +270,7 @@ export const TASK_BOARD: RoadmapTask[] = [
   { id: "e1", title: "33 local tests: admission, binding, presentation, site, protocol", status: "done", priority: "high", owner: "Evaluation", effort: "local", group: "Evaluation", milestoneId: 2 },
   { id: "e2", title: "Browser signature checked against the Python verifier", status: "done", priority: "medium", owner: "Evaluation", effort: "local", group: "Evaluation", milestoneId: 2 },
   { id: "demo1", title: "Skyhop guest-travel site on 127.0.0.1:4173", status: "done", priority: "high", owner: "Demo", effort: "local", group: "Demo", milestoneId: 2 },
+  { id: "demo3", title: "Staylane hotel booking site, public, with no ELAH sign-in", status: "done", priority: "high", owner: "Demo", effort: "local", group: "Demo", milestoneId: 2 },
   { id: "demo2", title: "Hosted demo a partner can open", status: "todo", priority: "high", owner: "Demo", effort: "open", group: "Demo", milestoneId: 3 },
 ];
 

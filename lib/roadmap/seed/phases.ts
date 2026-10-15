@@ -407,6 +407,11 @@ const PHASE_DRAFTS: PhaseDraft[] = [
     workstream: "Product",
     category: "Profile",
     tasks: [
+      done(
+        "Build the hotel booking test site.",
+        "Done 15 Oct 2026. Staylane is live at https://staylane-xi.vercel.app, in testing-environment/hotel-booking, separate from Skyhop. An agent searches, opens hotels, and books with no identification step. The hotels in Rome, Paris, Barcelona, and Lisbon are fictional. A link can carry a run label (?ref=) and a scenario (?v=a baseline, b pressure, c relabeled). Each request is written to the ELAH-Testing-Environment Supabase project; read hotel_activity and hotel_visitor_overview. Card numbers are stored as the last four digits. ELAH authentication is not on this site.",
+        "A public hotel booking site lets an agent search and complete a booking without identifying itself, and the log shows what that agent searched and submitted.",
+      ),
       later(
         "Choose the second task profile only after guest-travel state is durable, and leave it out of the current catalog.",
         `Backlog. ${README}: the only profile is guest travel. ${TDD} §12: no second profile is deployed.`,
@@ -429,7 +434,7 @@ const PHASE_DRAFTS: PhaseDraft[] = [
       ),
       later(
         "Design baseline, pressure, and relabel exercises that keep the same facts and change only labels or untrusted instructions.",
-        `Backlog. ${TDD} §6 describes that pattern for guest travel. It has not been applied to a second profile.`,
+        `To do for an APACT profile. Staylane already shows baseline, pressure, and relabeled hotel pages that share one catalog. ${TDD} §6 describes the pattern for guest travel. Those hotel pages are not generated from an APACT declaration.`,
         "Three exercises share facts, and the pressure page adds only an untrusted forbidden instruction.",
       ),
       later(
@@ -444,7 +449,7 @@ const PHASE_DRAFTS: PhaseDraft[] = [
       ),
       later(
         "Add a local test site with its own origin and token audience for the new profile.",
-        "Backlog. Skyhop is the only registered site.",
+        "To do. Staylane (https://staylane-xi.vercel.app) is the hotel booking site and has its own origin. It is not registered with APACT and has no token audience. Skyhop remains the only site with an APACT audience.",
         "The new site has its own origin, audience, and route map, and it does not reuse the travel audience.",
       ),
       later(
