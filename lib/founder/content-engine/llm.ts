@@ -1,5 +1,6 @@
 import "server-only";
 import { applyLinkedInTextUi } from "./format-post";
+import { V2_DRAFTS } from "./v2-content";
 
 export const LANDING_PAGE_URL = "https://www.elahsecurity.com";
 
@@ -11,60 +12,32 @@ const LEGACY_LANDING_PAGE_URLS = [
   "http://www.elahsecurity.com",
 ];
 
-const SYSTEM_PROMPT = `Write a LinkedIn company-page post for ELAH Security about ELAH V2 / APACT, an agentic AI CAPTCHA.
+const SYSTEM_PROMPT = `Based on how AI security companies write LinkedIn posts, write a company-page post for ELAH Security.
 
-Product facts you must stay inside:
-- A website installs an entrance. The agent declares a bounded task in eight fields, proves a session key, and completes three inert exercises (normal page, pressure page, relabeled page).
-- If recorded actions stay inside the declaration, the decision is allow_limited and ELAH issues a short-lived token bound to that key (DPoP). Otherwise it returns a reason and no token.
-- First profile: guest travel. flight.search and traveler.draft.update on guest/current are allowed. payment.create, contract.submit, and data.export are blocked unless a separate approval exists. That approval flow is not built.
-- The human checkbox ("I'm not a robot") sets a site cookie, never calls ELAH, and is logged as unverified. It is explicitly not a check.
-- Exercises are mock. Payment is recorded and refused. Nothing is a production deployment.
-- A pass shows key possession and behavior on that attempt. It does not identify the model, prove the hidden user prompt, or promise later behavior.
+ELAH verifies that an AI agent is acting inside a limited permission before a protected website runs the action. It does not read the agent's private reasoning, name the model, or replace the site's own policy. A human checkbox is not that check. One allowed attempt does not authorize a later, wider action. The working build is a local prototype. Do not claim customers, a pilot, or a production deployment. Do not revive banking intention scores, explainable coordinates, or "ELAH scores, never acts."
 
-Do not write about banking intention scoring, explainable intention coordinates, CS/CRM intent scores, or "ELAH scores, never acts." ELAH V1 is archived.
-
-Style — this is the post's text UI. LinkedIn has no bold button. Wrap the lines that should hit in double asterisks. Those lines are published as LinkedIn's bold sans-serif. Do not invent another emphasis mark.
-
-Shape, exactly:
-**Opening line.**
-
-Short plain line.
-Short plain line.
-**The turn.**
-
-**Closing line.**
-**Closing line.**
-
-${LANDING_PAGE_URL}
-
-- One idea per line. No dense paragraphs. No emoji.
-- Bold only the opening, the turn, and the close. Leave the URL and the middle lines plain.
-- Lead with the mechanism or a concrete exercise detail, not a soft opener.
+How to write:
+- Write an original post with one argument. The topic is a research angle, not an outline to paraphrase.
+- Do not summarize the TDD, the concept page, or any design document. Do not list protocol fields, exercise steps, catalog function names, or walk a spec section by section.
+- Lead with a concrete pattern a security leader would recognize: a control that fails, a class of misuse, or a question current tools do not answer. Not a soft opener.
 - Ban filler: "As we continue", "In today's landscape", "It's no secret", "At the end of the day", "In this post", "We're excited to".
-- No hashtag block in the body.
-- Do not invent customers, pilots, papers, statistics, or a deployed service.
-- If you are not confident a citation is real, leave it out.`;
+- Short paragraphs, with a blank line between them. About 140–200 words before the link. No emoji. No hashtag block.
+- If you are not confident a citation is real, describe the pattern and do not invent papers, authors, dates, statistics, customers, or incidents.
+- Text UI: LinkedIn has no bold button. Wrap only the opening line, one turn, and the closing takeaway in double asterisks. Those lines are published as LinkedIn's bold sans-serif. Leave the middle paragraphs and the URL plain.
+
+Close with the takeaway in double asterisks, a blank line, then exactly:
+${LANDING_PAGE_URL}`;
 
 export function buildFallbackDraft(topic: string): string {
+  const match = V2_DRAFTS.find((draft) => draft.title === topic);
+  if (match) return match.body;
   return `**${topic}.**
 
-A website can put an entrance in front of an agent.
-The agent declares a bounded task and proves a session key.
-It works three inert exercises: the normal page, a pressure page, and a relabeled page.
-**Stay inside the declaration, and the entrance can return allow_limited.**
+Protected sites still meet agents with a human checkbox, a suspicion score, or a session that was authenticated once. None of those say whether this action sits inside a limited permission.
 
-A short-lived token, bound to that key.
-Step outside, and it returns a reason.
-**No token.**
+ELAH is the check at that action. A short-lived grant, bound to the agent key, either covers the request or the site gets a refusal. The check does not read private reasoning, and it does not replace the platform's own policy. One allowed attempt is not approval for a wider one. The working build is a local prototype.
 
-The first profile is guest travel.
-Search and a guest draft are in bounds.
-Payment, contract submission, and data export stay blocked.
-That approval flow is not built.
-The "I'm not a robot" path sets a cookie, skips ELAH, and is logged as unverified.
-
-**This slice runs locally.**
-**A pass records the attempt. It does not name the model, the hidden prompt, or the next action.**
+**Authorize the action. A login, a logo, or a checkbox will not do it.**
 
 ${LANDING_PAGE_URL}`;
 }
@@ -110,19 +83,13 @@ export async function generatePostBody(
   topic: string,
   context?: string | null,
 ): Promise<ChatResult> {
-  const userContent = `Write one company-page post about ELAH V2, the agentic AI CAPTCHA (APACT).
+  const userContent = `Write one company-page post in the style of an AI security company's LinkedIn post.
 
 Topic: ${topic}
-Context: ${context ?? "ELAH V2 APACT — guest travel entrance. Search and guest draft only. Payment, contract submission, and data export need an approval flow that is not built."}
+Angle: ${context ?? "A protected site still cannot tell a permitted agent action from a session, a checkbox, or a vendor name."}
 
-Requirements:
-- Use the bold-line text UI from the system instructions. One idea per line.
-- Wrap only the opening, the turn, and the close in double asterisks.
-- No emoji.
-- End with the closing bold lines, a blank line, then ${LANDING_PAGE_URL}
-- Do not invent citations, customers, or a production deployment.
-- Do not claim a passing exercise proves the user prompt or the model identity.
-- Do not write a banking intention-scoring post.`;
+The angle is a writing brief. Do not paste it back as a list, and do not turn it into a walkthrough of a design document.
+Use the bold-line marks from the system instructions. About 140–200 words. End with the takeaway, a blank line, then ${LANDING_PAGE_URL}.`;
 
   const groqKey = process.env.GROQ_API_KEY?.trim();
   if (groqKey) {

@@ -102,6 +102,34 @@ async function archiveAndSeed(prisma: PrismaClient) {
     inserted = V2_DRAFTS.length;
   }
 
+  let rewritten = 0;
+  for (const draft of V2_DRAFTS) {
+    if (!draft.replacesTitle || draft.replacesTitle === draft.title) continue;
+    const result = await prisma.linkedInPostDraft.updateMany({
+      where: {
+        era: "v2",
+        title: draft.replacesTitle,
+        status: { not: "published" },
+      },
+      data: {
+        title: draft.title,
+        body: applyLinkedInTextUi(draft.body),
+        hashtags: JSON.stringify(draft.hashtags),
+      },
+    });
+    rewritten += result.count;
+  }
+
+  const retiredTitles = V2_DRAFTS.flatMap((draft) =>
+    draft.replacesTitle ? [draft.replacesTitle] : [],
+  );
+  if (retiredTitles.length > 0) {
+    await prisma.contentSourceEvent.updateMany({
+      where: { title: { in: retiredTitles } },
+      data: { processed: true },
+    });
+  }
+
   const sourceEventsInserted = await ensureV2SourceEvents(prisma);
   const columnPresent = await eraColumnExists(prisma);
   const [v1Count, v2Count, v2Drafts] = await Promise.all([
@@ -118,6 +146,7 @@ async function archiveAndSeed(prisma: PrismaClient) {
     columnPresent,
     archivedRows: archived.count,
     v2Inserted: inserted,
+    v2Rewritten: rewritten,
     sourceEventsInserted,
     v1Count,
     v2Count,

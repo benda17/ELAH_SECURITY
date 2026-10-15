@@ -152,7 +152,7 @@ export default async function ContentEnginePage({
           <h1 className="text-2xl font-semibold">Content Engine</h1>
           <p className="mt-1 max-w-2xl text-sm text-ink-muted">
             {era === "v2"
-              ? "Current drafts are ELAH V2, an agentic AI CAPTCHA. A site installs an entrance; the agent declares a bounded task and does three inert exercises. ELAH V1 banking drafts stay in the archive."
+              ? "Current drafts are company posts for ELAH V2: verified, limited access for AI agents. Generate Now writes a new post from a research angle. ELAH V1 banking drafts stay in the archive."
               : "Archive of pre-pivot drafts from the banking and CS-CRM intention-scoring product. These rows are kept. New drafts are written to ELAH V2."}
           </p>
           </div>
@@ -347,8 +347,8 @@ export default async function ContentEnginePage({
         <section className="panel">
           <h2 className="mb-3 panel-title">Source events</h2>
           <p className="mb-2 text-[11px] text-ink-dim">
-            New drafts use V2 topic seeds. Earlier events stay in the list and are not used for
-            generation.
+            New drafts are written from these research angles. Earlier events stay in the list and
+            are not used for generation.
           </p>
           <ul className="max-h-48 space-y-2 overflow-y-auto text-xs">
             {sources.length === 0 ? (
