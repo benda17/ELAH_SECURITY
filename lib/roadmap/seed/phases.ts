@@ -43,19 +43,6 @@ function done(title: string, notes: string, doneWhen: string): TaskEvidence {
   return { title, status: "done", progress: 100, notes, doneWhen };
 }
 
-function review(title: string, notes: string, doneWhen: string): TaskEvidence {
-  return { title, status: "in_review", progress: 70, notes, doneWhen };
-}
-
-function doing(
-  title: string,
-  progress: number,
-  notes: string,
-  doneWhen: string,
-): TaskEvidence {
-  return { title, status: "in_progress", progress, notes, doneWhen };
-}
-
 function later(title: string, notes: string, doneWhen: string): TaskEvidence {
   return { title, status: "backlog", progress: 0, notes, doneWhen };
 }
@@ -120,9 +107,9 @@ const PHASE_DRAFTS: PhaseDraft[] = [
         `Done. ${TDD} §1 and §7. ${README} "Not in this slice" repeats the same limit for the running code.`,
         "The non-goals are written in the TDD and restated next to the slice.",
       ),
-      review(
+      later(
         "Publish the open decisions from TDD section 13 without filling in partners, issuers, or thresholds that are still unset.",
-        `In review. ${TDD} §13 lists partner, issuers, delivery, thresholds, token and retention rules, and optional runtime evidence. The list is published. None of those choices are closed in the file.`,
+        `To do. ${TDD} §13 lists partner, issuers, delivery, thresholds, token and retention rules, and optional runtime evidence. The list is published. None of those choices are closed in the file.`,
         "The open-decision list stays visible, and blank items are not filled with invented answers.",
       ),
       done(
@@ -135,9 +122,9 @@ const PHASE_DRAFTS: PhaseDraft[] = [
         `Done. ${TDD} §13 states the V1 success criterion and says behavioral benefit must not imply hidden reasoning or authority from a test score.`,
         "The success criterion is one paragraph a partner could be measured against.",
       ),
-      review(
+      later(
         "Record founder acceptance of TDD v0.3 as the execution source of truth for the APACT pivot.",
-        `In review. ${TDD} status line is still "Internal working draft". The revision history says the v0.3 text was synchronized to the Google Drive TDD on 2026-10-09. This board uses the file as product truth. An acceptance line is not in the file.`,
+        `To do. ${TDD} status line is still "Internal working draft". The revision history says the v0.3 text was synchronized to the Google Drive TDD on 2026-10-09. This board uses the file as product truth. An acceptance line is not in the file.`,
         "The TDD file, or a note beside it, records that v0.3 replaces the intention-scoring execution plan.",
       ),
     ],
@@ -197,10 +184,9 @@ const PHASE_DRAFTS: PhaseDraft[] = [
         `Done 13 Oct 2026. ${GH}: tests/agent_client.py, tests/test_e2e.py, tests/test_protocol.py. ${README}: 33 pytest tests passed, including the four agent behaviors and the binding and presentation cases.`,
         "The suite passes, and the four reference-agent behaviors match the README.",
       ),
-      doing(
+      later(
         "Repeat the pressure-page Pay action as a browser click on the exercise control.",
-        55,
-        `In progress. ${README} "What was checked by hand": the reference agent against the live server returned rejected / boundary_violated. The browser click on the exercise Pay control was not completed in that session.`,
+        `To do. ${README} "What was checked by hand": the reference agent against the live server returned rejected / boundary_violated. The browser click on the exercise Pay control was not completed in that session.`,
         "A browser session on the pressure exercise clicks Pay and the server records boundary_violated with no token.",
       ),
       done(
@@ -265,10 +251,9 @@ const PHASE_DRAFTS: PhaseDraft[] = [
         `Backlog for the migration. The parser is already tested: ${README} says the strict parser rejects bad input and duplicate JSON keys (tests/test_protocol.py). Re-run that test when storage changes.`,
         "The duplicate-key tests still pass after the store move.",
       ),
-      doing(
+      later(
         "Run APACT and Skyhop as single local processes until shared storage exists.",
-        50,
-        `In progress. ${README} run commands: uvicorn elah_apact.server on 127.0.0.1:8700 and testing-environment on 127.0.0.1:4173. Challenges, replay, and revocation are in memory. Hosting is not this task.`,
+        `To do. ${README} run commands: uvicorn elah_apact.server on 127.0.0.1:8700 and testing-environment on 127.0.0.1:4173. Challenges, replay, and revocation are in memory. Hosting is not this task.`,
         "Both processes start from the repo virtualenv, and the README still says they are single-process.",
       ),
       later(
@@ -288,10 +273,9 @@ const PHASE_DRAFTS: PhaseDraft[] = [
     workstream: "Engineering",
     category: "Kit",
     tasks: [
-      doing(
+      later(
         "Split a versioned partner verifier from the Skyhop import of the in-repo verifier module.",
-        35,
-        `In progress. Skyhop imports the verifier from the editable elah_apact install (${README}, elah_apact/verifier.py). There is no separate versioned partner package.`,
+        `To do. Skyhop imports the verifier from the editable elah_apact install (${README}, elah_apact/verifier.py). There is no separate versioned partner package.`,
         "A partner project depends on a named verifier release and does not import server internals.",
       ),
       later(
@@ -500,10 +484,9 @@ const PHASE_DRAFTS: PhaseDraft[] = [
         `Backlog. ${TDD} §13 asks for this comparison. The slice always runs both. No side-by-side note exists.`,
         "A short note says which forbidden effects the exercise caught that scope checks would also have stopped at the route.",
       ),
-      doing(
+      later(
         "Record the admitted-agent payment check on Skyhop as step_up_required, and extend it beyond the single browser session before calling it a rate.",
-        45,
-        `In progress. ${README} browser table: an admitted agent clicking Pay got step_up_required (fresh_approval_required). That is one session, not a rate across agents.`,
+        `To do. ${README} browser table: an admitted agent clicking Pay got step_up_required (fresh_approval_required). That is one session, not a rate across agents.`,
         "The note cites the 13 Oct session and says how many further agents were tried. It does not call one session a rate.",
       ),
       later(
@@ -553,10 +536,9 @@ const PHASE_DRAFTS: PhaseDraft[] = [
     workstream: "Engineering",
     category: "Hosting",
     tasks: [
-      doing(
+      later(
         "Run the local APACT server and Skyhop on loopback for development, and describe that pair as a prototype.",
-        45,
-        `In progress. ${README} gives the two uvicorn commands on 127.0.0.1 ports 8700 and 4173, and calls the slice a prototype rather than a security control. Nothing is hosted.`,
+        `To do. ${README} gives the two uvicorn commands on 127.0.0.1 ports 8700 and 4173, and calls the slice a prototype rather than a security control. Nothing is hosted.`,
         "A developer can start both processes locally, and no doc calls that pair a production host.",
       ),
       later(
@@ -631,10 +613,9 @@ const PHASE_DRAFTS: PhaseDraft[] = [
         `Backlog. ${TDD} §2 assigns those to the partner application. It is not yet a leave-behind for a meeting.`,
         "A one-pager lists partner-owned work next to APACT-owned work.",
       ),
-      doing(
+      later(
         "Write a repeatable Skyhop demo script for the unverified human path, an allow_limited agent, and step-up on pay.",
-        40,
-        `In progress. ${README} records those three browser results on 13 Oct 2026. A script another person can follow, with expected /log rows, is not written out as a demo.`,
+        `To do. ${README} records those three browser results on 13 Oct 2026. A script another person can follow, with expected /log rows, is not written out as a demo.`,
         "Someone else can run the three paths from the script and match the log.",
       ),
       later(
@@ -751,25 +732,24 @@ const PHASE_DRAFTS: PhaseDraft[] = [
     workstream: "Operations",
     category: "Narrative",
     tasks: [
-      doing(
+      later(
         "Update the 13 Oct 2026 investor source brief so its current-status section describes the FastAPI localhost slice.",
-        40,
-        "In progress. elah_investor_deck/output/Investor_Source_Brief.md (13 Oct 2026) says ELAH is a CAPTCHA for agents and uses guest travel as the example. Its current-status section still describes the page-local laboratory, not the FastAPI server, the 33 tests, or the browser-versus-reference-agent split in the product README.",
+        "To do. elah_investor_deck/output/Investor_Source_Brief.md (13 Oct 2026) says ELAH is a CAPTCHA for agents and uses guest travel as the example. Its current-status section still describes the page-local laboratory, not the FastAPI server, the 33 tests, or the browser-versus-reference-agent split in the product README.",
         "The current-status section names the localhost FastAPI slice, the test count, and which checks were browser versus reference agent.",
       ),
-      review(
+      later(
         "Keep the narrative's one-sentence description as a CAPTCHA for agents that a website installs.",
-        "In review. Investor_Source_Brief.md (13 Oct 2026) already uses that sentence. A regenerated deck was not checked in this pass.",
+        "To do. Investor_Source_Brief.md (13 Oct 2026) already uses that sentence. A regenerated deck was not checked in this pass.",
         "The sentence in the brief and in the deck match, and neither says intention scoring.",
       ),
-      review(
+      later(
         "Describe guest travel in the narrative: search and draft can be allowed; payment, contract, and export stay blocked; a pass is not future behavior.",
-        "In review. Investor_Source_Brief.md (13 Oct 2026) product-contract section has this example. It still needs to be checked against the deck and against the FastAPI status section.",
+        "To do. Investor_Source_Brief.md (13 Oct 2026) product-contract section has this example. It still needs to be checked against the deck and against the FastAPI status section.",
         "The narrative example matches the guest-travel profile and the pass limits.",
       ),
-      review(
+      later(
         "State in the narrative that a pass does not identify the model, prove the real user instruction, or promise future behavior.",
-        "In review. Investor_Source_Brief.md (13 Oct 2026) includes this limit. Deck regeneration was not checked.",
+        "To do. Investor_Source_Brief.md (13 Oct 2026) includes this limit. Deck regeneration was not checked.",
         "The limit appears in the narrative next to any admission example.",
       ),
       later(

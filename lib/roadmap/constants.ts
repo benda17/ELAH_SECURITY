@@ -1,7 +1,7 @@
 import { TASK_PRIORITIES, type TaskStatus } from "./types";
 
 export const KANBAN_COLUMNS: { key: TaskStatus; label: string }[] = [
-  { key: "backlog", label: "Backlog" },
+  { key: "backlog", label: "To do" },
   { key: "in_progress", label: "In Progress" },
   { key: "blocked", label: "Blocked" },
   { key: "in_review", label: "In Review" },
@@ -29,7 +29,7 @@ export const PHASE_ORDER = [
 ] as const;
 
 export const STATUS_LABELS: Record<TaskStatus, string> = {
-  backlog: "Backlog",
+  backlog: "To do",
   in_progress: "In Progress",
   blocked: "Blocked",
   in_review: "In Review",

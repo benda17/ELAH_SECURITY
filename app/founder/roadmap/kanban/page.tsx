@@ -18,7 +18,7 @@ export default async function KanbanPage() {
           contracts, and export are blocked.
         </p>
         <p className="mt-2 max-w-3xl text-sm text-ink-muted">
-          Flow: Backlog → In Progress → Blocked → In Review → Done. Filter by
+          Flow: To do → In Progress → Blocked → In Review → Done. Filter by
           phase, workstream, importance, or critical path. Critical cards stay
           at the top. Click a card for details. Drag a card or use the status
           dropdown to save a change.

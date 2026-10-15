@@ -2,7 +2,7 @@
 
 import { useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
-import { phaseShortLabel } from "@/lib/roadmap/constants";
+import { phaseShortLabel, STATUS_LABELS } from "@/lib/roadmap/constants";
 import type { RoadmapTaskRecord, TaskStatus } from "@/lib/roadmap/types";
 import { TASK_STATUSES } from "@/lib/roadmap/types";
 import { PriorityBadge } from "./badges";
@@ -64,7 +64,7 @@ export function TaskTable({ tasks }: { tasks: RoadmapTaskRecord[] }) {
           <option value="">All statuses</option>
           {TASK_STATUSES.map((s) => (
             <option key={s} value={s}>
-              {s}
+              {STATUS_LABELS[s]}
             </option>
           ))}
         </select>
@@ -118,7 +118,7 @@ export function TaskTable({ tasks }: { tasks: RoadmapTaskRecord[] }) {
                   >
                     {TASK_STATUSES.map((s) => (
                       <option key={s} value={s}>
-                        {s}
+                        {STATUS_LABELS[s]}
                       </option>
                     ))}
                   </select>

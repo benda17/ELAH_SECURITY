@@ -48,7 +48,7 @@ export function KanbanBoard({ tasks }: { tasks: RoadmapTaskRecord[] }) {
   const [workstreamFilter, setWorkstreamFilter] = useState("");
   const [criticalOnly, setCriticalOnly] = useState(false);
   const [search, setSearch] = useState("");
-  const [mobileCol, setMobileCol] = useState<TaskStatus>("in_progress");
+  const [mobileCol, setMobileCol] = useState<TaskStatus>("backlog");
   const didDrag = useRef(false);
 
   const relatedTitles = useMemo(
