@@ -3,6 +3,8 @@ import { prisma } from "@/lib/prisma";
 import { LANDING_PAGE_TWEETS } from "./landing-copy";
 import { publishTwitterThread } from "./twitter";
 
+/** X thread describing the APACT entrance (ELAH V2), not the archived intention-scoring pitch. */
+
 export { LANDING_PAGE_TWEETS };
 
 export const LANDING_THREAD_TRIGGER = "twitter-landing-thread";
@@ -74,7 +76,7 @@ export async function postLandingThreadOnce(): Promise<{
       draftCount: result.postIds.length,
       log: JSON.stringify({
         postIds: result.postIds,
-        source: "ELAH marketing landing page",
+        source: "ELAH V2 APACT entrance",
       }),
     },
   });

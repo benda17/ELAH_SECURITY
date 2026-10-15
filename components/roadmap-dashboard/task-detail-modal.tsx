@@ -140,7 +140,10 @@ export function TaskDetailModal({
                 {live.description}
               </p>
             ) : (
-              <p className="text-sm text-ink-dim">No description yet.</p>
+              <p className="text-sm text-ink-dim">
+                No description yet. Add what this APACT task ships and how you
+                will know it is done.
+              </p>
             )}
           </section>
 

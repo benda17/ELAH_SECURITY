@@ -37,6 +37,8 @@ export async function createDemoRequest(input: DemoRequestInput): Promise<{
     data: { name, email, company, role, goal, source },
     select: { id: true, email: true },
   });
+  const g = globalThis as typeof globalThis & { __elahDemoRequestsPage?: unknown };
+  g.__elahDemoRequestsPage = undefined;
   return row;
 }
 

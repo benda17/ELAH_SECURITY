@@ -8,9 +8,8 @@ export async function NewsletterMailStatus({ compact = false }: { compact?: bool
     <div className="rounded-xl border border-accent-amber/40 bg-accent-amber/10 px-4 py-3 text-sm text-ink">
       <p className="font-medium text-accent-amber">Gmail is not connected yet</p>
       <p className="mt-1.5 text-ink-muted">
-        Newsletters send through your Gmail inbox ({status.fromValue}), the same way LinkedIn
-        posts go through LinkedIn. Until you connect that account, Publish stays off so we never
-        pretend an email went out.
+        The APACT weekly sends through your Gmail inbox ({status.fromValue}). Until you
+        connect that account, Publish stays off, so a preview never counts as a sent letter.
       </p>
       {compact ? (
         <p className="mt-2 text-xs text-ink-dim">

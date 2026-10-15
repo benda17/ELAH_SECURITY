@@ -10,35 +10,40 @@ const LEGACY_LANDING_PAGE_URLS = [
   "http://www.elahsecurity.com",
 ];
 
-const SYSTEM_PROMPT = `Based on AI security companies' LinkedIn posts, write a LinkedIn company-page post for ELAH Security (banking AI intention scoring / AI security).
+const SYSTEM_PROMPT = `Write a LinkedIn company-page post for ELAH Security about ELAH V2 / APACT, an agentic AI CAPTCHA.
 
-Style (match strong AI-security company posts):
-- Lead with a concrete real event, incident, regulator action, breach pattern, research finding, or industry case — not soft openers.
-- Ban filler openers and transitions such as: "As we continue", "In today's landscape", "It's no secret", "At the end of the day", "In this post", "We're excited to".
-- Keep it specific and scannable. Short paragraphs separated by a blank line.
-- Length: 140–200 words before the closing link.
-- Use at most 1–3 relevant emojis if they help emphasis or scanning (optional; never spam).
-- No hashtag blocks in the body (hashtags are added separately).
-- Professional company-page voice; no hype.
+Product facts you must stay inside:
+- A website installs an entrance. The agent declares a bounded task in eight fields, proves a session key, and completes three inert exercises (normal page, pressure page, relabeled page).
+- If recorded actions stay inside the declaration, the decision is allow_limited and ELAH issues a short-lived token bound to that key (DPoP). Otherwise it returns a reason and no token.
+- First profile: guest travel. flight.search and traveler.draft.update on guest/current are allowed. payment.create, contract.submit, and data.export are blocked unless a separate approval exists. That approval flow is not built.
+- The human checkbox ("I'm not a robot") sets a site cookie, never calls ELAH, and is logged as unverified. It is explicitly not a check.
+- Exercises are mock. Payment is recorded and refused. Nothing is a production deployment.
+- A pass shows key possession and behavior on that attempt. It does not identify the model, prove the hidden user prompt, or promise later behavior.
 
-Evidence (mandatory):
-- Name a real organization, regulator, report, or well-known incident when possible.
-- If you are not confident a citation is real, describe a clearly general industry pattern — do NOT invent papers, authors, dates, or statistics.
-- Tie the case to why intention scoring / explainable controls matter for banking AI assistants.
+Do not write about banking intention scoring, explainable intention coordinates, CS/CRM intent scores, or "ELAH scores, never acts." ELAH V1 is archived.
+
+Style:
+- Lead with the mechanism or a concrete exercise detail, not a soft opener.
+- Ban filler: "As we continue", "In today's landscape", "It's no secret", "At the end of the day", "In this post", "We're excited to".
+- Short paragraphs separated by a blank line. 140–200 words before the closing link.
+- At most 1–3 emojis, and only if they help scanning.
+- No hashtag block in the body.
+- Do not invent customers, pilots, papers, statistics, or a deployed service.
+- If you are not confident a citation is real, leave it out.
 
 Close every post with:
-1) one short takeaway for security or risk leaders
+1) one short takeaway
 2) then a blank line
 3) then exactly this link on its own line: ${LANDING_PAGE_URL}`;
 
 export function buildFallbackDraft(topic: string): string {
-  return `FINRA and other financial regulators have repeatedly warned that AI tools in customer-facing workflows can be steered into policy-bypassing behavior — including social-engineering and prompt-injection patterns that never look like classic malware.
+  return `${topic}.
 
-That is the risk ELAH targets: scoring human intention behind banking-assistant actions, with explainable coordinates, so security teams get a calibrated signal before tools move money or change entitlements.
+A website can put an entrance in front of an agent instead of trusting a human checkbox. The agent declares a bounded task, proves a session key, and works three inert exercises on a mock page: the normal page, a pressure page, and a relabeled page. Stay inside the declaration and the entrance can return allow_limited with a short-lived token bound to that key. Step outside and it returns a reason and no token.
 
-Focus today: ${topic}.
+The first profile is guest travel. Search and a guest draft are in bounds. Payment, contract submission, and data export stay blocked unless a separate approval exists. That approval flow is not built. The "I'm not a robot" path sets a cookie, skips ELAH, and is logged as unverified.
 
-If an agent can act, intention visibility is a control — not a nice-to-have.
+This slice runs locally. A pass records the attempt. It does not identify the model, recover a hidden user prompt, or promise the next action.
 
 ${LANDING_PAGE_URL}`;
 }
@@ -84,17 +89,19 @@ export async function generatePostBody(
   topic: string,
   context?: string | null,
 ): Promise<ChatResult> {
-  const userContent = `Based on AI security companies' LinkedIn posts, write one company-page post.
+  const userContent = `Write one company-page post about ELAH V2, the agentic AI CAPTCHA (APACT).
 
 Topic: ${topic}
-Context: ${context ?? "ELAH banking MVP — intention scoring for banking AI assistants"}
+Context: ${context ?? "ELAH V2 APACT — guest travel entrance. Search and guest draft only. Payment, contract submission, and data export need an approval flow that is not built."}
 
 Requirements:
-- Open with a real event / regulator case / documented industry incident (not "As we continue…").
+- Open with the mechanism or a concrete exercise detail.
 - Blank lines between short paragraphs.
 - Light emoji use only if useful (0–3).
 - End with a takeaway, then a blank line, then ${LANDING_PAGE_URL}
-- Do not invent citations.`;
+- Do not invent citations, customers, or a production deployment.
+- Do not claim a passing exercise proves the user prompt or the model identity.
+- Do not write a banking intention-scoring post.`;
 
   const groqKey = process.env.GROQ_API_KEY?.trim();
   if (groqKey) {

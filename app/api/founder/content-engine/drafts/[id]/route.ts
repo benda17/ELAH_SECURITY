@@ -6,6 +6,7 @@ import {
   publishDraftToFacebookById,
   publishDraftToTwitterById,
 } from "@/lib/founder/content-engine/generator";
+import { invalidateContentEngineCache } from "@/lib/founder/content-engine/page-cache";
 import { updateDraftBody, updateDraftStatus } from "@/lib/founder/content-engine/repository";
 
 function withTwitter(
@@ -27,6 +28,17 @@ function withTwitter(
 export async function PATCH(
   req: NextRequest,
   { params }: { params: { id: string } },
+) {
+  try {
+    return await patchDraft(req, params);
+  } finally {
+    invalidateContentEngineCache();
+  }
+}
+
+async function patchDraft(
+  req: NextRequest,
+  params: { id: string },
 ) {
   const body = (await req.json()) as {
     action?:

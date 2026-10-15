@@ -4,7 +4,9 @@ import { getContentEngineConfig } from "./config";
 import { publishTextToFacebook } from "./facebook";
 import { ensureLandingPageLink, generatePostBody } from "./llm";
 import { publishTextToLinkedIn } from "./linkedin";
+import { ensureV2SourceEvents } from "./source-seeds";
 import { publishTextToTwitter, toTweetText, parseTwitterPublishNote, upsertTwitterPublishNote } from "./twitter";
+import { V2_SOURCE_TOPICS } from "./v2-content";
 
 function parseHashtags(raw: string): string[] {
   try {
@@ -15,53 +17,9 @@ function parseHashtags(raw: string): string[] {
   }
 }
 
-const DEFAULT_TOPICS = [
-  {
-    title: "AI security in banking assistants",
-    summary:
-      "Research angle: prompt injection / social engineering against financial chatbots; OWASP LLM Top 10; bank AI assistant misuse cases; need for intention signals before tool execution.",
-  },
-  {
-    title: "Human intention scoring for financial agents",
-    summary:
-      "Research angle: agentic AI in finance, unauthorized transfers or policy bypass via multi-step tool use; NIST AI RMF / financial-sector AI risk papers; why calibrated intention scores help SOC/risk teams.",
-  },
-  {
-    title: "Explainable AI for fraud and policy bypass detection",
-    summary:
-      "Research angle: explainability requirements in financial AI (model risk management, SR 11-7 style oversight); fraud cases where opaque models failed review; ELAH explainable coordinates vs black-box alerts.",
-  },
-  {
-    title: "Prompt injection as a banking control failure",
-    summary:
-      "Research angle: indirect prompt injection via tickets, documents, and emails into bank assistants; real SOC patterns; mapping intention before tool calls.",
-  },
-  {
-    title: "Agentic payments need a human-intention gate",
-    summary:
-      "Research angle: multi-step agent tool use for transfers and entitlements; when autonomy outruns policy; calibrated 0–1 intention scores for risk teams.",
-  },
-  {
-    title: "From black-box alerts to explainable intention coordinates",
-    summary:
-      "Research angle: model risk management expectations for AI in finance; why security leaders need readable coordinates, not opaque deny/allow.",
-  },
-  {
-    title: "Social engineering the assistant, not the customer",
-    summary:
-      "Research angle: attackers targeting the AI layer in digital banking; social-engineering patterns against copilots; ELAH as intention telemetry for defenders.",
-  },
-  {
-    title: "Policy bypass without malware: LLM tool misuse",
-    summary:
-      "Research angle: assistants that can change limits, open products, or move funds; misuse without classic malware; intention scoring as a control plane signal.",
-  },
-  {
-    title: "Building trust in AI banking with measurable human intent",
-    summary:
-      "Research angle: board and regulator pressure for AI accountability; measurable intention signals as evidence for audits and incident review.",
-  },
-];
+const DEFAULT_TOPICS = V2_SOURCE_TOPICS;
+
+const V2_DRAFT_HASHTAGS = ["#ELAH", "#APACT", "#AgentCAPTCHA"];
 
 function pickTopic(indexHint?: number) {
   const i =
@@ -72,19 +30,7 @@ function pickTopic(indexHint?: number) {
 }
 
 export async function scanSourceEvents(): Promise<number> {
-  const existing = await prisma.contentSourceEvent.count();
-  if (existing > 0) return 0;
-
-  const seeds = DEFAULT_TOPICS.map((topic, i) => ({
-    sourceType: "research",
-    title: topic.title,
-    summary: topic.summary,
-    url: null as string | null,
-    metadata: JSON.stringify({ seed: true, index: i }),
-  }));
-
-  await prisma.contentSourceEvent.createMany({ data: seeds });
-  return seeds.length;
+  return ensureV2SourceEvents(prisma);
 }
 
 export async function generateLinkedInDraft(
@@ -102,11 +48,14 @@ export async function generateLinkedInDraft(
   try {
     await scanSourceEvents();
     const source = await prisma.contentSourceEvent.findFirst({
-      where: { processed: false },
-      orderBy: { capturedAt: "desc" },
+      where: {
+        processed: false,
+        title: { in: DEFAULT_TOPICS.map((topic) => topic.title) },
+      },
+      orderBy: { capturedAt: "asc" },
     });
 
-    const draftCount = await prisma.linkedInPostDraft.count();
+    const draftCount = await prisma.linkedInPostDraft.count({ where: { era: "v2" } });
     const fallback = pickTopic(draftCount);
     const topic = source?.title ?? fallback.title;
     const researchContext = source?.summary ?? fallback.summary;
@@ -116,8 +65,9 @@ export async function generateLinkedInDraft(
       data: {
         title: topic,
         body,
-        hashtags: JSON.stringify(["#ELAH", "#AISecurity", "#BankingAI"]),
+        hashtags: JSON.stringify(V2_DRAFT_HASHTAGS),
         status: "draft",
+        era: "v2",
         sourceEventId: source?.id ?? null,
         runId: run.id,
       },

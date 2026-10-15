@@ -6,8 +6,8 @@ export function ArchitectureFlow() {
     <section className="panel">
       <h2 className="panel-title">Architecture</h2>
       <p className="mt-1 text-xs text-ink-muted">
-        ELAH runs as a separate service — the bank app sends events; the bank
-        applies its own policy layer after receiving the score.
+        Entrance widget, ELAH verifier, then the partner backend. A frontend-only
+        gate does not protect operations. The slice runs on localhost.
       </p>
 
       <div className="mt-6 flex flex-col gap-3 lg:flex-row lg:items-stretch lg:gap-2">

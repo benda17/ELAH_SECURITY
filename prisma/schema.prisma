@@ -570,6 +570,7 @@ model LinkedInPostDraft {
   body                String
   hashtags            String    @default("[]")
   status              String    @default("draft") // draft | approved | rejected | published
+  era                 String    @default("v1") // v1 | v2
   sourceEventId       String?
   runId               String?
   reviewerNotes       String?
@@ -582,6 +583,7 @@ model LinkedInPostDraft {
   updatedAt           DateTime  @updatedAt
 
   @@index([status])
+  @@index([era])
   @@index([createdAt])
   @@index([publishedAt])
   @@index([facebookPublishedAt])

@@ -4,6 +4,8 @@ import {
   exchangeLinkedInCode,
   saveLinkedInConnection,
 } from "@/lib/founder/content-engine/linkedin";
+import { invalidateContentEngineCache } from "@/lib/founder/content-engine/page-cache";
+import { invalidateSettingsPageCache } from "@/lib/newsletter/page-cache";
 
 export const dynamic = "force-dynamic";
 
@@ -28,6 +30,8 @@ export async function GET(req: NextRequest) {
   try {
     const tokens = await exchangeLinkedInCode(code);
     await saveLinkedInConnection(tokens);
+    invalidateContentEngineCache();
+    invalidateSettingsPageCache();
     cookies().delete("linkedin_oauth_state");
     back.searchParams.set("linkedin", "connected");
     return NextResponse.redirect(back);

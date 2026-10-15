@@ -13,9 +13,9 @@ import { TaskBoard } from "@/components/elah-roadmap/task-board";
 import { ThresholdSimulator } from "@/components/elah-roadmap/threshold-simulator";
 
 export const metadata = {
-  title: "ELAH Model Roadmap · ELAH Analytics",
+  title: "APACT protocol roadmap · ELAH",
   description:
-    "Internal roadmap and task list for building the ELAH Banking Intention Model.",
+    "What APACT specifies, what the local thin slice proved, and what is not built.",
 };
 
 export default function ElahModelRoadmapPage() {
@@ -27,12 +27,15 @@ export default function ElahModelRoadmapPage() {
             <Image src="/elah-logo.png" alt="ELAH" width={36} height={36} />
             <div>
               <p className="text-xs font-semibold uppercase tracking-wider text-accent-cyan">
-                ELAH Analytics · Internal
+                APACT · ELAH V2
               </p>
               <h1 className="flex items-center gap-2 text-xl font-semibold">
                 <Map className="size-5 text-accent-cyan" />
-                ELAH Model Roadmap
+                APACT protocol roadmap
               </h1>
+              <p className="max-w-xl text-xs text-ink-muted">
+                Specified, proved locally, and not built. The live execution plan is the roadmap board.
+              </p>
             </div>
           </div>
           <div className="flex flex-wrap items-center gap-2">
@@ -40,16 +43,16 @@ export default function ElahModelRoadmapPage() {
               href="/banking/intent-matrix"
               className="rounded-lg border border-surface-border px-3 py-1.5 text-xs text-ink-muted hover:text-ink"
             >
-              Intent Matrix
+              Banking intent matrix
             </Link>
             <Link
               href="/banking/training-dataset"
               className="rounded-lg border border-accent-emerald/30 bg-accent-emerald/10 px-3 py-1.5 text-xs font-medium text-accent-emerald hover:bg-accent-emerald/15"
             >
-              Training Dataset
+              Banking training set
             </Link>
             <Link
-              href="/"
+              href="/founder/overview"
               className="inline-flex items-center gap-1 rounded-lg border border-surface-border px-3 py-1.5 text-xs text-ink-muted hover:text-ink"
             >
               <ArrowLeft className="size-3.5" />
@@ -72,7 +75,7 @@ export default function ElahModelRoadmapPage() {
         <ThresholdSimulator />
 
         <footer className="border-t border-surface-border pt-6 text-center text-xs text-ink-dim">
-          ELAH Banking Intention Model · Internal program page · Banking-only MVP
+          APACT protocol roadmap · Local thin slice · Hosted service not built
         </footer>
       </main>
     </div>

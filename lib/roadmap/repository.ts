@@ -1,4 +1,5 @@
 import { prisma } from "@/lib/prisma";
+import { invalidateRoadmapCache } from "./page-cache";
 import { parseJsonArray, stringifyJsonArray } from "./json";
 import type {
   RoadmapContactRecord,
@@ -152,8 +153,44 @@ export async function listTasks(filters?: {
         : {}),
     },
     orderBy: [{ order: "asc" }, { createdAt: "asc" }],
+    select: {
+      id: true,
+      title: true,
+      description: true,
+      category: true,
+      workstream: true,
+      phase: true,
+      status: true,
+      priority: true,
+      owner: true,
+      createdAt: true,
+      updatedAt: true,
+      startDate: true,
+      dueDate: true,
+      completedAt: true,
+      estimatedEffort: true,
+      actualEffort: true,
+      progressPercentage: true,
+      milestoneId: true,
+      parentTaskId: true,
+      dependencyIds: true,
+      blockedBy: true,
+      blockingReason: true,
+      tags: true,
+      riskLevel: true,
+      isCriticalPath: true,
+      order: true,
+    },
   });
-  return rows.map(mapTask);
+  return rows.map((row) =>
+    mapTask({
+      ...row,
+      successCriteria: null,
+      deliverables: null,
+      notes: null,
+      links: "[]",
+    }),
+  );
 }
 
 export async function getTask(id: string): Promise<RoadmapTaskRecord | null> {
@@ -194,6 +231,7 @@ export async function createTask(input: TaskCreateInput): Promise<RoadmapTaskRec
       order: input.order,
     },
   });
+  invalidateRoadmapCache();
   return mapTask(row);
 }
 
@@ -221,11 +259,13 @@ export async function updateTask(
           : patch.progressPercentage,
     },
   });
+  invalidateRoadmapCache();
   return mapTask(row);
 }
 
 export async function deleteTask(id: string): Promise<void> {
   await prisma.roadmapTask.delete({ where: { id } });
+  invalidateRoadmapCache();
 }
 
 export async function listMilestones(): Promise<RoadmapMilestoneRecord[]> {
@@ -248,6 +288,7 @@ export async function createContact(
       associatedTasks: stringifyJsonArray(data.associatedTasks),
     },
   });
+  invalidateRoadmapCache();
   return mapContact(row);
 }
 
@@ -265,6 +306,7 @@ export async function updateContact(
           : undefined,
     },
   });
+  invalidateRoadmapCache();
   return mapContact(row);
 }
 
@@ -285,6 +327,7 @@ export async function createDecision(
       relatedTaskIds: stringifyJsonArray(data.relatedTaskIds),
     },
   });
+  invalidateRoadmapCache();
   return mapDecision(row);
 }
 
@@ -304,6 +347,7 @@ export async function updateDecision(
           : undefined,
     },
   });
+  invalidateRoadmapCache();
   return mapDecision(row);
 }
 
@@ -314,7 +358,9 @@ export async function listExperiments(): Promise<RoadmapExperimentRecord[]> {
 export async function createExperiment(
   data: Omit<RoadmapExperimentRecord, "id" | "createdAt" | "updatedAt"> & { id?: string },
 ): Promise<RoadmapExperimentRecord> {
-  return prisma.roadmapExperiment.create({ data });
+  const row = await prisma.roadmapExperiment.create({ data });
+  invalidateRoadmapCache();
+  return row;
 }
 
 export async function listRisks(): Promise<RoadmapRiskRecord[]> {
@@ -331,6 +377,7 @@ export async function createRisk(
       relatedTaskIds: stringifyJsonArray(data.relatedTaskIds),
     },
   });
+  invalidateRoadmapCache();
   return mapRisk(row);
 }
 
@@ -348,6 +395,7 @@ export async function updateRisk(
           : undefined,
     },
   });
+  invalidateRoadmapCache();
   return mapRisk(row);
 }
 

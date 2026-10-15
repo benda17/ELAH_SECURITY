@@ -22,17 +22,55 @@ export default async function ElahRoadmapOverviewPage() {
       <header>
         <p className="panel-title">Executive overview</p>
         <h1 className="text-2xl font-semibold tracking-tight">
-          ELAH → Banking MVP
+          APACT, a CAPTCHA for agents
         </h1>
-        <p className="mt-1 max-w-3xl text-sm text-ink-muted">
-          Operational control center for product, engineering, data, validation,
-          pilot, and fundraising. Metrics computed from live roadmap data.
+        <p className="mt-2 max-w-3xl text-sm leading-relaxed text-ink-muted">
+          ELAH V2 sits at a website&apos;s entrance. A person ticks &ldquo;I&apos;m
+          not a robot&rdquo; and is not checked. An AI agent declares what it was
+          asked to do and which functions it needs, then does three short mock
+          tasks. If it stays inside that declaration, ELAH gives it a short-lived
+          token bound to a key that never leaves the page.
+        </p>
+        <p className="mt-2 max-w-3xl text-sm leading-relaxed text-ink-muted">
+          The thin slice is done locally: a Python server, the entrance widget,
+          the Skyhop test site, and 33 tests. The first profile is guest travel.
+          Search flights and save a guest draft. Do not pay, sign a contract, or
+          export data. A hosted service, durable storage, and step-up approval
+          are not done. There is no operator credential flow and no customer
+          traction.
         </p>
       </header>
 
+      <div className="grid gap-3 lg:grid-cols-3">
+        <div className="panel">
+          <p className="panel-title">Specified</p>
+          <p className="mt-2 text-sm leading-relaxed text-ink-muted">
+            APACT 0.1: prepare, declare, freeze, exercise, complete, decide.
+            Guest access is site policy. Delegated access needs accepted
+            approval. A passing exercise does not create missing authority.
+          </p>
+        </div>
+        <div className="panel">
+          <p className="panel-title">Proved locally</p>
+          <p className="mt-2 text-sm leading-relaxed text-ink-muted">
+            An honest guest agent can be admitted. Search and draft calls verify.
+            Payment under pressure is rejected. The token lasts 300 seconds and
+            is bound to the page key. Storage is in memory.
+          </p>
+        </div>
+        <div className="panel">
+          <p className="panel-title">Not built</p>
+          <p className="mt-2 text-sm leading-relaxed text-ink-muted">
+            Hosted service, durable challenge and revocation storage, step-up
+            approval, and operator or authority adapters. Asking for payment
+            returns step_up_required and stops.
+          </p>
+        </div>
+      </div>
+
       <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
         <StatCard
-          label="MVP completion"
+          label="Plan completion"
           value={`${metrics.overallCompletion}%`}
           hint={`${metrics.tasksCompleted} / ${metrics.tasksTotal} tasks done`}
           icon={<Target className="size-4" />}
@@ -65,18 +103,33 @@ export default async function ElahRoadmapOverviewPage() {
       </div>
 
       <div className="panel">
-        <p className="panel-title">Current phase</p>
+        <p className="panel-title">APACT execution plan</p>
         <p className="text-lg font-medium">{metrics.currentPhase}</p>
+        <p className="mt-1 max-w-3xl text-xs leading-relaxed text-ink-muted">
+          Current phase from the live board. The board is the APACT execution
+          plan, from product definition through the fundraising narrative for
+          the pivot. Counts on this page follow that data.
+        </p>
       </div>
 
       <div className="grid gap-4 lg:grid-cols-2">
         <div className="panel">
-          <p className="panel-title mb-3">Readiness scores</p>
+          <p className="panel-title mb-3">Readiness</p>
           <div className="space-y-3">
-            {Object.entries(metrics.readiness).map(([key, val]) => (
+            {Object.entries(metrics.readiness)
+              .filter(([key]) => key !== "data" && key !== "model")
+              .map(([key, val]) => (
               <ProgressBar
                 key={key}
-                label={key.replace(/([A-Z])/g, " $1")}
+                label={
+                  {
+                    technical: "Technical",
+                    product: "Product",
+                    pilot: "Pilot and privacy",
+                    customerValidation: "Design partners",
+                    fundraising: "Fundraising",
+                  }[key] ?? key
+                }
                 value={val}
               />
             ))}

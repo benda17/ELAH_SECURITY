@@ -4,7 +4,7 @@ import { ProgressBar } from "@/components/roadmap-dashboard/progress-bar";
 import { StatusBadge } from "@/components/roadmap-dashboard/badges";
 import { TaskOpenButton } from "@/components/roadmap-dashboard/task-open-button";
 
-export const metadata = { title: "ELAH Roadmap · Milestones" };
+export const metadata = { title: "APACT · Milestones" };
 
 export default async function MilestonesPage() {
   const { milestones, tasks } = await loadRoadmapPageData();
@@ -12,9 +12,17 @@ export default async function MilestonesPage() {
   return (
     <div className="space-y-4">
       <header>
-        <p className="panel-title">Milestones</p>
+        <p className="panel-title">APACT milestones</p>
         <h1 className="text-2xl font-semibold">Major milestones</h1>
+        <p className="mt-1 max-w-3xl text-sm text-ink-muted">
+          Exit criteria for product definition, the thin guest-travel slice, the
+          durable service, the partner kit, and the phases through design
+          partners, company and privacy, and fundraising.
+        </p>
       </header>
+      {milestones.length === 0 && (
+        <p className="text-sm text-ink-dim">No milestones recorded yet.</p>
+      )}
       <div className="space-y-4">
         {milestones.map((m) => {
           const linked = tasks.filter((t) => t.milestoneId === m.id);

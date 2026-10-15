@@ -1,15 +1,26 @@
 import { loadRoadmapPageData } from "@/lib/roadmap/server";
 
-export const metadata = { title: "ELAH Roadmap · Experiments" };
+export const metadata = { title: "APACT · Experiments" };
 
 export default async function ExperimentsPage() {
   const { experiments } = await loadRoadmapPageData();
   return (
     <div className="space-y-4">
       <header>
-        <p className="panel-title">Experiments & validation</p>
-        <h1 className="text-2xl font-semibold">Model & security experiments</h1>
+        <p className="panel-title">Experiments and validation</p>
+        <h1 className="text-2xl font-semibold">Admission experiments</h1>
+        <p className="mt-1 max-w-3xl text-sm text-ink-muted">
+          Hypotheses for the entrance widget, the three inert exercises,
+          guest-travel allow and block rules, key-bound tokens, and adversarial
+          evaluation.
+        </p>
       </header>
+      {experiments.length === 0 && (
+        <p className="text-sm text-ink-dim">
+          No experiments recorded yet. This view tracks admission, guest-travel,
+          and adversarial tests.
+        </p>
+      )}
       <div className="grid gap-3">
         {experiments.map((e) => (
           <div key={e.id} className="panel space-y-2">

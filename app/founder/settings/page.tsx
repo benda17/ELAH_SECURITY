@@ -21,13 +21,20 @@ import { getGmailSendStatus, gmailOAuthConfigured } from "@/lib/newsletter/gmail
 export const metadata = { title: "ELAH · Founder Settings" };
 export const dynamic = "force-dynamic";
 
-export default async function FounderSettingsPage({
-  searchParams,
-}: {
-  searchParams?: { gmail?: string };
-}) {
-  const oauthDebug = getLinkedInOAuthDebug();
-  const fbOauth = getFacebookOAuthDebug();
+type SettingsSnapshot = {
+  at: number;
+  config: Awaited<ReturnType<typeof getContentEngineConfig>>;
+  facebook: Awaited<ReturnType<typeof getFacebookPublishStatus>>;
+  integration: Awaited<ReturnType<typeof getLinkedInIntegration>>;
+  publishCreds: Awaited<ReturnType<typeof getPublishCredentials>>;
+  gmail: Awaited<ReturnType<typeof getGmailSendStatus>>;
+};
+
+async function loadSettingsPage(): Promise<SettingsSnapshot> {
+  const g = globalThis as typeof globalThis & { __elahSettingsPage?: SettingsSnapshot };
+  const hit = g.__elahSettingsPage;
+  if (hit && Date.now() - hit.at < 30_000) return hit;
+
   const [config, facebook, integration, publishCreds, gmail] = await Promise.all([
     getContentEngineConfig(),
     getFacebookPublishStatus(),
@@ -35,6 +42,30 @@ export default async function FounderSettingsPage({
     getPublishCredentials(),
     getGmailSendStatus(),
   ]);
+  const snapshot: SettingsSnapshot = {
+    at: Date.now(),
+    config,
+    facebook,
+    integration,
+    publishCreds,
+    gmail,
+  };
+  g.__elahSettingsPage = snapshot;
+  return snapshot;
+}
+
+export default async function FounderSettingsPage({
+  searchParams,
+}: {
+  searchParams?: { gmail?: string };
+}) {
+  const oauthDebug = getLinkedInOAuthDebug();
+  const fbOauth = getFacebookOAuthDebug();
+  if (searchParams?.gmail) {
+    const g = globalThis as typeof globalThis & { __elahSettingsPage?: unknown };
+    g.__elahSettingsPage = undefined;
+  }
+  const { config, facebook, integration, publishCreds, gmail } = await loadSettingsPage();
   const canPublish = Boolean(publishCreds);
   const gmailFlag = searchParams?.gmail?.trim() || "";
 

@@ -9,10 +9,10 @@ export function ScoringContractCard() {
           <FileJson className="size-4 text-accent-violet" />
         </div>
         <div>
-          <h2 className="panel-title">Scoring contract</h2>
+          <h2 className="panel-title">Admission report</h2>
           <p className="mt-1 max-w-2xl text-xs leading-relaxed text-ink-muted">
-            The ELAH score represents the probability that the user message
-            expresses a genuine, coherent, contextually valid banking intention.
+            The server returns a decision, the functions it granted and blocked,
+            exercise measurements, and separate evidence levels for this attempt.
           </p>
         </div>
       </div>
@@ -21,25 +21,24 @@ export function ScoringContractCard() {
         <div className="rounded-xl border border-surface-border bg-[#0a101c] p-4 font-mono text-xs">
           <pre className="overflow-x-auto text-ink-muted">
 {`{
-  "elahScore": 0.87,
-  "primaryIntent": "external_transfer",
-  "intentProbabilities": {
-    "external_transfer": 0.87,
-    "ambiguous_banking_request": 0.08,
-    ...
+  "status": "allow_limited",
+  "reason": "guest_policy_and_task_test_passed",
+  "granted_functions": [
+    {"id": "flight.search", "resource": "guest/current"},
+    {"id": "traveler.draft.update", "resource": "guest/current"}
+  ],
+  "blocked_functions": [
+    {"id": "payment.create", "basis": "prohibited_by_guest_policy"},
+    {"id": "contract.submit", "basis": "prohibited_by_guest_policy"},
+    {"id": "data.export", "basis": "prohibited_by_guest_policy"}
+  ],
+  "measurements": {
+    "safe_task_completion": "6/6",
+    "boundary_violation_count": 0,
+    "declared_action_alignment": "matched",
+    "probe_consistency": "passed"
   },
-  "coordinates": {
-    "humanAgency": 0.82,
-    "financialRisk": 0.78,
-    "emotionalUrgency": 0.31
-  },
-  "vectorBreakdown": { ... },
-  "explanation": {
-    "matchedSignals": ["transfer verb", "amount", "recipient"],
-    "weakSignals": [],
-    "negativeSignals": []
-  },
-  "modelVersion": "elah-banking-v0.1"
+  "token_type": "DPoP"
 }`}
           </pre>
         </div>
@@ -54,9 +53,6 @@ export function ScoringContractCard() {
                 <code className="text-sm font-medium text-accent-cyan">
                   {field.key}
                 </code>
-                {"range" in field && field.range && (
-                  <span className="text-[10px] text-accent-gold">{field.range}</span>
-                )}
                 <span className="text-[10px] text-ink-dim">{field.type}</span>
               </div>
               {"desc" in field && field.desc && (

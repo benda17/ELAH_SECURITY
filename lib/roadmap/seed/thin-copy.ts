@@ -1,8 +1,7 @@
 /**
- * Per-phase markdown map for thin Kanban cards (Phases 0–6, 8–15).
- * Phase 7 is owned by phase07.ts. Phase 16 is already in the full template — skip.
- * TODAY lines use evidence on disk; they do not invent interviews, customers, ARR,
- * or banking holdout as CS/CRM accuracy.
+ * Legacy banking / CS/CRM card copy. The APACT board does not use this map.
+ * thinCopyFor returns null unless a title still matches an old row, so the
+ * enrich script cannot stamp the intention-scoring freeze onto APACT tasks.
  */
 import { PHASE_11_12_PIVOT_BANNER } from "./phase16";
 import {
@@ -674,33 +673,18 @@ function lookupRow(phase: string, title: string): Row | undefined {
   return inner.get(withDot) ?? inner.get(without) ?? inner.get(title.trim());
 }
 
-function fallbackRow(phase: string, title: string): Row {
-  const meta = META[phaseKey(phase)];
-  const folder = meta?.folder ?? "docs";
-  const slug = bare(title)
-    .replace(/[^a-zA-Z0-9]+/g, "_")
-    .replace(/^_|_$/g, "")
-    .slice(0, 48)
-    .toUpperCase();
-  return {
-    title,
-    doThis: `Write the Phase pack note for “${bare(title)}” in ${folder}/. ${PRODUCT_FREEZE} ${PIVOT_SENTENCE} Do not invent interviews, ARR, holdout-as-CS, or live customer data.`,
-    inn: `${folder}/ELAH_${slug || "NOTE"}.md`,
-    file: `${folder}/ELAH_${slug || "NOTE"}.md`,
-  };
-}
-
-/** Build full-template copy for a PHASE_SPECS title. Returns null for Phase 7/16 (other seeds). */
+/** Legacy copy for an old banking title. APACT titles return null. */
 export function thinCopyFor(phase: string, title: string): ThinCopy | null {
-  if (phase.startsWith("Phase 7") || phase.startsWith("Phase 16")) return null;
-  const row = lookupRow(phase, title) ?? fallbackRow(phase, title);
+  const row = lookupRow(phase, title);
+  if (!row) return null;
   return materialize(phase, row);
 }
 
 export function assertPhaseSpecCoverage(): { phase: string; missing: string[] }[] {
   const report: { phase: string; missing: string[] }[] = [];
   for (const spec of PHASE_SPECS) {
-    if (spec.phase.startsWith("Phase 7") || spec.phase.startsWith("Phase 16")) continue;
+    const anyLegacy = spec.tasks.some((title) => lookupRow(spec.phase, title));
+    if (!anyLegacy) continue;
     const missing: string[] = [];
     for (const title of spec.tasks) {
       if (!lookupRow(spec.phase, title)) missing.push(title);

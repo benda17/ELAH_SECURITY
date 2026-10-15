@@ -2,6 +2,8 @@ import "server-only";
 import { prisma } from "@/lib/prisma";
 import { ensureLandingPageLink } from "./llm";
 
+export type ContentEra = "v1" | "v2";
+
 export async function listContentEngineRuns(limit = 20) {
   return prisma.contentEngineRun.findMany({
     orderBy: { startedAt: "desc" },
@@ -9,8 +11,9 @@ export async function listContentEngineRuns(limit = 20) {
   });
 }
 
-export async function listLinkedInDrafts(limit = 50) {
+export async function listLinkedInDrafts(limit = 50, era?: ContentEra) {
   return prisma.linkedInPostDraft.findMany({
+    where: era ? { era } : undefined,
     orderBy: { createdAt: "desc" },
     take: limit,
   });
@@ -35,9 +38,10 @@ export async function rewriteQueuedDraftLandingUrls(): Promise<number> {
   return updated;
 }
 
-export async function countLinkedInPostsByStatus() {
+export async function countLinkedInPostsByStatus(era?: ContentEra) {
   const rows = await prisma.linkedInPostDraft.groupBy({
     by: ["status"],
+    where: era ? { era } : undefined,
     _count: { _all: true },
   });
   const counts: Record<string, number> = {
@@ -94,7 +98,10 @@ export type DailyPostPoint = {
 };
 
 /** Last N calendar days of content activity for the Content Engine graph. */
-export async function getDailyPostSeries(days = 30): Promise<DailyPostPoint[]> {
+export async function getDailyPostSeries(
+  days = 30,
+  era?: ContentEra,
+): Promise<DailyPostPoint[]> {
   const end = new Date();
   end.setHours(23, 59, 59, 999);
   const start = new Date(end);
@@ -103,6 +110,7 @@ export async function getDailyPostSeries(days = 30): Promise<DailyPostPoint[]> {
 
   const drafts = await prisma.linkedInPostDraft.findMany({
     where: {
+      ...(era ? { era } : {}),
       OR: [
         { createdAt: { gte: start, lte: end } },
         { publishedAt: { gte: start, lte: end } },
@@ -116,18 +124,24 @@ export async function getDailyPostSeries(days = 30): Promise<DailyPostPoint[]> {
     },
   });
 
+  const localDayKey = (when: Date) => {
+    const month = String(when.getMonth() + 1).padStart(2, "0");
+    const day = String(when.getDate()).padStart(2, "0");
+    return `${when.getFullYear()}-${month}-${day}`;
+  };
+
   const byDay = new Map<string, DailyPostPoint>();
   for (let i = 0; i < days; i++) {
     const d = new Date(start);
     d.setDate(start.getDate() + i);
-    const key = d.toISOString().slice(0, 10);
+    const key = localDayKey(d);
     const label = d.toLocaleDateString(undefined, { month: "short", day: "numeric" });
     byDay.set(key, { date: key, label, created: 0, published: 0, facebook: 0 });
   }
 
   const bump = (when: Date | null | undefined, field: "created" | "published" | "facebook") => {
     if (!when) return;
-    const key = when.toISOString().slice(0, 10);
+    const key = localDayKey(when);
     const row = byDay.get(key);
     if (row) row[field] += 1;
   };

@@ -69,7 +69,11 @@ export function FirstRoundPlan() {
       </div>
 
       <div>
-        <h3 className="mb-3 text-sm font-semibold text-ink">Use of Funds</h3>
+        <h3 className="mb-1 text-sm font-semibold text-ink">Use of Funds</h3>
+        <p className="mb-3 max-w-3xl text-xs leading-relaxed text-ink-dim">
+          Amounts from the 26 August 2026 banking-model ask. They have not been
+          re-cut for APACT, and the round is not closed.
+        </p>
         <div className="overflow-x-auto rounded-xl border border-surface-border">
           <table className="w-full min-w-[480px] text-left text-sm">
             <thead>

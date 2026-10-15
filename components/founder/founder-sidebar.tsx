@@ -28,7 +28,7 @@ import { AppDrawerShell } from "@/components/app-drawer-shell";
 const PRIMARY_NAV = [
   { href: "/founder/overview", label: "Overview", icon: LayoutDashboard },
   { href: "/founder/roadmap/timeline", label: "Roadmap", icon: GitBranch, match: "/founder/roadmap" },
-  { href: "/founder/model-roadmap", label: "Model Roadmap", icon: Target },
+  { href: "/founder/model-roadmap", label: "Protocol roadmap", icon: Target },
   { href: "/founder/fundraising", label: "Fundraising", icon: Milestone },
   { href: "/founder/content-engine", label: "Content Engine", icon: PenLine },
   { href: "/founder/newsletter", label: "Weekly Newsletter", icon: Mail },
@@ -53,15 +53,15 @@ export function FounderSidebar() {
   const inRoadmap = pathname.startsWith("/founder/roadmap");
 
   return (
-    <AppDrawerShell eyebrow="Founder & Manager" title="ELAH Admin">
+    <AppDrawerShell eyebrow="APACT · ELAH V2" title="Founder admin">
       <div className="hidden border-b border-surface-border p-4 lg:block">
         <div className="flex items-center gap-2">
           <Image src="/elah-logo.png" alt="ELAH" width={28} height={28} />
           <div>
             <p className="text-[10px] font-semibold uppercase tracking-wider text-accent-gold">
-              Founder & Manager
+              APACT · ELAH V2
             </p>
-            <p className="text-sm font-semibold text-ink">ELAH Admin</p>
+            <p className="text-sm font-semibold text-ink">Founder admin</p>
           </div>
         </div>
       </div>

@@ -13,12 +13,12 @@ export function ProductDefinitionCard() {
         <div>
           <h2 className="panel-title">Product definition</h2>
           <p className="mt-2 max-w-3xl text-sm leading-relaxed text-ink">
-            ELAH does not decide whether to allow, block, or confirm an action.
-            ELAH only returns a numeric intention score, graph coordinates, and
-            an explanation.{" "}
-            <strong className="font-semibold text-accent-cyan">
-              The bank defines the threshold.
-            </strong>
+            A person who ticks &ldquo;I&apos;m not a robot&rdquo; is not checked.
+            An agent declares a bounded job and the functions it needs. ELAH runs
+            three inert exercises and returns a decision. Only{" "}
+            <strong className="font-semibold text-accent-cyan">allow_limited</strong>{" "}
+            issues a token, and only for functions the declaration and guest
+            policy both allow.
           </p>
         </div>
       </div>
@@ -26,14 +26,20 @@ export function ProductDefinitionCard() {
       <div className="grid gap-4 lg:grid-cols-[1fr_auto_1fr]">
         <div className="rounded-xl border border-surface-border bg-surface-subtle/40 p-4">
           <p className="mb-2 text-[10px] font-semibold uppercase tracking-wider text-ink-dim">
-            Input
+            Declaration
           </p>
           <dl className="space-y-2 text-sm">
             <div>
-              <dt className="text-ink-muted">User message</dt>
-              <dd className="mt-0.5 font-medium text-ink">
-                &ldquo;{input.userMessage}&rdquo;
-              </dd>
+              <dt className="text-ink-muted">Task</dt>
+              <dd className="mt-0.5 font-medium text-ink">{input.summary}</dd>
+            </div>
+            <div>
+              <dt className="text-ink-muted">Requested functions</dt>
+              <dd className="mt-0.5 text-ink">{input.functions}</dd>
+            </div>
+            <div>
+              <dt className="text-ink-muted">Profile</dt>
+              <dd className="mt-0.5 font-mono text-xs text-ink">{input.profile}</dd>
             </div>
           </dl>
         </div>
@@ -44,56 +50,49 @@ export function ProductDefinitionCard() {
 
         <div className="rounded-xl border border-accent-cyan/20 bg-accent-cyan/5 p-4">
           <p className="mb-2 text-[10px] font-semibold uppercase tracking-wider text-accent-cyan">
-            ELAH output
+            Admission report
           </p>
           <dl className="space-y-2 text-sm">
             <div className="flex items-baseline justify-between gap-2">
-              <dt className="text-ink-muted">ELAH Score</dt>
-              <dd className="text-2xl font-semibold tabular-nums text-accent-cyan">
-                {output.elahScore.toFixed(2)}
+              <dt className="text-ink-muted">Decision</dt>
+              <dd className="font-mono text-sm font-semibold text-accent-cyan">
+                {output.decision}
               </dd>
             </div>
             <div>
-              <dt className="text-ink-muted">Primary Intent</dt>
+              <dt className="text-ink-muted">Reason</dt>
               <dd>
                 <code className="rounded bg-surface-raised px-1.5 py-0.5 text-xs text-ink">
-                  {output.primaryIntent}
+                  {output.reason}
                 </code>
               </dd>
             </div>
             <div>
-              <dt className="mb-1 text-ink-muted">Coordinates</dt>
-              <dd className="space-y-1 font-mono text-xs">
-                <div className="flex justify-between">
-                  <span className="text-ink-dim">Human Agency</span>
-                  <span className="text-ink">{output.coordinates.humanAgency.toFixed(2)}</span>
-                </div>
-                <div className="flex justify-between">
-                  <span className="text-ink-dim">Financial Risk</span>
-                  <span className="text-ink">{output.coordinates.financialRisk.toFixed(2)}</span>
-                </div>
-                <div className="flex justify-between">
-                  <span className="text-ink-dim">Emotional Urgency</span>
-                  <span className="text-ink">{output.coordinates.emotionalUrgency.toFixed(2)}</span>
-                </div>
-              </dd>
+              <dt className="text-ink-muted">Granted</dt>
+              <dd className="mt-0.5 text-xs text-ink">{output.granted}</dd>
             </div>
             <div>
-              <dt className="mb-1 text-ink-muted">Explanation</dt>
-              <dd>
-                <ul className="space-y-0.5 text-xs text-ink-muted">
-                  {output.explanation.map((line) => (
-                    <li key={line} className="flex items-center gap-1.5">
-                      <span className="size-1 rounded-full bg-accent-emerald" />
-                      {line}
-                    </li>
-                  ))}
-                </ul>
+              <dt className="text-ink-muted">Blocked</dt>
+              <dd className="mt-0.5 text-xs text-ink">{output.blocked}</dd>
+            </div>
+            <div>
+              <dt className="text-ink-muted">Token</dt>
+              <dd className="mt-0.5 text-xs text-ink-muted">{output.token}</dd>
+            </div>
+            <div>
+              <dt className="text-ink-muted">Assurance</dt>
+              <dd className="mt-0.5 text-xs leading-relaxed text-ink-muted">
+                {output.assurance}
               </dd>
             </div>
           </dl>
         </div>
       </div>
+      <p className="mt-4 text-xs leading-relaxed text-ink-dim">
+        Asking for payment at declaration returns step_up_required and no token.
+        This slice has no approval flow. The example is one honest local run, not
+        a live customer.
+      </p>
     </section>
   );
 }

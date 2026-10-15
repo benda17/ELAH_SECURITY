@@ -11,7 +11,56 @@ import {
 } from "@/lib/founder/content-engine/format-post";
 import { LANDING_PAGE_TWEETS } from "@/lib/founder/content-engine/landing-copy";
 
-export function GenerateDraftButton() {
+export function ContentEraSwitch({
+  era,
+  status,
+}: {
+  era: "v1" | "v2";
+  status: string;
+}) {
+  const options = [
+    {
+      key: "v2" as const,
+      label: "ELAH V2 — Agentic AI CAPTCHA",
+      hint: "Current work",
+    },
+    {
+      key: "v1" as const,
+      label: "ELAH V1 — archive",
+      hint: "Pre-pivot drafts",
+    },
+  ];
+
+  return (
+    <nav aria-label="Content era" className="flex flex-wrap gap-2">
+      {options.map((option) => {
+        const active = era === option.key;
+        const params = new URLSearchParams();
+        if (option.key === "v1") params.set("era", "v1");
+        if (status && status !== "queue") params.set("status", status);
+        const query = params.toString();
+        const href = query ? `/founder/content-engine?${query}` : "/founder/content-engine";
+        return (
+          <a
+            key={option.key}
+            href={href}
+            aria-current={active ? "page" : undefined}
+            className={
+              active
+                ? "rounded-lg border border-accent-cyan/40 bg-accent-cyan/15 px-3 py-2 text-sm text-accent-cyan"
+                : "rounded-lg border border-surface-border px-3 py-2 text-sm text-ink-muted hover:text-ink"
+            }
+          >
+            <span className="block font-medium">{option.label}</span>
+            <span className="block text-[11px] text-ink-dim">{option.hint}</span>
+          </a>
+        );
+      })}
+    </nav>
+  );
+}
+
+export function GenerateDraftButton({ era = "v2" }: { era?: "v1" | "v2" }) {
   const router = useRouter();
   const [loading, setLoading] = useState(false);
   const [message, setMessage] = useState<string | null>(null);
@@ -22,7 +71,13 @@ export function GenerateDraftButton() {
     try {
       const res = await fetch("/api/founder/content-engine/generate", { method: "POST" });
       const data = (await res.json()) as { ok: boolean; error?: string };
-      setMessage(data.ok ? "Draft generated." : data.error ?? "Generation failed");
+      setMessage(
+        data.ok
+          ? era === "v1"
+            ? "Draft generated in ELAH V2."
+            : "Draft generated."
+          : data.error ?? "Generation failed",
+      );
       router.refresh();
     } catch {
       setMessage("Request failed");

@@ -1,11 +1,10 @@
-import { Gauge, Landmark, Network } from "lucide-react";
+import { Beaker, KeyRound, Shield } from "lucide-react";
 import { HERO_HIGHLIGHTS } from "@/lib/elah-roadmap-data";
-import { cn } from "@/lib/utils";
 
 const ICONS = {
-  landmark: Landmark,
-  gauge: Gauge,
-  network: Network,
+  shield: Shield,
+  key: KeyRound,
+  beaker: Beaker,
 } as const;
 
 export function RoadmapHero() {
@@ -22,14 +21,14 @@ export function RoadmapHero() {
 
       <div className="relative">
         <p className="mb-2 text-[11px] font-semibold uppercase tracking-[0.22em] text-accent-cyan">
-          Internal · ELAH Model Program
+          Internal · APACT protocol
         </p>
         <h1 className="max-w-3xl text-3xl font-semibold tracking-tight text-ink sm:text-4xl">
-          ELAH Banking Intention Model
+          APACT protocol roadmap
         </h1>
         <p className="mt-3 max-w-2xl text-base leading-relaxed text-ink-muted">
-          A lightweight scoring engine that measures how strongly an AI-assistant
-          request reflects genuine human banking intention.
+          What is specified, what the local thin slice proved, and what is not
+          built. ELAH V2 is a CAPTCHA for agents. It is not a hosted product yet.
         </p>
 
         <div className="mt-8 grid gap-4 sm:grid-cols-3">

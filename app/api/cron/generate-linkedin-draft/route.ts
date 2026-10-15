@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { assertCronAuthorized } from "@/lib/founder/content-engine/config";
 import { generateLinkedInDraft } from "@/lib/founder/content-engine/generator";
+import { invalidateContentEngineCache } from "@/lib/founder/content-engine/page-cache";
 
 export const dynamic = "force-dynamic";
 
@@ -10,6 +11,7 @@ export async function GET(request: NextRequest) {
   }
 
   const result = await generateLinkedInDraft("cron");
+  invalidateContentEngineCache();
   if (result.error && !result.draftId) {
     return NextResponse.json({ ok: false, ...result }, { status: 500 });
   }

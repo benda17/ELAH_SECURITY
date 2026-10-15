@@ -1,4 +1,5 @@
 import { prisma } from "@/lib/prisma";
+import { invalidateNewsletterPageCache } from "@/lib/newsletter/page-cache";
 
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
@@ -23,6 +24,7 @@ export async function createNewsletterSubscriber(input: {
     await prisma.newsletterSubscriber.create({
       data: { email, source },
     });
+    invalidateNewsletterPageCache();
     return { created: true, email };
   } catch (err) {
     const code =

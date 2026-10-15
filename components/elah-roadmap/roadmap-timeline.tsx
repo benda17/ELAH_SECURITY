@@ -1,18 +1,16 @@
 import { CheckCircle2, Circle, CircleDot } from "lucide-react";
-import { ROADMAP_MILESTONES } from "@/lib/elah-roadmap-data";
+import { ROADMAP_MILESTONES, type ProtocolStage } from "@/lib/elah-roadmap-data";
 import { cn } from "@/lib/utils";
 
-function milestoneStatus(id: number): "done" | "active" | "upcoming" {
-  if (id === 1) return "active";
-  if (id <= 0) return "done";
-  return "upcoming";
-}
+const STAGE_LABEL: Record<ProtocolStage, string> = {
+  proved: "Proved locally",
+  specified: "Specified",
+  not_built: "Not built",
+};
 
 export function RoadmapTimeline() {
-  const doneCount = ROADMAP_MILESTONES.filter((m) => milestoneStatus(m.id) === "done").length;
-  const progressPct = Math.round(
-    ((doneCount + 0.5) / ROADMAP_MILESTONES.length) * 100,
-  );
+  const provedCount = ROADMAP_MILESTONES.filter((m) => m.stage === "proved").length;
+  const progressPct = Math.round((provedCount / ROADMAP_MILESTONES.length) * 100);
 
   return (
     <section className="panel">
@@ -20,12 +18,14 @@ export function RoadmapTimeline() {
         <div>
           <h2 className="panel-title">Roadmap timeline</h2>
           <p className="mt-1 text-xs text-ink-muted">
-            Ten milestones from product definition through MVP demo readiness
+            Specified, proved on the local slice, or not built. This is not the live task board.
           </p>
         </div>
         <div className="text-right">
-          <p className="text-[10px] uppercase tracking-wider text-ink-dim">Program progress</p>
-          <p className="text-lg font-semibold tabular-nums text-accent-cyan">{progressPct}%</p>
+          <p className="text-[10px] uppercase tracking-wider text-ink-dim">Proved locally</p>
+          <p className="text-lg font-semibold tabular-nums text-accent-cyan">
+            {provedCount}/{ROADMAP_MILESTONES.length}
+          </p>
         </div>
       </div>
 
@@ -38,7 +38,7 @@ export function RoadmapTimeline() {
 
       <div className="space-y-0">
         {ROADMAP_MILESTONES.map((milestone, index) => {
-          const status = milestoneStatus(milestone.id);
+          const status = milestone.stage;
           const isLast = index === ROADMAP_MILESTONES.length - 1;
 
           return (
@@ -47,19 +47,19 @@ export function RoadmapTimeline() {
                 <div
                   className={cn(
                     "absolute left-[15px] top-8 h-[calc(100%-1rem)] w-px",
-                    status === "done" ? "bg-accent-emerald/50" : "bg-surface-border",
+                    status === "proved" ? "bg-accent-emerald/50" : "bg-surface-border",
                   )}
                 />
               )}
 
               <div className="relative z-10 shrink-0">
-                {status === "done" && (
+                {status === "proved" && (
                   <CheckCircle2 className="size-8 text-accent-emerald" />
                 )}
-                {status === "active" && (
+                {status === "specified" && (
                   <CircleDot className="size-8 text-accent-cyan" />
                 )}
-                {status === "upcoming" && (
+                {status === "not_built" && (
                   <Circle className="size-8 text-ink-dim" />
                 )}
               </div>
@@ -72,16 +72,21 @@ export function RoadmapTimeline() {
                   <h3
                     className={cn(
                       "text-sm font-semibold",
-                      status === "active" ? "text-accent-cyan" : "text-ink",
+                      status === "specified" ? "text-accent-cyan" : "text-ink",
                     )}
                   >
                     {milestone.title}
                   </h3>
-                  {status === "active" && (
-                    <span className="pill border-accent-cyan/30 bg-accent-cyan/10 text-accent-cyan">
-                      In progress
-                    </span>
-                  )}
+                  <span
+                    className={cn(
+                      "pill",
+                      status === "proved" && "border-accent-emerald/30 bg-accent-emerald/10 text-accent-emerald",
+                      status === "specified" && "border-accent-cyan/30 bg-accent-cyan/10 text-accent-cyan",
+                      status === "not_built" && "border-surface-border text-ink-dim",
+                    )}
+                  >
+                    {STAGE_LABEL[status]}
+                  </span>
                 </div>
 
                 <ul className="mt-3 grid gap-1.5 sm:grid-cols-2">

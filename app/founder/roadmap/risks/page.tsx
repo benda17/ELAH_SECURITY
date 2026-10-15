@@ -1,7 +1,7 @@
 import { TaskOpenButton } from "@/components/roadmap-dashboard/task-open-button";
 import { loadRoadmapPageData } from "@/lib/roadmap/server";
 
-export const metadata = { title: "ELAH Roadmap · Risks" };
+export const metadata = { title: "APACT · Risks" };
 
 const MATRIX = [
   { p: "low", i: "low" },
@@ -19,8 +19,13 @@ export default async function RisksPage() {
   return (
     <div className="space-y-6">
       <header>
-        <p className="panel-title">Risks & blockers</p>
+        <p className="panel-title">Risks and blockers</p>
         <h1 className="text-2xl font-semibold">Risk register</h1>
+        <p className="mt-1 max-w-3xl text-sm text-ink-muted">
+          What can stall APACT: exercise integrity, token binding, guest-travel
+          rules, partner integration, adversarial evaluation, and hosted
+          deployment.
+        </p>
       </header>
 
       <div className="panel">
@@ -49,6 +54,10 @@ export default async function RisksPage() {
           })}
         </div>
       </div>
+
+      {risks.length === 0 && (
+        <p className="text-sm text-ink-dim">No risks recorded yet.</p>
+      )}
 
       <div className="space-y-2">
         {risks.map((r) => (

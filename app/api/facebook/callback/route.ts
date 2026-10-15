@@ -5,6 +5,8 @@ import {
   exchangeForLongLivedUserToken,
   saveFacebookConnection,
 } from "@/lib/founder/content-engine/facebook";
+import { invalidateContentEngineCache } from "@/lib/founder/content-engine/page-cache";
+import { invalidateSettingsPageCache } from "@/lib/newsletter/page-cache";
 
 export const dynamic = "force-dynamic";
 
@@ -37,6 +39,8 @@ export async function GET(req: NextRequest) {
       userAccessToken: longLived.accessToken,
       expiresIn: longLived.expiresIn,
     });
+    invalidateContentEngineCache();
+    invalidateSettingsPageCache();
     cookies().delete("facebook_oauth_state");
     back.searchParams.set(
       "facebook",

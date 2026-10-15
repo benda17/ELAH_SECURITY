@@ -68,7 +68,7 @@ export function TaskBoard() {
         <div>
           <h2 className="panel-title">Task board</h2>
           <p className="mt-1 text-xs text-ink-muted">
-            Static mock data — structured for future backend connection
+            Protocol checklist for this page. Live execution counts stay on the roadmap board.
           </p>
         </div>
         <div className="flex gap-4 text-xs text-ink-muted">

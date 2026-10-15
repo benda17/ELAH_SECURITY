@@ -81,6 +81,13 @@ export function OutreachBoard({ contacts }: { contacts: RoadmapContactRecord[] }
           </tr>
         </thead>
         <tbody>
+          {visible.length === 0 && (
+            <tr>
+              <td colSpan={7} className="px-3 py-8 text-center text-sm text-ink-dim">
+                No investors or design partners in this view.
+              </td>
+            </tr>
+          )}
           {visible.map((c) => {
             const overdue =
               c.nextFollowUp && new Date(c.nextFollowUp) < now;

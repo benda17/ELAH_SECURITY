@@ -1,13 +1,17 @@
 "use client";
 
 import { Mail, Send } from "lucide-react";
-import { useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useFormState, useFormStatus } from "react-dom";
 import {
   sendNewsletterAction,
   type NewsletterSendState,
 } from "@/app/actions/newsletter";
-import { renderNewsletterEmailHtml } from "@/lib/newsletter/template";
+import {
+  daveImageSrc,
+  renderNewsletterBodyHtml,
+  renderNewsletterEmailHtml,
+} from "@/lib/newsletter/template";
 
 const initialState: NewsletterSendState = {};
 
@@ -46,11 +50,36 @@ export function NewsletterComposeForm({
   const [subject, setSubject] = useState("");
   const [body, setBody] = useState("");
   const [confirmOpen, setConfirmOpen] = useState(false);
+  const [previewOrigin, setPreviewOrigin] = useState("");
 
-  const previewHtml = useMemo(
-    () => renderNewsletterEmailHtml({ subject, body }),
-    [subject, body],
+  useEffect(() => {
+    setPreviewOrigin(window.location.origin);
+  }, []);
+
+  // Reloading the frame replays Dave's entrance, so the shell loads once and
+  // typing only swaps the body inside it.
+  const previewShell = useMemo(
+    () =>
+      previewOrigin
+        ? renderNewsletterEmailHtml({
+            subject: "",
+            body: "",
+            daveSrc: daveImageSrc(previewOrigin),
+          })
+        : "",
+    [previewOrigin],
   );
+  const previewBody = useMemo(() => renderNewsletterBodyHtml(body), [body]);
+  const previewRef = useRef<HTMLIFrameElement>(null);
+
+  const syncPreviewBody = useCallback(() => {
+    const slot = previewRef.current?.contentDocument?.getElementById("newsletter-body");
+    if (slot) slot.innerHTML = previewBody;
+  }, [previewBody]);
+
+  useEffect(() => {
+    syncPreviewBody();
+  }, [syncPreviewBody]);
 
   const canPublish =
     Boolean(subject.trim() && body.trim()) && subscriberCount > 0 && resendReady;
@@ -107,7 +136,7 @@ export function NewsletterComposeForm({
               onChange={(e) => setSubject(e.target.value)}
               required
               maxLength={200}
-              placeholder="What this week's newsletter is about"
+              placeholder="ELAH V2: a CAPTCHA for agents"
               className="w-full rounded-xl border border-surface-border bg-surface-base px-3 py-2.5 text-sm text-ink outline-none ring-accent-cyan/40 focus:ring-2"
             />
           </label>
@@ -121,7 +150,11 @@ export function NewsletterComposeForm({
               onChange={(e) => setBody(e.target.value)}
               required
               rows={14}
-              placeholder="Write this week's newsletter. A blank line starts a new paragraph."
+              placeholder={`This week ELAH pivots to APACT, a CAPTCHA for agents.
+
+A site puts ELAH at the entrance. A person ticks "I'm not a robot" and is not checked. An agent declares the job and the functions it needs, then does three short mock tasks. The first profile is guest travel: search flights and save a guest draft. Payment, contracts, and data export stay closed.
+
+The thin slice runs locally. A hosted service, durable storage, and step-up approval are not done yet.`}
               className="w-full resize-y rounded-xl border border-surface-border bg-surface-base px-3 py-3 text-sm leading-relaxed text-ink outline-none ring-accent-cyan/40 focus:ring-2"
             />
           </label>
@@ -133,9 +166,11 @@ export function NewsletterComposeForm({
           </p>
           <div className="overflow-hidden border border-white/10" style={{ background: "#070b14" }}>
             <iframe
+              ref={previewRef}
               title="Weekly newsletter preview"
-              sandbox=""
-              srcDoc={previewHtml}
+              sandbox="allow-same-origin"
+              srcDoc={previewShell}
+              onLoad={syncPreviewBody}
               className="h-[420px] w-full"
               style={{ background: "#070b14" }}
             />

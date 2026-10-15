@@ -40,9 +40,10 @@ export function RoadmapSidebar() {
           <Image src="/elah-logo.png" alt="ELAH" width={28} height={28} />
           <div>
             <p className="text-[10px] font-semibold uppercase tracking-wider text-accent-cyan">
-              Founder OS
+              APACT
             </p>
-            <p className="text-sm font-semibold text-ink">ELAH Roadmap</p>
+            <p className="text-sm font-semibold text-ink">Execution board</p>
+            <p className="text-[11px] text-ink-dim">Admission for AI agents</p>
           </div>
         </div>
       </div>

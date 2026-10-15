@@ -1,6 +1,6 @@
 import { loadRoadmapPageData } from "@/lib/roadmap/server";
 
-export const metadata = { title: "ELAH Roadmap · Decisions" };
+export const metadata = { title: "APACT · Decisions" };
 
 export default async function DecisionsPage() {
   const { decisions } = await loadRoadmapPageData();
@@ -14,8 +14,13 @@ export default async function DecisionsPage() {
   return (
     <div className="space-y-6">
       <header>
-        <p className="panel-title">Decisions & open questions</p>
-        <h1 className="text-2xl font-semibold">Architecture & product decisions</h1>
+        <p className="panel-title">Decisions and open questions</p>
+        <h1 className="text-2xl font-semibold">Protocol and product decisions</h1>
+        <p className="mt-1 max-w-3xl text-sm text-ink-muted">
+          Open calls on the admission flow, the guest-travel profile, token
+          lifetime, step-up and authority adapters, and which guest actions stay
+          blocked.
+        </p>
       </header>
       {(
         Object.entries(groups) as [string, typeof decisions][]
@@ -43,7 +48,7 @@ export default async function DecisionsPage() {
             </div>
           ))}
           {items.length === 0 && (
-            <p className="text-sm text-ink-dim">None in this category.</p>
+            <p className="text-sm text-ink-dim">No questions in this group.</p>
           )}
         </section>
       ))}

@@ -81,6 +81,28 @@ assert.equal(metrics.tasksTotal, 2);
 assert.equal(metrics.tasksCompleted, 1);
 assert.equal(metrics.overallCompletion, 50);
 
+const pivot = computeMetrics(
+  [
+    baseTask({
+      id: "ops",
+      workstream: "Operations",
+      phase: "Phase 10 — Fundraising narrative for the pivot",
+      progressPercentage: 40,
+    }),
+    baseTask({
+      id: "old-phase",
+      workstream: "Engineering",
+      phase: "Phase 13 — Fundraising and investor outreach",
+      progressPercentage: 100,
+      status: "done",
+    }),
+  ],
+  [],
+  [],
+);
+assert.equal(pivot.readiness.fundraising, 40);
+assert.equal(pivot.readiness.technical, 100);
+
 const sorted = [
   baseTask({ id: "low", title: "Later", priority: "low", order: 0 }),
   baseTask({ id: "crit-b", title: "B critical", priority: "critical", order: 2 }),

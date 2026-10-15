@@ -15,23 +15,17 @@ export function phaseShortLabel(phase: string): string {
 }
 
 export const PHASE_ORDER = [
-  "Phase 0 — Product definition and architecture",
-  "Phase 1 — Banking simulator stabilization",
-  "Phase 2 — Agent observability and event collection",
-  "Phase 3 — ELAH service foundation",
-  "Phase 4 — Dataset and labeling system",
-  "Phase 5 — Baseline scoring system",
-  "Phase 6 — ELAH model development",
-  "Phase 7 — Explainability and intention graph",
-  "Phase 8 — Security architecture and red teaming",
-  "Phase 9 — Product dashboard and analyst experience",
-  "Phase 10 — Evaluation and MVP readiness",
-  "Phase 11 — User discovery and customer validation",
-  "Phase 12 — Pilot acquisition",
-  "Phase 13 — Fundraising and investor outreach",
-  "Phase 14 — Company, legal, privacy, and compliance",
-  "Phase 15 — Team and operations",
-  "Phase 16 — B2B SaaS CS/CRM wedge",
+  "Phase 0 — APACT product definition",
+  "Phase 1 — Thin guest-travel slice",
+  "Phase 2 — Durable APACT service",
+  "Phase 3 — Partner integration kit",
+  "Phase 4 — Step-up and authority adapters",
+  "Phase 5 — Second task profile",
+  "Phase 6 — Adversarial evaluation",
+  "Phase 7 — Hosted deployment",
+  "Phase 8 — Design partners",
+  "Phase 9 — Company, legal, and privacy",
+  "Phase 10 — Fundraising narrative for the pivot",
 ] as const;
 
 export const STATUS_LABELS: Record<TaskStatus, string> = {
@@ -92,43 +86,36 @@ export const STATUS_COLORS: Record<TaskStatus, string> = {
   done: "border-accent-emerald/40 bg-accent-emerald/10 text-accent-emerald",
 };
 
-/** Initial critical-path task title fragments (matched during seed). */
+/** Critical-path task title fragments (matched during APACT seed). */
 export const CRITICAL_PATH_FRAGMENTS = [
-  "Audit the existing banking simulator",
-  "Audit the current repository",
-  "Define the event schema",
-  "Define the input contract for ELAH",
-  "Define the output contract for ELAH",
-  "Capture tool-call requests",
-  "Create a normalized event envelope",
-  "Define the scoring API",
-  "Create a mock scoring implementation",
-  "Connect the existing banking simulator to the mock ELAH service",
-  "Define the label taxonomy",
-  "Create synthetic legitimate banking scenarios",
-  "Build a deterministic rules-based baseline",
-  "Define evaluation metrics",
-  "Conduct banking-domain interviews",
-  "Rewrite ICP for CS/CRM ops first-buyer",
-  "Build CRM simulator as first demo venue",
-  "Deploy ELAH CRM Simulation to Vercel",
-  "Provision dedicated Neon database for CRM",
-  "Define support-tool taxonomy and intent labels",
-  "Score genuine intent before support tools",
-  "Plan gold dataset for support events",
-  "Wire mock ELAH score into CRM simulator",
-  "Define CS/CRM evaluation bar vs banking rules_v0",
-  "Forbid live ticket PII in CS/CRM gold",
+  "Specify the eight APACT fields",
+  "Write the guest-travel profile",
+  "Run the baseline, pressure, and relabel",
+  "Verify each partner request with DPoP",
+  "Ship the entrance widget",
+  "Replace the in-memory challenge store",
+  "Move the DPoP replay cache",
+  "Move revocation status to shared storage",
+  "Split a versioned partner verifier",
+  "Build a partner approval screen",
+  "Write an evaluation plan",
+  "Deploy APACT on a public HTTPS origin",
+  "Update the 13 Oct 2026 investor source brief",
 ];
 
+/**
+ * APACT readiness. There is no intention-scoring model: protocol and
+ * verifier work map to technical, and the narrative maps to fundraising.
+ * Legal has no readiness key of its own; partner-facing privacy sits on pilot.
+ */
 export const READINESS_WORKSTREAM_MAP: Record<string, keyof import("./types").RoadmapMetrics["readiness"]> = {
   Engineering: "technical",
-  Data: "data",
-  Model: "model",
+  Security: "technical",
   Product: "product",
   Dashboard: "product",
+  Data: "data",
+  Model: "technical",
   Business: "customerValidation",
-  Security: "technical",
   Legal: "pilot",
   Operations: "fundraising",
 };

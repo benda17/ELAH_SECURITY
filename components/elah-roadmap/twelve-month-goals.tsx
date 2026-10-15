@@ -9,9 +9,9 @@ export function TwelveMonthGoals() {
         <h2 className="text-xl font-semibold tracking-tight text-ink">
           12-Month Goals
         </h2>
-        <p className="mt-1 text-xs text-ink-muted">
-          Key outcomes funded by the first round — from company setup through first
-          client installation.
+        <p className="mt-1 max-w-3xl text-xs leading-relaxed text-ink-muted">
+          Outcomes for the pivot. The local slice is the only one that exists.
+          Hosted service, durable storage, and step-up approval are still open.
         </p>
       </div>
 
@@ -37,8 +37,8 @@ export function TwelveMonthGoals() {
       <div className="mt-6 flex items-center gap-2 rounded-lg border border-surface-border bg-surface-subtle/40 px-4 py-3 text-xs text-ink-muted">
         <CheckCircle2 className="size-4 shrink-0 text-accent-emerald" />
         <span>
-          Each goal maps to roadmap milestones below — product, data pipeline, ELAH
-          service, model training, dashboard integration, and pilot readiness.
+          The live execution plan is the roadmap board. This list is the protocol
+          outcome, not a claim of customers or a closed round.
         </span>
       </div>
     </section>

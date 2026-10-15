@@ -6,9 +6,9 @@
  * phaseCompletion(phase) = round(100 * doneInPhase / totalInPhase)
  * workstreamCompletion(ws) = round(100 * doneInWs / totalInWs)
  * criticalPathCompletion = round(100 * doneCritical / totalCritical)
- * readiness(workstream) = average progressPercentage for tasks in mapped workstreams / 100
+ * readiness(key) = average progressPercentage for tasks whose workstream
+ *   maps to that key in READINESS_WORKSTREAM_MAP
  * overdue = dueDate < today AND status not in (done)
- * pilotReadiness = average completion of phases 10,12 milestones weighted
  */
 import { PHASE_ORDER, PRIORITY_RANK, READINESS_WORKSTREAM_MAP } from "./constants";
 import type {
@@ -54,6 +54,21 @@ export function readinessByWorkstream(
 ): number {
   const subset = tasks.filter((t) => workstreams.includes(t.workstream));
   return weightedCompletion(subset);
+}
+
+function workstreamsFor(
+  key: keyof RoadmapMetrics["readiness"],
+): string[] {
+  return Object.entries(READINESS_WORKSTREAM_MAP)
+    .filter(([, readiness]) => readiness === key)
+    .map(([workstream]) => workstream);
+}
+
+function readinessScore(
+  tasks: RoadmapTaskRecord[],
+  key: keyof RoadmapMetrics["readiness"],
+): number {
+  return readinessByWorkstream(tasks, workstreamsFor(key));
 }
 
 export function currentPhase(tasks: RoadmapTaskRecord[]): string {
@@ -159,17 +174,13 @@ export function computeMetrics(
     completionByPhase,
     completionByWorkstream,
     readiness: {
-      technical: readinessByWorkstream(tasks, ["Engineering", "Security"]),
-      data: readinessByWorkstream(tasks, ["Data"]),
-      model: readinessByWorkstream(tasks, ["Model"]),
-      product: readinessByWorkstream(tasks, ["Product", "Dashboard"]),
-      pilot: weightedCompletion(
-        tasks.filter((t) => t.phase.includes("Phase 12") || t.phase.includes("Phase 10")),
-      ),
-      customerValidation: readinessByWorkstream(tasks, ["Business"]),
-      fundraising: weightedCompletion(
-        tasks.filter((t) => t.phase.includes("Phase 13")),
-      ),
+      technical: readinessScore(tasks, "technical"),
+      data: readinessScore(tasks, "data"),
+      model: readinessScore(tasks, "model"),
+      product: readinessScore(tasks, "product"),
+      pilot: readinessScore(tasks, "pilot"),
+      customerValidation: readinessScore(tasks, "customerValidation"),
+      fundraising: readinessScore(tasks, "fundraising"),
     },
     topPriorities,
     weeklyDue,

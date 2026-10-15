@@ -9,14 +9,25 @@ import { getGmailSendStatus } from "@/lib/newsletter/gmail";
 export const metadata = { title: "ELAH · Weekly Newsletter" };
 export const dynamic = "force-dynamic";
 
-export default async function NewsletterPage() {
+type NewsletterSnapshot = {
+  at: number;
+  gmail: Awaited<ReturnType<typeof getGmailSendStatus>>;
+  count: number;
+  subscribers: Awaited<ReturnType<typeof listNewsletterSubscribers>>;
+  loadError: string | null;
+};
+
+async function loadNewsletterPage(): Promise<NewsletterSnapshot> {
+  const g = globalThis as typeof globalThis & {
+    __elahNewsletterPage?: NewsletterSnapshot;
+  };
+  const hit = g.__elahNewsletterPage;
+  if (hit && Date.now() - hit.at < 30_000) return hit;
+
   const gmail = await getGmailSendStatus();
-  const mailReady = gmail.ready;
-
   let count = 0;
-  let subscribers: Awaited<ReturnType<typeof listNewsletterSubscribers>> = [];
+  let subscribers: NewsletterSnapshot["subscribers"] = [];
   let loadError: string | null = null;
-
   try {
     [count, subscribers] = await Promise.all([
       countNewsletterSubscribers(),
@@ -27,15 +38,30 @@ export default async function NewsletterPage() {
       "Could not read NewsletterSubscriber rows. Run a local Prisma migrate against this schema, then npx prisma generate.";
   }
 
+  const snapshot: NewsletterSnapshot = {
+    at: Date.now(),
+    gmail,
+    count,
+    subscribers,
+    loadError,
+  };
+  g.__elahNewsletterPage = snapshot;
+  return snapshot;
+}
+
+export default async function NewsletterPage() {
+  const { gmail, count, subscribers, loadError } = await loadNewsletterPage();
+  const mailReady = gmail.ready;
+
   return (
     <div className="space-y-6">
       <header>
-        <p className="panel-title">Content manager</p>
+        <p className="panel-title">APACT · ELAH V2</p>
         <h1 className="text-2xl font-semibold">Weekly Newsletter</h1>
         <p className="mt-1 max-w-2xl text-sm text-ink-muted">
-          Compose the weekly newsletter and send it to every address that opted
-          in on the marketing hero. Subscribers are stored here — the webpage
-          only POSTs the form.
+          Write the weekly letter for the agentic CAPTCHA pivot. Dave is in the
+          email header. It goes to addresses that opted in on the marketing site,
+          and nothing sends until you confirm publish.
         </p>
       </header>
 

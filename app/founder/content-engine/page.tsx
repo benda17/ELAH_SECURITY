@@ -2,6 +2,7 @@ import { ContentDailyChart } from "@/components/founder/content-daily-chart";
 import {
   ConnectFacebookButton,
   ConnectLinkedInButton,
+  ContentEraSwitch,
   GenerateDraftButton,
   PostCard,
   PostLandingThreadButton,
@@ -20,6 +21,7 @@ import {
   linkedInOAuthConfigured,
 } from "@/lib/founder/content-engine/linkedin";
 import { getLandingThreadStatus } from "@/lib/founder/content-engine/landing-thread";
+import { readContentEngineCache } from "@/lib/founder/content-engine/page-cache";
 import { parseTwitterPublishNote } from "@/lib/founder/content-engine/twitter";
 import {
   countLinkedInPostsByStatus,
@@ -27,42 +29,87 @@ import {
   listContentEngineRuns,
   listLinkedInDrafts,
   listSourceEvents,
-  rewriteQueuedDraftLandingUrls,
+  type ContentEra,
 } from "@/lib/founder/content-engine/repository";
 
 export const dynamic = "force-dynamic";
 
+function contentEngineHref(status: string, era: ContentEra) {
+  const params = new URLSearchParams();
+  if (era === "v1") params.set("era", "v1");
+  if (status !== "queue") params.set("status", status);
+  const query = params.toString();
+  return query ? `/founder/content-engine?${query}` : "/founder/content-engine";
+}
+
+function sourceEraLabel(metadata: string): string | null {
+  try {
+    const parsed = JSON.parse(metadata) as { era?: string };
+    return parsed.era === "v2" ? "v2" : null;
+  } catch {
+    return null;
+  }
+}
+
 export default async function ContentEnginePage({
   searchParams,
 }: {
-  searchParams?: { linkedin?: string; facebook?: string; status?: string };
+  searchParams?: { linkedin?: string; facebook?: string; status?: string; era?: string };
 }) {
   const statusFilter = searchParams?.status?.trim() || "queue";
+  const era: ContentEra = searchParams?.era === "v1" ? "v1" : "v2";
 
-  await rewriteQueuedDraftLandingUrls();
+  const {
+    facebook,
+    posts,
+    counts,
+    runs,
+    sources,
+    connection,
+    dailySeries,
+    landingThread,
+    gmail,
+    subscriberCount,
+    subscriberLoadError,
+  } = await readContentEngineCache(era, async () => {
+    const [facebook, posts, counts, runs, sources, connection, dailySeries, landingThread, gmail] =
+      await Promise.all([
+        getFacebookPublishStatus(),
+        listLinkedInDrafts(200, era),
+        countLinkedInPostsByStatus(era),
+        listContentEngineRuns(),
+        listSourceEvents(),
+        getLinkedInConnectionStatus(),
+        getDailyPostSeries(30, era),
+        getLandingThreadStatus(),
+        getGmailSendStatus(),
+      ]);
 
-  const [facebook, posts, counts, runs, sources, connection, dailySeries, landingThread, gmail] =
-    await Promise.all([
-      getFacebookPublishStatus(),
-      listLinkedInDrafts(80),
-      countLinkedInPostsByStatus(),
-      listContentEngineRuns(),
-      listSourceEvents(),
-      getLinkedInConnectionStatus(),
-      getDailyPostSeries(30),
-      getLandingThreadStatus(),
-      getGmailSendStatus(),
-    ]);
+    let subscriberCount = 0;
+    let subscriberLoadError: string | null = null;
+    try {
+      subscriberCount = await countNewsletterSubscribers();
+    } catch {
+      subscriberLoadError =
+        "Could not read newsletter subscribers. Run a Prisma migrate against this schema, then npx prisma generate.";
+    }
+
+    return {
+      facebook,
+      posts,
+      counts,
+      runs,
+      sources,
+      connection,
+      dailySeries,
+      landingThread,
+      gmail,
+      subscriberCount,
+      subscriberLoadError,
+    };
+  });
 
   const mailReady = gmail.ready;
-  let subscriberCount = 0;
-  let subscriberLoadError: string | null = null;
-  try {
-    subscriberCount = await countNewsletterSubscribers();
-  } catch {
-    subscriberLoadError =
-      "Could not read newsletter subscribers. Run a Prisma migrate against this schema, then npx prisma generate.";
-  }
 
   const canPublish = connection.canPublish;
   const companyAdminUrl = getElahCompanyAdminPostsUrl();
@@ -91,18 +138,27 @@ export default async function ContentEnginePage({
 
   return (
     <div className="space-y-6">
-      <header className="flex flex-wrap items-end justify-between gap-4">
-        <div>
+      <header className="flex flex-wrap items-start justify-between gap-4">
+        <div className="flex min-w-0 items-start gap-4">
+          <img
+            src="/dave/dave-hero.jpg"
+            alt="Dave, the ELAH mascot"
+            width={112}
+            height={112}
+            className="h-28 w-28 shrink-0 rounded-2xl bg-white object-cover"
+          />
+          <div>
           <p className="panel-title">Content automation</p>
           <h1 className="text-2xl font-semibold">Content Engine</h1>
           <p className="mt-1 max-w-2xl text-sm text-ink-muted">
-            Generate, review, and publish LinkedIn + Facebook posts. X creates a version capped at
-            280 characters and opens compose — no paid API. Write the weekly newsletter below and
-            publish it to the opt-in list.
+            {era === "v2"
+              ? "Current drafts are ELAH V2, an agentic AI CAPTCHA. A site installs an entrance; the agent declares a bounded task and does three inert exercises. ELAH V1 banking drafts stay in the archive."
+              : "Archive of pre-pivot drafts from the banking and CS-CRM intention-scoring product. These rows are kept. New drafts are written to ELAH V2."}
           </p>
+          </div>
         </div>
         <div className="flex flex-wrap items-center gap-3">
-          <GenerateDraftButton />
+          <GenerateDraftButton era={era} />
           <ConnectLinkedInButton
             oauthConfigured={linkedInOAuthConfigured()}
             reconnectForCompany={connection.missingOrgPermission || connection.tokenSaved}
@@ -111,6 +167,8 @@ export default async function ContentEnginePage({
           <PostLandingThreadButton alreadyPosted={landingThread.posted} />
         </div>
       </header>
+
+      <ContentEraSwitch era={era} status={statusFilter} />
 
       {linkedinFlash === "connected" && (
         <p className="rounded-lg border border-accent-emerald/40 bg-accent-emerald/10 px-3 py-2 text-sm text-accent-emerald">
@@ -205,8 +263,8 @@ export default async function ContentEnginePage({
           <div>
             <h2 className="text-sm font-semibold">Content graph</h2>
             <p className="text-xs text-ink-dim">
-              Daily activity · last 30 days · created {createdTotal} · published{" "}
-              {publishedTotal} · Facebook {facebookTotal}
+              Daily activity for {era === "v2" ? "ELAH V2" : "ELAH V1"} · last 30 days · created{" "}
+              {createdTotal} · published {publishedTotal} · Facebook {facebookTotal}
             </p>
           </div>
           <p className="text-[11px] text-ink-dim">
@@ -222,18 +280,15 @@ export default async function ContentEnginePage({
           <div>
             <h2 className="text-sm font-semibold">Posts</h2>
             <p className="text-xs text-ink-dim">
-              Generate leaves drafts for review · LinkedIn ready:{" "}
-              {canPublish ? "yes" : "no"} · Facebook:{" "}
+              {era === "v2" ? "ELAH V2 — Agentic AI CAPTCHA" : "ELAH V1 — archive"} · Generate
+              leaves V2 drafts for review · LinkedIn ready: {canPublish ? "yes" : "no"} · Facebook:{" "}
               {facebook.configured ? "ready" : "off"} · X: copy & paste
             </p>
           </div>
           <div className="flex flex-wrap gap-1.5">
             {filters.map((f) => {
               const active = statusFilter === f.key;
-              const href =
-                f.key === "queue"
-                  ? "/founder/content-engine"
-                  : `/founder/content-engine?status=${f.key}`;
+              const href = contentEngineHref(f.key, era);
               return (
                 <a
                   key={f.key}
@@ -254,9 +309,11 @@ export default async function ContentEnginePage({
         <div className="space-y-4">
           {filtered.length === 0 ? (
             <p className="text-sm text-ink-muted">
-              {statusFilter === "queue"
-                ? "Nothing left to post. Switch to Published / All, or click Generate Now."
-                : "No posts in this view yet. Click Generate Now to create one."}
+              {era === "v1"
+                ? "No ELAH V1 drafts in this view."
+                : statusFilter === "queue"
+                  ? "No ELAH V2 drafts left to post. Switch to Published / All, or click Generate Now."
+                  : "No ELAH V2 drafts in this view yet. Click Generate Now to create one."}
             </p>
           ) : (
             filtered.map((d) => {
@@ -289,18 +346,26 @@ export default async function ContentEnginePage({
       <div className="grid gap-4 lg:grid-cols-2">
         <section className="panel">
           <h2 className="mb-3 panel-title">Source events</h2>
+          <p className="mb-2 text-[11px] text-ink-dim">
+            New drafts use V2 topic seeds. Earlier events stay in the list and are not used for
+            generation.
+          </p>
           <ul className="max-h-48 space-y-2 overflow-y-auto text-xs">
             {sources.length === 0 ? (
               <li className="text-ink-muted">No source events yet.</li>
             ) : (
-              sources.map((s) => (
-                <li key={s.id} className="rounded border border-surface-border px-2 py-1.5">
-                  <p className="font-medium text-ink">{s.title}</p>
-                  <p className="text-ink-dim">
-                    {s.sourceType} · {s.processed ? "processed" : "new"}
-                  </p>
-                </li>
-              ))
+              sources.map((s) => {
+                const eraLabel = sourceEraLabel(s.metadata);
+                return (
+                  <li key={s.id} className="rounded border border-surface-border px-2 py-1.5">
+                    <p className="font-medium text-ink">{s.title}</p>
+                    <p className="text-ink-dim">
+                      {s.sourceType}
+                      {eraLabel ? ` · ${eraLabel}` : ""} · {s.processed ? "processed" : "new"}
+                    </p>
+                  </li>
+                );
+              })
             )}
           </ul>
         </section>

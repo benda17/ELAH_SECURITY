@@ -135,6 +135,27 @@ export async function exchangeLinkedInCode(code: string): Promise<{
   };
 }
 
+const LINKEDIN_SCOPE_TTL_MS = 10 * 60 * 1000;
+
+function cachedLinkedInScopes(accessToken: string): Promise<{ active: boolean; scope: string }> {
+  const g = globalThis as typeof globalThis & {
+    __elahLinkedInScopeCache?: {
+      token: string;
+      at: number;
+      active: boolean;
+      scope: string;
+    };
+  };
+  const hit = g.__elahLinkedInScopeCache;
+  if (hit && hit.token === accessToken && Date.now() - hit.at < LINKEDIN_SCOPE_TTL_MS) {
+    return Promise.resolve({ active: hit.active, scope: hit.scope });
+  }
+  return introspectLinkedInToken(accessToken).then((result) => {
+    g.__elahLinkedInScopeCache = { token: accessToken, at: Date.now(), ...result };
+    return result;
+  });
+}
+
 export async function introspectLinkedInToken(accessToken: string): Promise<{
   active: boolean;
   scope: string;
@@ -455,7 +476,7 @@ export async function getLinkedInConnectionStatus(): Promise<{
   let hasOrgPostScope = false;
 
   if (row?.accessToken) {
-    const introspected = await introspectLinkedInToken(row.accessToken);
+    const introspected = await cachedLinkedInScopes(row.accessToken);
     tokenScopes = introspected.scope || null;
     hasOrgPostScope = scopeIncludesOrgPosting(introspected.scope);
   }

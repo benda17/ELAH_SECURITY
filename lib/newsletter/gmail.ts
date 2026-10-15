@@ -1,5 +1,6 @@
 import "server-only";
 import { prisma } from "@/lib/prisma";
+import { invalidateNewsletterPageCache } from "@/lib/newsletter/page-cache";
 
 const GMAIL_AUTH = "https://accounts.google.com/o/oauth2/v2/auth";
 const GMAIL_TOKEN = "https://oauth2.googleapis.com/token";
@@ -167,6 +168,7 @@ export async function saveGmailConnection(input: {
   } else {
     await prisma.gmailIntegration.create({ data });
   }
+  invalidateNewsletterPageCache();
 }
 
 async function loadGmailRow() {

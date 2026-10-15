@@ -6,11 +6,21 @@ import {
 export const metadata = { title: "ELAH · Demo requests" };
 export const dynamic = "force-dynamic";
 
-export default async function DemoRequestsPage() {
-  let count = 0;
-  let requests: Awaited<ReturnType<typeof listDemoRequests>> = [];
-  let loadError: string | null = null;
+type DemoSnapshot = {
+  at: number;
+  count: number;
+  requests: Awaited<ReturnType<typeof listDemoRequests>>;
+  loadError: string | null;
+};
 
+async function loadDemoRequestsPage(): Promise<DemoSnapshot> {
+  const g = globalThis as typeof globalThis & { __elahDemoRequestsPage?: DemoSnapshot };
+  const hit = g.__elahDemoRequestsPage;
+  if (hit && Date.now() - hit.at < 30_000) return hit;
+
+  let count = 0;
+  let requests: DemoSnapshot["requests"] = [];
+  let loadError: string | null = null;
   try {
     [count, requests] = await Promise.all([
       countDemoRequests(),
@@ -20,6 +30,14 @@ export default async function DemoRequestsPage() {
     loadError =
       "Could not read DemoRequest rows. Create the table, then npx prisma generate.";
   }
+
+  const snapshot: DemoSnapshot = { at: Date.now(), count, requests, loadError };
+  g.__elahDemoRequestsPage = snapshot;
+  return snapshot;
+}
+
+export default async function DemoRequestsPage() {
+  const { count, requests, loadError } = await loadDemoRequestsPage();
 
   return (
     <div className="space-y-6">

@@ -4,13 +4,13 @@ import { useMemo, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import {
   KANBAN_COLUMNS,
-  PHASE_ORDER,
   PRIORITY_FILTERS,
   PRIORITY_LABELS,
   compareTasksByImportance,
   phaseShortLabel,
   type PriorityFilter,
 } from "@/lib/roadmap/constants";
+import { APACT_PHASES } from "./apact-phases";
 import { WORKSTREAMS, type RoadmapTaskRecord, type TaskStatus } from "@/lib/roadmap/types";
 import { PriorityBadge } from "./badges";
 import { ProgressBar } from "./progress-bar";
@@ -73,9 +73,9 @@ export function KanbanBoard({ tasks }: { tasks: RoadmapTaskRecord[] }) {
 
   const phasesPresent = useMemo((): string[] => {
     const seen = new Set(tasks.map((t) => t.phase));
-    const ordered = PHASE_ORDER.filter((p) => seen.has(p));
+    const ordered = APACT_PHASES.filter((p) => seen.has(p));
     const extras = [...seen]
-      .filter((p) => !ordered.includes(p as (typeof PHASE_ORDER)[number]))
+      .filter((p) => !(APACT_PHASES as readonly string[]).includes(p))
       .sort();
     return [...ordered, ...extras];
   }, [tasks]);
@@ -383,7 +383,9 @@ export function KanbanBoard({ tasks }: { tasks: RoadmapTaskRecord[] }) {
                 ))}
                 {colTasks.length === 0 && (
                   <p className="px-2 py-6 text-center text-xs text-ink-dim">
-                    {hasActiveFilters ? "No tasks match filters" : "No tasks"}
+                    {hasActiveFilters
+                      ? "No tasks match these filters"
+                      : "Nothing in this column"}
                   </p>
                 )}
               </div>

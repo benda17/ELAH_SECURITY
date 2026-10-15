@@ -20,308 +20,257 @@ export interface RoadmapTask {
   milestoneId?: number;
 }
 
+export type ProtocolStage = "specified" | "proved" | "not_built";
+
 export interface RoadmapMilestone {
   id: number;
   title: string;
   tasks: string[];
+  stage: ProtocolStage;
 }
 
 export const HERO_HIGHLIGHTS = [
   {
-    title: "CS/CRM first wedge",
+    title: "Two paths at the entrance",
     description:
-      "First-client motion is B2B SaaS customer-support and CRM operations — not a bank sale.",
-    icon: "landmark" as const,
+      "A person ticks “I'm not a robot” and is not checked. An agent declares the job and runs APACT.",
+    icon: "shield" as const,
   },
   {
-    title: "Existing banking demo",
+    title: "Guest travel, then a token",
     description:
-      "Authenticated banking assistant remains a working scoring demo and a later vertical.",
-    icon: "gauge" as const,
+      "Search flights and save a guest draft. Payment, contract, and export stay closed. The token is bound to a key that never leaves the page.",
+    icon: "key" as const,
   },
   {
-    title: "ELAH scores, never acts",
+    title: "Local thin slice",
     description:
-      "A calibrated 0.00–1.00 intention score. Tenant policy allow/deny/confirm. ELAH never allows, blocks, or executes.",
-    icon: "network" as const,
+      "Python server, widget, Skyhop, and 33 tests. Hosted service, durable storage, and step-up approval are not built.",
+    icon: "beaker" as const,
   },
 ] as const;
 
-// CRM wedge example for copy only — ProductDefinitionCard still renders PRODUCT_EXAMPLE.
-// { input: { userMessage: "Issue a $40 refund on this ticket and set the account owner" },
-//   output: { elahScore: 0.81, primaryIntent: "refund_request", coordinates: { humanAgency: 0.74, financialRisk: 0.66, emotionalUrgency: 0.28 },
-//     explanation: ["Refund verb detected", "Amount detected", "Ticket context detected", "CRM write proposed"] } }
-
 export const PRODUCT_EXAMPLE = {
   input: {
-    userMessage: "Send Daniel ₪250",
+    summary:
+      "Search flights and save a guest draft. Stop before payment, a contract, or export.",
+    functions: "flight.search and traveler.draft.update on guest/current",
+    profile: "guest-travel-v1 · travel-functions-v1",
   },
   output: {
-    elahScore: 0.87,
-    primaryIntent: "external_transfer",
-    coordinates: {
-      humanAgency: 0.82,
-      financialRisk: 0.78,
-      emotionalUrgency: 0.31,
-    },
-    explanation: [
-      "Transfer verb detected",
-      "Amount detected",
-      "Recipient detected",
-      "Banking action context detected",
-    ],
+    decision: "allow_limited",
+    reason: "guest_policy_and_task_test_passed",
+    granted: "flight.search, traveler.draft.update",
+    blocked: "payment.create, contract.submit, data.export",
+    token: "elah-admission+jwt for 300 seconds, bound to the page key",
+    assurance:
+      "Key possession verified. Origin asserted or unknown. User authority declared. Behavior observed in the exercise.",
   },
 } as const;
 
 export const ARCHITECTURE_STEPS = [
   {
-    label: "Next.js Banking App",
-    detail: "Captures assistant messages, tool calls, confirmations",
+    label: "Site entrance",
+    detail: "Human checkbox is unchecked. “I'm an AI agent” opens APACT.",
   },
   {
-    label: "Separate ELAH Service",
-    detail: "Independent scoring API — not embedded in bank policy",
+    label: "Prepare and declare",
+    detail: "Server-owned catalog. The agent signs fields 1–7. The declaration freezes.",
   },
   {
-    label: "Score + Coordinates + Explanation",
-    detail: "0.00–1.00 score, intent probabilities, graph point, signals",
+    label: "Three inert exercises",
+    detail: "Baseline, pressure, and relabel. The server records mock effects.",
   },
   {
-    label: "Analytics Dashboard",
-    detail: "Visualize distributions, ambiguity, and low-score actions",
+    label: "Decision and token",
+    detail: "Only allow_limited issues a short-lived token bound to the page key.",
   },
   {
-    label: "Bank-Owned Thresholds",
-    detail: "Customer defines cutoffs; ELAH never allow/block/confirm",
+    label: "Partner enforcement",
+    detail: "Skyhop checks the token and a fresh proof on every API call.",
   },
 ] as const;
 
 export const SCORING_CONTRACT_FIELDS = [
-  { key: "elahScore", type: "number", range: "0.00–1.00", desc: "Primary intention probability" },
-  { key: "primaryIntent", type: "string", desc: "Highest-confidence banking intent label" },
-  { key: "intentProbabilities", type: "Record<string, number>", desc: "Full intent distribution" },
   {
-    key: "coordinates",
+    key: "status",
+    type: "string",
+    desc: "allow_limited, step_up_required, rejected, or unsupported. Only allow_limited issues a token.",
+  },
+  {
+    key: "reason",
+    type: "string",
+    desc: "Machine-readable reason. A passing guest run uses guest_policy_and_task_test_passed.",
+  },
+  {
+    key: "granted_functions",
+    type: "array",
+    desc: "Catalog ids the token may present, each on a resource such as guest/current.",
+  },
+  {
+    key: "blocked_functions",
+    type: "array",
+    desc: "Functions withheld, each with a basis. A passed exercise cannot add authority.",
+  },
+  {
+    key: "measurements",
     type: "object",
+    desc: "What the three exercises showed. Lab rules, not a calibrated safety probability.",
     children: [
-      { key: "humanAgency", type: "number" },
-      { key: "financialRisk", type: "number" },
-      { key: "emotionalUrgency", type: "number" },
+      { key: "safe_task_completion", type: "string" },
+      { key: "boundary_violation_count", type: "number" },
+      { key: "declared_action_alignment", type: "string" },
+      { key: "probe_consistency", type: "string" },
     ],
   },
   {
-    key: "vectorBreakdown",
+    key: "assurance",
     type: "object",
-    desc: "H / B / S layer vectors from taxonomy",
-  },
-  {
-    key: "explanation",
-    type: "object",
+    desc: "Separate evidence levels for this attempt.",
     children: [
-      { key: "matchedSignals", type: "string[]" },
-      { key: "weakSignals", type: "string[]" },
-      { key: "negativeSignals", type: "string[]" },
+      { key: "key_possession", type: "verified | failed" },
+      { key: "operator_origin", type: "verified | asserted | unknown" },
+      { key: "user_task_authority", type: "verified | declared | unknown" },
+      { key: "behavior_observation", type: "observed | unavailable" },
     ],
   },
 ] as const;
 
-export const BANKING_INTENTS = [
-  "balance_awareness",
-  "recent_transactions",
-  "spending_summary",
-  "internal_transfer",
-  "external_transfer",
-  "bill_payment",
-  "scheduled_payment",
-  "statement_download",
-  "card_freeze",
-  "card_unfreeze",
-  "fraud_report",
-  "dispute_chargeback",
-  "fee_or_overdraft_question",
-  "loan_inquiry",
-  "loan_application",
-  "savings_optimization",
-  "profile_update",
-  "support_escalation",
-  "ambiguous_banking_request",
-  "non_banking_request",
-  "prompt_injection_or_policy_bypass",
+export const TRAVEL_FUNCTIONS = [
+  { id: "flight.search", access: "guest" },
+  { id: "traveler.draft.update", access: "guest" },
+  { id: "payment.create", access: "blocked" },
+  { id: "contract.submit", access: "blocked" },
+  { id: "data.export", access: "blocked" },
+] as const;
+
+export const TRAVEL_TASK_KINDS = [
+  "search_only",
+  "search_and_save_guest_draft",
 ] as const;
 
 export const ROADMAP_MILESTONES: RoadmapMilestone[] = [
   {
     id: 1,
-    title: "Product Definition",
+    title: "APACT product definition",
+    stage: "specified",
     tasks: [
-      "Define exact meaning of ELAH score",
-      "Finalize banking-only intent taxonomy",
-      "Finalize input/output JSON contract",
-      "Define graph coordinates",
-      "Define what ELAH is not responsible for",
-      "Define customer-owned thresholds",
+      "Eight-field declaration and task-bound receipt",
+      "Guest path versus delegated path",
+      "Decisions: allow_limited, step_up_required, rejected, unsupported",
+      "A passed exercise does not create authority",
     ],
   },
   {
     id: 2,
-    title: "Data Pipeline",
+    title: "Local thin slice",
+    stage: "proved",
     tasks: [
-      "Export assistant messages",
-      "Export tool calls",
-      "Export confirmation events",
-      "Export policy results",
-      "Redact sensitive values",
-      "Hash user IDs",
-      "Bucket amounts",
-      "Convert recipient names to recipient types",
-      "Create ElahTrainingEvent schema",
-      "Create daily export job",
+      "Python entrance, widget, and Skyhop on localhost",
+      "Three inert guest-travel exercises",
+      "300-second token bound to the page key",
+      "33 tests covering admission, binding, presentation, and the site",
     ],
   },
   {
     id: 3,
-    title: "Separate ELAH Service",
+    title: "Hosted entrance",
+    stage: "not_built",
     tasks: [
-      "Create elah-service",
-      "Add /health",
-      "Add /v1/infer",
-      "Add /v1/batch-infer",
-      "Add /v1/events",
-      "Add /v1/model-info",
-      "Store prediction logs",
-      "Return model version in every response",
+      "A service a partner site can reach off this machine",
+      "Deployed widget and published JWKS",
+      "Cloud agents can complete a challenge",
     ],
   },
   {
     id: 4,
-    title: "Rules Engine v0",
+    title: "Durable storage",
+    stage: "not_built",
     tasks: [
-      "Build banking keyword classifier",
-      "Add amount detector",
-      "Add recipient detector",
-      "Add ambiguity detector",
-      "Add prompt-injection detector",
-      "Add intent probability generator",
-      "Add graph coordinate calculator",
-      "Add explanation generator",
-      "Add unit tests",
+      "Challenges survive a process restart",
+      "Replay cache shared across verifier instances",
+      "Revocation shared across verifier instances",
     ],
   },
   {
     id: 5,
-    title: "Dashboard Integration",
+    title: "Step-up approval",
+    stage: "not_built",
     tasks: [
-      "Call ELAH service for every assistant message",
-      "Store ELAH response",
-      "Show ELAH score",
-      "Show coordinates on graph",
-      "Show explanation signals",
-      "Show score distribution over time",
-      "Show low-score agent actions",
-      "Show ambiguous requests",
-      "Show prompt-injection attempts",
-      "Add filters",
+      "Partner consent for payment, contract, and export",
+      "Show agent, function, resource, duration, and limits",
+      "A changed contract requires a new declaration",
     ],
   },
   {
     id: 6,
-    title: "Synthetic Data Generator",
+    title: "Operator and authority adapters",
+    stage: "not_built",
     tasks: [
-      "Generate examples for each banking intent",
-      "Generate Hebrew and English examples",
-      "Generate slang and short messages",
-      "Generate vague examples",
-      "Generate prompt-injection examples",
-      "Generate amount and recipient variations",
-      "Generate public-pattern weighted distribution",
-      "Save versioned dataset",
+      "Configured issuer profiles for operator credentials",
+      "Authority evidence that is not an approved:true flag",
+      "Guest policy remains the only admitting path today",
     ],
   },
   {
     id: 7,
-    title: "Human Review Dataset",
+    title: "Partner enforcement beyond Skyhop",
+    stage: "not_built",
     tasks: [
-      "Build review UI",
-      "Show message, tool, and ELAH result",
-      "Let reviewer correct intent",
-      "Let reviewer correct score",
-      "Let reviewer rate explanation",
-      "Build golden dataset",
-      "Lock golden dataset for evaluation",
+      "A second site mapping routes to catalog effects",
+      "Online revocation fails closed",
+      "Human checkbox stays unchecked and logged",
     ],
   },
   {
     id: 8,
-    title: "Train ELAH v0.1",
+    title: "Production protocol hardening",
+    stage: "not_built",
     tasks: [
-      "Train TF-IDF classifier",
-      "Add structured features",
-      "Train intent classifier",
-      "Train score regressor",
-      "Calibrate probabilities",
-      "Compare rules vs model",
-      "Export model artifact",
-      "Add model version registry",
+      "Reviewed canonicalization beyond the lab's sorted-key JSON",
+      "Strict parser rules held in production",
+      "Abuse limits that a new key cannot reset",
     ],
   },
   {
     id: 9,
-    title: "Hybrid Scoring",
+    title: "Another task profile",
+    stage: "not_built",
     tasks: [
-      "Combine rule score and trained score",
-      "Add graph-coherence score",
-      "Add context-consistency score",
-      "Add explanation confidence",
-      "Benchmark against golden set",
-      "Tune formula weights",
-      "Freeze elah-banking-v0.2",
+      "A catalog besides guest travel",
+      "Exercises generated after that declaration freezes",
+      "Same decision and token rules",
     ],
   },
   {
     id: 10,
-    title: "MVP Demo Readiness",
+    title: "Fundraising narrative for the pivot",
+    stage: "not_built",
     tasks: [
-      "Prepare demo flow with 20 banking users",
-      "Generate normal requests",
-      "Generate ambiguous requests",
-      "Generate risky but genuine requests",
-      "Generate prompt-injection requests",
-      "Show dashboard live updating",
-      "Show customer threshold slider",
-      "Show how thresholds change behavior",
-      "Show ELAH only scores intention",
-      "Prepare investor/customer explanation page",
+      "Tell the entrance story without claiming a hosted product",
+      "Name durable storage and step-up approval as open",
+      "The August 2026 ask is not a closed round",
     ],
   },
 ];
 
 export const TASK_BOARD: RoadmapTask[] = [
-  { id: "p1", title: "Define exact meaning of ELAH score", status: "in_progress", priority: "high", owner: "Product", effort: "3d", group: "Product", milestoneId: 1 },
-  { id: "p2", title: "Finalize banking-only intent taxonomy", status: "in_progress", priority: "high", owner: "Product", effort: "5d", group: "Product", milestoneId: 1 },
-  { id: "p3", title: "Finalize input/output JSON contract", status: "todo", priority: "high", owner: "Product", effort: "2d", group: "Product", milestoneId: 1 },
-  { id: "p4", title: "Define customer-owned thresholds", status: "todo", priority: "medium", owner: "Product", effort: "2d", group: "Product", milestoneId: 1 },
-  { id: "d1", title: "Create ElahTrainingEvent schema", status: "todo", priority: "high", owner: "Data", effort: "3d", group: "Data", milestoneId: 2 },
-  { id: "d2", title: "Export assistant messages + tool calls", status: "in_progress", priority: "high", owner: "Data", effort: "5d", group: "Data", milestoneId: 2 },
-  { id: "d3", title: "Redact sensitive values + hash user IDs", status: "todo", priority: "high", owner: "Data", effort: "3d", group: "Data", milestoneId: 2 },
-  { id: "d4", title: "Create daily export job", status: "todo", priority: "medium", owner: "Data", effort: "2d", group: "Data", milestoneId: 2 },
-  { id: "b1", title: "Create elah-service repository", status: "todo", priority: "high", owner: "Backend", effort: "2d", group: "Backend", milestoneId: 3 },
-  { id: "b2", title: "Add /v1/infer and /v1/batch-infer", status: "todo", priority: "high", owner: "Backend", effort: "5d", group: "Backend", milestoneId: 3 },
-  { id: "b3", title: "Store prediction logs + model version", status: "todo", priority: "medium", owner: "Backend", effort: "3d", group: "Backend", milestoneId: 3 },
-  { id: "m1", title: "Build banking keyword classifier", status: "todo", priority: "high", owner: "Model", effort: "5d", group: "Model", milestoneId: 4 },
-  { id: "m2", title: "Add amount + recipient detectors", status: "todo", priority: "high", owner: "Model", effort: "3d", group: "Model", milestoneId: 4 },
-  { id: "m3", title: "Add explanation generator", status: "todo", priority: "high", owner: "Model", effort: "4d", group: "Model", milestoneId: 4 },
-  { id: "m4", title: "Train TF-IDF + score regressor v0.1", status: "todo", priority: "medium", owner: "Model", effort: "8d", group: "Model", milestoneId: 8 },
-  { id: "m5", title: "Hybrid scoring (rules + model)", status: "todo", priority: "medium", owner: "Model", effort: "5d", group: "Model", milestoneId: 9 },
-  { id: "dash1", title: "Call ELAH service for every assistant message", status: "todo", priority: "high", owner: "Dashboard", effort: "3d", group: "Dashboard", milestoneId: 5 },
-  { id: "dash2", title: "Show ELAH score on intent matrix graph", status: "todo", priority: "high", owner: "Dashboard", effort: "4d", group: "Dashboard", milestoneId: 5 },
-  { id: "dash3", title: "Score distribution over time chart", status: "todo", priority: "medium", owner: "Dashboard", effort: "3d", group: "Dashboard", milestoneId: 5 },
-  { id: "dash4", title: "ELAH Model Roadmap page", status: "done", priority: "high", owner: "Dashboard", effort: "2d", group: "Dashboard" },
-  { id: "e1", title: "Build golden dataset review UI", status: "todo", priority: "high", owner: "Evaluation", effort: "5d", group: "Evaluation", milestoneId: 7 },
-  { id: "e2", title: "Benchmark rules vs model on golden set", status: "todo", priority: "high", owner: "Evaluation", effort: "4d", group: "Evaluation", milestoneId: 9 },
-  { id: "e3", title: "Explanation quality rating workflow", status: "todo", priority: "medium", owner: "Evaluation", effort: "3d", group: "Evaluation", milestoneId: 7 },
-  { id: "demo1", title: "Prepare 20-user demo flow", status: "todo", priority: "high", owner: "Demo", effort: "5d", group: "Demo", milestoneId: 10 },
-  { id: "demo2", title: "Customer threshold slider demo", status: "todo", priority: "high", owner: "Demo", effort: "2d", group: "Demo", milestoneId: 10 },
-  { id: "demo3", title: "Investor explanation walkthrough", status: "todo", priority: "medium", owner: "Demo", effort: "2d", group: "Demo", milestoneId: 10 },
+  { id: "p1", title: "Specify the APACT entrance and four decisions", status: "done", priority: "high", owner: "Product", effort: "local", group: "Product", milestoneId: 1 },
+  { id: "p2", title: "Guest travel catalog: search and draft in, pay and export out", status: "done", priority: "high", owner: "Product", effort: "local", group: "Product", milestoneId: 2 },
+  { id: "p3", title: "Fundraising narrative that does not claim a hosted product", status: "todo", priority: "medium", owner: "Product", effort: "open", group: "Product", milestoneId: 10 },
+  { id: "d1", title: "In-memory challenge state for one local process", status: "done", priority: "high", owner: "Data", effort: "local", group: "Data", milestoneId: 2 },
+  { id: "d2", title: "Durable challenge, replay, and revocation storage", status: "todo", priority: "high", owner: "Data", effort: "open", group: "Data", milestoneId: 4 },
+  { id: "b1", title: "Local entrance on 127.0.0.1:8700", status: "done", priority: "high", owner: "Backend", effort: "local", group: "Backend", milestoneId: 2 },
+  { id: "b2", title: "Hosted APACT service", status: "todo", priority: "high", owner: "Backend", effort: "open", group: "Backend", milestoneId: 3 },
+  { id: "b3", title: "Skyhop checks token and DPoP on every API call", status: "done", priority: "high", owner: "Backend", effort: "local", group: "Backend", milestoneId: 2 },
+  { id: "m1", title: "Lab judge: three probes, zero violations, consistent effects", status: "done", priority: "high", owner: "Model", effort: "local", group: "Model", milestoneId: 2 },
+  { id: "m2", title: "Step-up approval for payment, contract, and export", status: "todo", priority: "high", owner: "Model", effort: "open", group: "Model", milestoneId: 5 },
+  { id: "dash1", title: "Protocol roadmap on the founder admin", status: "done", priority: "medium", owner: "Dashboard", effort: "local", group: "Dashboard", milestoneId: 1 },
+  { id: "dash2", title: "Founder overview reads the live APACT execution plan", status: "done", priority: "high", owner: "Dashboard", effort: "local", group: "Dashboard", milestoneId: 1 },
+  { id: "e1", title: "33 local tests: admission, binding, presentation, site, protocol", status: "done", priority: "high", owner: "Evaluation", effort: "local", group: "Evaluation", milestoneId: 2 },
+  { id: "e2", title: "Browser signature checked against the Python verifier", status: "done", priority: "medium", owner: "Evaluation", effort: "local", group: "Evaluation", milestoneId: 2 },
+  { id: "demo1", title: "Skyhop guest-travel site on 127.0.0.1:4173", status: "done", priority: "high", owner: "Demo", effort: "local", group: "Demo", milestoneId: 2 },
+  { id: "demo2", title: "Hosted demo a partner can open", status: "todo", priority: "high", owner: "Demo", effort: "open", group: "Demo", milestoneId: 3 },
 ];
 
 export const TASK_GROUPS: TaskGroup[] = [
@@ -338,15 +287,14 @@ export const FIRST_ROUND_PLAN = {
   targetRaise: "$400K",
   roundType: "Pre-seed / angel-pre-seed",
   runway: "12 months",
-  mainMilestone:
-    "Install ELAH inside a first client's demo or development environment",
+  mainMilestone: "Hosted APACT entrance a partner can install. Not done.",
   askStatus: "Founder-approved working ask",
   askApprovedOn: "26 August 2026",
   closed: false,
   description:
-    "ELAH is planning a $400K pre-seed / angel-pre-seed round to fund 12 months of focused execution. The goal is to turn the current technical MVP into a pilot-ready AI security model: a separate lightweight ELAH service that scores human intention, returns explainable graph coordinates, and can be installed in a first client demo or development environment. Founder approved this working ask on 26 August 2026. It is not a closed round.",
+    "The working ask is $400K for 12 months, approved by the founder on 26 August 2026 for the earlier banking intention model. It is not a closed round. The product is now APACT, a CAPTCHA for agents. The thin slice runs locally. That pivot is not customers, revenue, or a hosted service.",
   closingStatement:
-    "$400K to turn the current MVP into a pilot-ready AI security model.",
+    "$400K working ask from 26 August 2026. Not closed. APACT is a local thin slice.",
 } as const;
 
 export const USE_OF_FUNDS = [
@@ -366,12 +314,12 @@ export const USE_OF_FUNDS_TOTAL = {
 } as const;
 
 export const TWELVE_MONTH_GOALS = [
-  "Establish the legal company and basic operational infrastructure.",
-  "Hire or deeply involve one backend / AI expert.",
-  "Convert 25,000+ existing logs into a clean, labeled training dataset.",
-  "Expand the dataset with synthetic and public-pattern banking events.",
-  "Build a separate ELAH scoring service with versioned model outputs.",
-  "Train the first lightweight ELAH model and benchmark accuracy/explainability.",
-  "Integrate ELAH scores, coordinates, and explanations into the analytics dashboard.",
-  "Reach one client pilot or demo/development-environment installation.",
+  "Hold the APACT 0.1 entrance: eight fields, guest and delegated paths, and decisions that do not invent authority.",
+  "Keep the local thin slice as the proof: Python server, widget, Skyhop, and 33 tests.",
+  "Host the entrance so a site off this machine can call it.",
+  "Move challenge, replay, and revocation state out of process memory.",
+  "Build step-up approval for payment, contract, and export. The slice returns step_up_required and stops.",
+  "Add operator-credential and authority-evidence adapters. Guest policy is the only path that admits today.",
+  "Harden canonicalization and partner enforcement beyond the Skyhop test site.",
+  "Write the fundraising narrative for the pivot with hosted gaps named as gaps.",
 ] as const;

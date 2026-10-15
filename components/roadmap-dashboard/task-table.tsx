@@ -2,6 +2,7 @@
 
 import { useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
+import { phaseShortLabel } from "@/lib/roadmap/constants";
 import type { RoadmapTaskRecord, TaskStatus } from "@/lib/roadmap/types";
 import { TASK_STATUSES } from "@/lib/roadmap/types";
 import { PriorityBadge } from "./badges";
@@ -52,7 +53,7 @@ export function TaskTable({ tasks }: { tasks: RoadmapTaskRecord[] }) {
         <input
           value={search}
           onChange={(e) => setSearch(e.target.value)}
-          placeholder="Search tasks…"
+          placeholder="Search title, phase, or owner…"
           className="min-w-[200px] flex-1 rounded-lg border border-surface-border bg-surface-raised px-3 py-2 text-sm"
         />
         <select
@@ -83,6 +84,13 @@ export function TaskTable({ tasks }: { tasks: RoadmapTaskRecord[] }) {
             </tr>
           </thead>
           <tbody>
+            {filtered.length === 0 && (
+              <tr>
+                <td colSpan={7} className="px-3 py-8 text-center text-sm text-ink-dim">
+                  No tasks match this search.
+                </td>
+              </tr>
+            )}
             {filtered.map((task) => (
               <tr
                 key={task.id}
@@ -98,7 +106,7 @@ export function TaskTable({ tasks }: { tasks: RoadmapTaskRecord[] }) {
                   </button>
                 </td>
                 <td className="max-w-[140px] truncate px-3 py-2 text-xs text-ink-muted">
-                  {task.phase.replace(/^Phase \d+ — /, "P")}
+                  {phaseShortLabel(task.phase)}
                 </td>
                 <td className="px-3 py-2">
                   <select
