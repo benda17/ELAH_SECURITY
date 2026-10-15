@@ -1,5 +1,9 @@
 import { listNewsletterSubscribers } from "./repository";
-import { renderNewsletterEmailHtml } from "./template";
+import {
+  parseNewsletterLook,
+  renderNewsletterEmailHtml,
+  type NewsletterLook,
+} from "./template";
 import { getGmailSendStatus, sendGmailToMany } from "./gmail";
 
 export type NewsletterSendResult =
@@ -19,6 +23,7 @@ export async function resendConfigured() {
 export async function sendNewsletterToAll(input: {
   subject: string;
   body: string;
+  look?: NewsletterLook;
 }): Promise<NewsletterSendResult> {
   const status = await getGmailSendStatus();
   if (!status.ready) {
@@ -39,7 +44,11 @@ export async function sendNewsletterToAll(input: {
     };
   }
 
-  const html = renderNewsletterEmailHtml(input);
+  const html = renderNewsletterEmailHtml({
+    subject: input.subject,
+    body: input.body,
+    look: parseNewsletterLook(input.look),
+  });
   const result = await sendGmailToMany(
     subscribers.map((s) => s.email),
     { subject: input.subject, text: input.body, html },

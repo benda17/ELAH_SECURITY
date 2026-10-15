@@ -6,9 +6,52 @@ const SITE_URL = "https://elahsecurity.com";
 const DAVE_PATH = "/dave/dave-peek.png";
 const DAVE_PUBLIC_ORIGIN = "https://elahfounderplatform.vercel.app";
 
-export function daveImageSrc(origin?: string): string {
+export type NewsletterLook = "light" | "dark";
+
+const LOOKS = {
+  dark: {
+    page: "#070b14",
+    card: "#0b1424",
+    cardBorder: "rgba(0,168,255,0.28)",
+    kicker: "#6b7a94",
+    tagline: "#e7ecf7",
+    body: "#e7ecf7",
+    placeholder: "#7d8ba3",
+    footer: "#6b7a94",
+    footerRule: "rgba(231,236,247,0.1)",
+    link: "#00A8FF",
+    logo: "/email/elah-logo-on-dark.png",
+  },
+  light: {
+    page: "#f4f6f9",
+    card: "#ffffff",
+    cardBorder: "#d5deea",
+    kicker: "#66758c",
+    tagline: "#243044",
+    body: "#1c2433",
+    placeholder: "#7d8ba3",
+    footer: "#66758c",
+    footerRule: "#e2e8f0",
+    link: "#0077b6",
+    logo: "/email/elah-logo-on-light.png",
+  },
+} as const;
+
+export function parseNewsletterLook(value: unknown): NewsletterLook {
+  return value === "dark" ? "dark" : "light";
+}
+
+function publicSrc(path: string, origin?: string): string {
   const base = (origin || DAVE_PUBLIC_ORIGIN).replace(/\/$/, "");
-  return `${base}${DAVE_PATH}`;
+  return `${base}${path}`;
+}
+
+export function daveImageSrc(origin?: string): string {
+  return publicSrc(DAVE_PATH, origin);
+}
+
+export function logoImageSrc(look: NewsletterLook = "light", origin?: string): string {
+  return publicSrc(LOOKS[look].logo, origin);
 }
 
 export function escapeHtml(text: string): string {
@@ -19,10 +62,14 @@ export function escapeHtml(text: string): string {
     .replace(/"/g, "&quot;");
 }
 
-export function renderNewsletterBodyHtml(body: string): string {
+export function renderNewsletterBodyHtml(
+  body: string,
+  look: NewsletterLook = "light",
+): string {
+  const ink = LOOKS[look];
   const trimmed = body.trim();
   if (!trimmed) {
-    return `<p style="margin:0;color:#7d8ba3;font-size:16px;line-height:1.7;">Your update will appear here as you write.</p>`;
+    return `<p style="margin:0;color:${ink.placeholder};font-size:16px;line-height:1.7;">Your update will appear here as you write.</p>`;
   }
 
   return trimmed
@@ -31,7 +78,7 @@ export function renderNewsletterBodyHtml(body: string): string {
     .filter(Boolean)
     .map(
       (paragraph) =>
-        `<p style="margin:0 0 18px;font-size:16px;line-height:1.75;color:#e7ecf7;">${escapeHtml(paragraph).replace(/\n/g, "<br />")}</p>`,
+        `<p style="margin:0 0 18px;font-size:16px;line-height:1.75;color:${ink.body};">${escapeHtml(paragraph).replace(/\n/g, "<br />")}</p>`,
     )
     .join("");
 }
@@ -39,11 +86,16 @@ export function renderNewsletterBodyHtml(body: string): string {
 export function renderNewsletterEmailHtml(input: {
   subject: string;
   body: string;
+  look?: NewsletterLook;
   daveSrc?: string;
+  logoSrc?: string;
 }): string {
+  const look = parseNewsletterLook(input.look);
+  const ink = LOOKS[look];
   const subject = escapeHtml(input.subject.trim() || "Weekly Newsletter");
-  const bodyHtml = renderNewsletterBodyHtml(input.body);
+  const bodyHtml = renderNewsletterBodyHtml(input.body, look);
   const daveSrc = input.daveSrc || daveImageSrc();
+  const logoSrc = input.logoSrc || logoImageSrc(look);
 
   return `<!DOCTYPE html>
 <html lang="en">
@@ -69,25 +121,26 @@ export function renderNewsletterEmailHtml(input: {
     @media (max-width: 420px) {
       .dave-cell { width: 132px !important; }
       .dave-peek { width: 132px !important; height: auto !important; }
+      .elah-logo { width: 132px !important; height: auto !important; }
     }
     @media (prefers-reduced-motion: reduce) {
       .dave-peek { animation: none; }
     }
   </style>
 </head>
-<body style="margin:0;padding:0;background:#070b14;">
-  <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background:#070b14;">
+<body style="margin:0;padding:0;background:${ink.page};">
+  <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background:${ink.page};">
     <tr>
       <td align="center" style="padding:36px 16px 48px;">
         <table role="presentation" width="560" cellpadding="0" cellspacing="0" style="width:100%;max-width:560px;">
           <tr>
-            <td style="padding:0;background:#0b1424;border:1px solid rgba(0,168,255,0.28);border-radius:14px;overflow:hidden;">
+            <td style="padding:0;background:${ink.card};border:1px solid ${ink.cardBorder};border-radius:14px;overflow:hidden;">
               <table role="presentation" width="100%" cellpadding="0" cellspacing="0">
                 <tr>
                   <td height="168" style="height:168px;padding:0 12px 0 26px;vertical-align:middle;font-family:ui-sans-serif,system-ui,-apple-system,Segoe UI,sans-serif;">
-                    <div style="font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:10px;letter-spacing:0.16em;text-transform:uppercase;color:#6b7a94;">Weekly Newsletter</div>
-                    <div style="margin-top:12px;font-size:20px;letter-spacing:0.28em;font-weight:700;color:#00A8FF;">ELAH</div>
-                    <div style="margin-top:6px;font-size:13px;line-height:1.4;color:#e7ecf7;">APACT · a CAPTCHA for agents</div>
+                    <div style="font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:10px;letter-spacing:0.16em;text-transform:uppercase;color:${ink.kicker};">Weekly Newsletter</div>
+                    <img class="elah-logo" src="${escapeHtml(logoSrc)}" alt="ELAH" width="168" height="55" style="display:block;margin-top:14px;width:168px;height:55px;border:0;" />
+                    <div style="margin-top:10px;font-size:13px;line-height:1.4;color:${ink.tagline};">APACT · a CAPTCHA for agents</div>
                   </td>
                   <td class="dave-cell" width="176" style="width:176px;padding:0;vertical-align:bottom;font-size:0;line-height:0;">
                     <img class="dave-peek" src="${escapeHtml(daveSrc)}" alt="Dave, the ELAH mascot, peeking in from the right" width="176" height="147" style="display:block;width:176px;height:147px;border:0;" />
@@ -102,10 +155,10 @@ export function renderNewsletterEmailHtml(input: {
             </td>
           </tr>
           <tr>
-            <td style="padding:28px 0 0;border-top:1px solid rgba(231,236,247,0.1);font-family:ui-sans-serif,system-ui,-apple-system,Segoe UI,sans-serif;font-size:12px;line-height:1.65;color:#6b7a94;">
+            <td style="padding:28px 0 0;border-top:1px solid ${ink.footerRule};font-family:ui-sans-serif,system-ui,-apple-system,Segoe UI,sans-serif;font-size:12px;line-height:1.65;color:${ink.footer};">
               Dave is watching the gate.<br />
               ELAH · APACT, a CAPTCHA for agents<br />
-              <a href="${SITE_URL}" style="color:#00A8FF;text-decoration:none;">elahsecurity.com</a>
+              <a href="${SITE_URL}" style="color:${ink.link};text-decoration:none;">elahsecurity.com</a>
               &nbsp;·&nbsp;Reply to this email to reach ${escapeHtml(REPLY_TO)}.
             </td>
           </tr>

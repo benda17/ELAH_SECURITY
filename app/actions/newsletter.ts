@@ -3,6 +3,7 @@
 import { cookies } from "next/headers";
 import { FOUNDER_COOKIE, isFounderSessionToken } from "@/lib/founder-session";
 import { sendNewsletterToAll } from "@/lib/newsletter/send";
+import { parseNewsletterLook } from "@/lib/newsletter/template";
 
 export type NewsletterSendState = {
   error?: string;
@@ -22,6 +23,7 @@ export async function sendNewsletterAction(
   const subject = String(formData.get("subject") ?? "").trim();
   const body = String(formData.get("body") ?? "").trim();
   const confirm = String(formData.get("confirm") ?? "").trim();
+  const look = parseNewsletterLook(formData.get("look"));
 
   if (!subject || !body) {
     return { error: "Subject and body are required." };
@@ -31,7 +33,7 @@ export async function sendNewsletterAction(
     return { error: "Confirm publish to send this email." };
   }
 
-  const result = await sendNewsletterToAll({ subject, body });
+  const result = await sendNewsletterToAll({ subject, body, look });
   if (!result.ok) {
     return { error: result.error, skipped: result.skipped, sent: result.sent ?? 0 };
   }

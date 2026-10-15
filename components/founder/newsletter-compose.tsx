@@ -9,8 +9,11 @@ import {
 } from "@/app/actions/newsletter";
 import {
   daveImageSrc,
+  logoImageSrc,
+  parseNewsletterLook,
   renderNewsletterBodyHtml,
   renderNewsletterEmailHtml,
+  type NewsletterLook,
 } from "@/lib/newsletter/template";
 
 const initialState: NewsletterSendState = {};
@@ -49,6 +52,7 @@ export function NewsletterComposeForm({
   const [state, formAction] = useFormState(sendNewsletterAction, initialState);
   const [subject, setSubject] = useState("");
   const [body, setBody] = useState("");
+  const [look, setLook] = useState<NewsletterLook>("light");
   const [confirmOpen, setConfirmOpen] = useState(false);
   const [previewOrigin, setPreviewOrigin] = useState("");
 
@@ -64,12 +68,18 @@ export function NewsletterComposeForm({
         ? renderNewsletterEmailHtml({
             subject: "",
             body: "",
+            look,
             daveSrc: daveImageSrc(previewOrigin),
+            logoSrc: logoImageSrc(look, previewOrigin),
           })
         : "",
-    [previewOrigin],
+    [previewOrigin, look],
   );
-  const previewBody = useMemo(() => renderNewsletterBodyHtml(body), [body]);
+  const previewBody = useMemo(
+    () => renderNewsletterBodyHtml(body, look),
+    [body, look],
+  );
+  const previewPage = look === "dark" ? "#070b14" : "#f4f6f9";
   const previewRef = useRef<HTMLIFrameElement>(null);
 
   const syncPreviewBody = useCallback(() => {
@@ -116,6 +126,7 @@ export function NewsletterComposeForm({
       }}
     >
       <input type="hidden" name="confirm" value="publish" />
+      <input type="hidden" name="look" value={look} />
 
       <div className="grid gap-5 lg:grid-cols-[minmax(0,1fr)_minmax(280px,0.92fr)]">
         <div className="space-y-3">
@@ -161,18 +172,42 @@ The thin slice runs locally. A hosted service, durable storage, and step-up appr
         </div>
 
         <div className="space-y-2">
-          <p className="text-xs font-medium uppercase tracking-wider text-ink-muted">
-            How it looks in the inbox
-          </p>
-          <div className="overflow-hidden border border-white/10" style={{ background: "#070b14" }}>
+          <div className="flex items-center justify-between gap-3">
+            <p className="text-xs font-medium uppercase tracking-wider text-ink-muted">
+              How it looks in the inbox
+            </p>
+            <div
+              role="group"
+              aria-label="Email look"
+              className="flex rounded-lg border border-surface-border p-0.5"
+            >
+              {(["light", "dark"] as const).map((option) => (
+                <button
+                  key={option}
+                  type="button"
+                  aria-pressed={look === option}
+                  onClick={() => setLook(parseNewsletterLook(option))}
+                  className={`rounded-md px-3 py-1 text-xs font-medium capitalize ${
+                    look === option
+                      ? "bg-accent-cyan text-surface-base"
+                      : "text-ink-muted hover:text-ink"
+                  }`}
+                >
+                  {option}
+                </button>
+              ))}
+            </div>
+          </div>
+          <div className="overflow-hidden border border-white/10" style={{ background: previewPage }}>
             <iframe
+              key={look}
               ref={previewRef}
               title="Weekly newsletter preview"
               sandbox="allow-same-origin"
               srcDoc={previewShell}
               onLoad={syncPreviewBody}
               className="h-[420px] w-full"
-              style={{ background: "#070b14" }}
+              style={{ background: previewPage }}
             />
           </div>
         </div>
@@ -232,8 +267,8 @@ The thin slice runs locally. A hosted service, durable storage, and step-up appr
               <span className="text-ink">
                 “{subject.trim() || "Untitled"}”
               </span>{" "}
-              to every opt-in address in the newsletter list. It cannot be
-              undone.
+              as a {look} email to every opt-in address in the newsletter list.
+              It cannot be undone.
             </p>
             <div className="mt-5 flex flex-wrap justify-end gap-2">
               <button
