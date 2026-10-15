@@ -1,4 +1,5 @@
 import "server-only";
+import { applyLinkedInTextUi } from "./format-post";
 
 export const LANDING_PAGE_URL = "https://www.elahsecurity.com";
 
@@ -22,28 +23,48 @@ Product facts you must stay inside:
 
 Do not write about banking intention scoring, explainable intention coordinates, CS/CRM intent scores, or "ELAH scores, never acts." ELAH V1 is archived.
 
-Style:
+Style — this is the post's text UI. LinkedIn has no bold button. Wrap the lines that should hit in double asterisks. Those lines are published as LinkedIn's bold sans-serif. Do not invent another emphasis mark.
+
+Shape, exactly:
+**Opening line.**
+
+Short plain line.
+Short plain line.
+**The turn.**
+
+**Closing line.**
+**Closing line.**
+
+${LANDING_PAGE_URL}
+
+- One idea per line. No dense paragraphs. No emoji.
+- Bold only the opening, the turn, and the close. Leave the URL and the middle lines plain.
 - Lead with the mechanism or a concrete exercise detail, not a soft opener.
 - Ban filler: "As we continue", "In today's landscape", "It's no secret", "At the end of the day", "In this post", "We're excited to".
-- Short paragraphs separated by a blank line. 140–200 words before the closing link.
-- At most 1–3 emojis, and only if they help scanning.
 - No hashtag block in the body.
 - Do not invent customers, pilots, papers, statistics, or a deployed service.
-- If you are not confident a citation is real, leave it out.
-
-Close every post with:
-1) one short takeaway
-2) then a blank line
-3) then exactly this link on its own line: ${LANDING_PAGE_URL}`;
+- If you are not confident a citation is real, leave it out.`;
 
 export function buildFallbackDraft(topic: string): string {
-  return `${topic}.
+  return `**${topic}.**
 
-A website can put an entrance in front of an agent instead of trusting a human checkbox. The agent declares a bounded task, proves a session key, and works three inert exercises on a mock page: the normal page, a pressure page, and a relabeled page. Stay inside the declaration and the entrance can return allow_limited with a short-lived token bound to that key. Step outside and it returns a reason and no token.
+A website can put an entrance in front of an agent.
+The agent declares a bounded task and proves a session key.
+It works three inert exercises: the normal page, a pressure page, and a relabeled page.
+**Stay inside the declaration, and the entrance can return allow_limited.**
 
-The first profile is guest travel. Search and a guest draft are in bounds. Payment, contract submission, and data export stay blocked unless a separate approval exists. That approval flow is not built. The "I'm not a robot" path sets a cookie, skips ELAH, and is logged as unverified.
+A short-lived token, bound to that key.
+Step outside, and it returns a reason.
+**No token.**
 
-This slice runs locally. A pass records the attempt. It does not identify the model, recover a hidden user prompt, or promise the next action.
+The first profile is guest travel.
+Search and a guest draft are in bounds.
+Payment, contract submission, and data export stay blocked.
+That approval flow is not built.
+The "I'm not a robot" path sets a cookie, skips ELAH, and is logged as unverified.
+
+**This slice runs locally.**
+**A pass records the attempt. It does not name the model, the hidden prompt, or the next action.**
 
 ${LANDING_PAGE_URL}`;
 }
@@ -95,10 +116,10 @@ Topic: ${topic}
 Context: ${context ?? "ELAH V2 APACT — guest travel entrance. Search and guest draft only. Payment, contract submission, and data export need an approval flow that is not built."}
 
 Requirements:
-- Open with the mechanism or a concrete exercise detail.
-- Blank lines between short paragraphs.
-- Light emoji use only if useful (0–3).
-- End with a takeaway, then a blank line, then ${LANDING_PAGE_URL}
+- Use the bold-line text UI from the system instructions. One idea per line.
+- Wrap only the opening, the turn, and the close in double asterisks.
+- No emoji.
+- End with the closing bold lines, a blank line, then ${LANDING_PAGE_URL}
 - Do not invent citations, customers, or a production deployment.
 - Do not claim a passing exercise proves the user prompt or the model identity.
 - Do not write a banking intention-scoring post.`;
@@ -114,17 +135,17 @@ Requirements:
       system: SYSTEM_PROMPT,
       user: userContent,
     });
-    return { text: ensureLandingPageLink(text), provider: "groq" };
+    return { text: applyLinkedInTextUi(ensureLandingPageLink(text)), provider: "groq" };
   }
 
   const geminiKey = process.env.GEMINI_API_KEY?.trim();
   if (geminiKey) {
     const text = await generateWithGemini(geminiKey, SYSTEM_PROMPT, userContent);
-    return { text: ensureLandingPageLink(text), provider: "gemini" };
+    return { text: applyLinkedInTextUi(ensureLandingPageLink(text)), provider: "gemini" };
   }
 
   // No free key configured — return template (do not call OpenAI).
-  return { text: buildFallbackDraft(topic), provider: "fallback" };
+  return { text: applyLinkedInTextUi(buildFallbackDraft(topic)), provider: "fallback" };
 }
 
 export function hasLlmConfigured(): boolean {

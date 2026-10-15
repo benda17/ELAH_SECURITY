@@ -6,6 +6,7 @@
 import { readFileSync } from "node:fs";
 import { resolve } from "node:path";
 import type { PrismaClient } from "@prisma/client";
+import { applyLinkedInTextUi } from "../lib/founder/content-engine/format-post";
 import { ensureV2SourceEvents } from "../lib/founder/content-engine/source-seeds";
 import { V2_DRAFTS } from "../lib/founder/content-engine/v2-content";
 
@@ -91,7 +92,7 @@ async function archiveAndSeed(prisma: PrismaClient) {
     await prisma.linkedInPostDraft.createMany({
       data: V2_DRAFTS.map((draft, index) => ({
         title: draft.title,
-        body: draft.body,
+        body: applyLinkedInTextUi(draft.body),
         hashtags: JSON.stringify(draft.hashtags),
         status: draft.status,
         era: draft.era,
